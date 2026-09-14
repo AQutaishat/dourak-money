@@ -19,7 +19,7 @@ services:
   api:
     build:
       context: ./backend
-      dockerfile: Dourak.Api/Dockerfile
+      dockerfile: src/Dourak.Api/Dockerfile
     container_name: dourak-api
     depends_on:
       postgres:
