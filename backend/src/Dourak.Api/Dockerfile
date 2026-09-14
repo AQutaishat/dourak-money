@@ -15,6 +15,13 @@ RUN dotnet publish src/Dourak.Api/Dourak.Api.csproj -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+
+# Npgsql's GSSAPI encryption negotiation needs libgssapi-krb5, which isn't
+# present on the slim runtime image by default and otherwise logs a
+# "Cannot load library libgssapi_krb5.so.2" error on every DB connection.
+RUN apt-get update && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app .
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Dourak.Api.dll"]
