@@ -1,0 +1,27 @@
+{
+  "app": { "name": "Dourak", "tagline": "Your savings circle, organized." },
+  "nav": { "dashboard": "Dashboard", "myCircles": "My Circles", "logout": "Logout", "settings": "Settings" },
+  "auth": {
+    "login": "Login", "register": "Register", "email": "Email", "password": "Password", "name": "Name",
+    "preferredLanguage": "Preferred Language", "noAccount": "Don't have an account?", "haveAccount": "Already have an account?",
+    "loginCta": "Sign in", "registerCta": "Create account"
+  },
+  "circle": {
+    "savingsCircle": "Savings Circle", "myCircles": "My Circles", "createCircle": "Create Savings Circle",
+    "name": "Circle Name", "description": "Description", "currency": "Currency", "contributionAmount": "Contribution Amount",
+    "startDate": "Start Date", "frequency": "Frequency", "monthly": "Monthly", "status": "Status",
+    "organizerIsMember": "I am also a member of this circle", "organizerMemberName": "Your name as a member",
+    "members": "Members", "addMember": "Add Member", "memberName": "Name", "phone": "Phone", "email": "Email", "notes": "Notes",
+    "active": "Active", "inactive": "Deactivated", "deactivate": "Deactivate",
+    "payoutOrder": "Payout Order", "manualOrder": "Manual Order", "randomDraw": "Random Draw",
+    "runDraw": "Start Draw", "confirmOrder": "Confirm Order", "resetOrder": "Reset Order", "lockOrder": "Lock Order",
+    "activate": "Activate Circle", "pause": "Pause", "resume": "Resume", "cancel": "Cancel Circle",
+    "schedule": "Schedule", "currentCycle": "Current Cycle", "payments": "Payments", "payouts": "Payouts",
+    "history": "History", "memberHistory": "Member History", "recipient": "Recipient", "nextRecipient": "Next Recipient",
+    "expectedPool": "Expected Pool", "collected": "Collected", "outstanding": "Outstanding", "paid": "Paid", "unpaid": "Unpaid",
+    "partiallyPaid": "Partial", "late": "Late", "payoutStatus": "Payout Status", "pending": "Pending",
+    "recordPayment": "Record Payment", "confirmPayout": "Confirm Payout", "shareStatus": "Share to WhatsApp",
+    "draft": "Draft", "completed": "Completed", "paused": "Paused", "cancelled": "Cancelled"
+  },
+  "common": { "save": "Save", "cancel": "Cancel", "back": "Back", "next": "Next", "loading": "Loading...", "confirm": "Confirm", "close": "Close" }
+}

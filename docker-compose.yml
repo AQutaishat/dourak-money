@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dourak-postgres
+    environment:
+      POSTGRES_DB: dourak
+      POSTGRES_USER: dourak
+      POSTGRES_PASSWORD: dourak_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - dourak-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dourak -d dourak"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dourak.Api/Dockerfile
+    container_name: dourak-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=dourak;Username=dourak;Password=dourak_dev_password"
+      Jwt__Secret: "${JWT_SECRET:-CHANGE_ME_TO_A_LONG_RANDOM_SECRET_IN_PRODUCTION_ENVIRONMENT_VARIABLE}"
+      Cors__AllowedOrigins__0: "http://localhost:5173"
+      ASPNETCORE_ENVIRONMENT: "Production"
+    ports:
+      - "5000:8080"
+
+volumes:
+  dourak-postgres-data:
