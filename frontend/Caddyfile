@@ -1,0 +1,21 @@
+# No domain configured yet (deferred per project decision) — this is a plain
+# ":80" address, so Caddy will NOT attempt automatic HTTPS/ACME for it. Once a
+# domain is pointed at this server, replace ":80" with the domain name and
+# Caddy will provision a free Let's Encrypt certificate automatically.
+:80 {
+	# API calls stay same-origin from the browser's point of view — Caddy
+	# forwards them to the api container, path unchanged (e.g. /api/circles
+	# arrives at the API as /api/circles, matching its [Route("api/...")]).
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	# Everything else is the React SPA. try_files falls back to index.html
+	# so client-side routes (e.g. /circles/5) don't 404 on a hard refresh.
+	handle {
+		root * /srv
+		encode gzip
+		try_files {path} /index.html
+		file_server
+	}
+}
