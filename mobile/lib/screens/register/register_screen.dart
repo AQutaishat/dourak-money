@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -39,6 +40,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       await ref.read(authControllerProvider.notifier).register(email.text.text.trim(), password.text.text);
       if (mounted) context.go('/');
     } catch (err) {
+      debugPrint('Registration failed: $err'); // visible via `adb logcat` / `flutter logs`
       final message = err.toString();
       setState(() {
         error = RegExp('already exists|already registered', caseSensitive: false).hasMatch(message)

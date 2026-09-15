@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,11 +39,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(authControllerProvider.notifier).login(email.text.text.trim(), password.text.text);
       if (mounted) context.go('/');
     } catch (err) {
+      // Printed so `adb logcat` / `flutter logs` shows the real cause (network error,
+      // server error, etc.) — the on-screen message stays generic/localized on purpose.
+      debugPrint('Login failed: $err');
       // No cleared fields, message says plainly the credentials are wrong (mirrors LoginPage.tsx).
+      // A non-credentials failure (network/server error) must not be mislabeled as a
+      // bad password — show the real error so a connectivity problem is visible.
       setState(() {
         error = err is AuthException && err.kind == 'invalid-credentials'
             ? context.t('auth.invalidCredentials')
-            : context.t('auth.invalidCredentials');
+            : context.t('common.error');
       });
     } finally {
       if (mounted) setState(() => loading = false);

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 9+ blocks plain-HTTP ("cleartext") network calls to every domain by
+  default. The backend is plain HTTP for local/dev testing (no TLS cert on the
+  LAN dev machine), so without this config every request from the app fails
+  before it even reaches the network — which is what caused login/register to
+  silently fail. This is a debug/dev-testing allowance only: production must
+  use HTTPS and this cleartext exception should be removed (or the config
+  scoped to a dev-only build flavor) before a real release build.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
