@@ -80,8 +80,8 @@ cd backend
 dotnet ef database update --project src/Dourak.Infrastructure --startup-project src/Dourak.Api
 dotnet run --project src/Dourak.Api
 ```
-The API listens on `http://localhost:5080` (adjust via `--urls`) with Swagger at `/swagger`
-in Development. Migrations also apply automatically on startup (see `Program.cs`) —
+The API listens on `http://localhost:5210` by default (see `Properties/launchSettings.json`;
+adjust via `--urls`) with Swagger at `/swagger` in Development. Migrations also apply automatically on startup (see `Program.cs`) —
 the explicit `dotnet ef database update` above is only needed if you want to apply them
 without starting the API.
 
@@ -104,15 +104,16 @@ cd frontend
 npm install
 npm run dev
 ```
-Runs on `http://localhost:5173`. Set `VITE_API_BASE_URL` in `.env` if the API isn't on
-`http://localhost:5080/api`.
+Runs on `http://localhost:5173`. Set `VITE_API_BASE_URL` in `.env` (e.g.
+`http://localhost:5210/api`) if the API isn't on `http://localhost:5080/api`, the
+axios client's fallback default.
 
 ### 4. Everything via Docker
 ```bash
 docker compose up -d
 ```
-Builds and runs Postgres, the API (port 5000), the frontend (port 80) and Adminer — a
-lightweight database GUI.
+Builds and runs Postgres, the API (port 5000), the frontend (port 80), Adminer, and Seq
+(see [Logging](#logging) below).
 
 ### 5. Browsing the database (Adminer)
 
@@ -134,6 +135,46 @@ This is a deliberate tradeoff: Adminer's login form accepts database credentials
 exposing it publicly without rate limiting or MFA would be one weak password away from full
 data access. See the comment in `docker-compose.yml` for how to widen it safely (behind the
 existing Caddy reverse proxy with HTTPS + basic auth) if that's ever needed.
+
+## Logging
+
+The API uses **Serilog** (replacing the default logging provider entirely) with three
+sinks, configured in `appsettings.json` / `appsettings.Development.json`:
+
+- **Console** — what you see in the terminal when running `dotnet run`.
+- **Rolling file** — `backend/src/Dourak.Api/logs/dourak-YYYYMMDD.log` (daily, 14 days
+  retained; gitignored). This is what persists once the terminal closes, since console
+  output otherwise disappears with it.
+- **Seq** — a structured log server you can query/filter in a browser. Optional and off
+  by default: it only activates when `Seq:ServerUrl` (or the `Seq__ServerUrl` env var)
+  is set, so running the API standalone with no Seq container present never fails or
+  blocks startup.
+
+Every HTTP request also gets one structured log line (method, path, status, elapsed ms)
+via `UseSerilogRequestLogging()`.
+
+**Running Seq locally, alongside `dotnet run` (outside `docker compose`):**
+```bash
+docker run -d --name dourak-seq -e ACCEPT_EULA=Y -e SEQ_FIRSTRUN_NOAUTHENTICATION=true -p 127.0.0.1:5341:80 datalust/seq:latest
+```
+`appsettings.Development.json` already points at `http://localhost:5341`, so logs show
+up there as soon as the container is running — no other config needed.
+`SEQ_FIRSTRUN_NOAUTHENTICATION` skips Seq's own login; acceptable here only because
+the port is bound to loopback (see below), not exposed to anything else.
+
+**Via `docker compose`:** a `seq` service is already included and the `api` service is
+wired to it (`Seq__ServerUrl: http://seq:80` — Seq's *container* port is `80`; `5341`
+is only the host-side port mapping). Just `docker compose up -d` and open
+`http://localhost:5341`.
+
+**Security note (same tradeoff as Adminer above):** Seq has no authentication of its
+own here, so both locally and **in production** it is bound to `127.0.0.1` only —
+never reachable from the internet. On the Oracle server, reach it over an SSH tunnel:
+```bash
+ssh -L 5341:127.0.0.1:5341 <user>@<server>   # then open http://localhost:5341
+```
+If public access is ever genuinely needed, put it behind the existing Caddy reverse
+proxy with HTTPS + basic auth first, and only then widen the port binding.
 
 ### Payment-claim evidence storage
 

@@ -2,6 +2,7 @@
 bin/
 obj/
 *.user
+backend/src/Dourak.Api/logs/
 
 # Node
 node_modules/

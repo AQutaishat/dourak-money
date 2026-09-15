@@ -8,8 +8,36 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Serilog;
+
+// Bootstrap logger — captures anything that happens before the host's own logging
+// pipeline (built from appsettings below) is ready, e.g. config-loading failures.
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Serilog replaces the default provider entirely. Sinks (console/file/Seq) and
+// minimum levels are read from the "Serilog" section in appsettings.json /
+// appsettings.Development.json, so no sink configuration lives in code.
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("Application", "Dourak.Api");
+
+    // Seq is optional: only wired up when a server URL is configured (Seq:ServerUrl,
+    // or SEQ__SERVERURL as an env var in docker-compose), so running the API with
+    // no Seq container present never fails or blocks startup.
+    var seqUrl = context.Configuration["Seq:ServerUrl"];
+    if (!string.IsNullOrWhiteSpace(seqUrl))
+    {
+        configuration.WriteTo.Seq(seqUrl);
+    }
+});
 
 // ----- Services -----
 
@@ -72,6 +100,7 @@ var app = builder.Build();
 
 // ----- Pipeline -----
 
+app.UseSerilogRequestLogging(); // one structured line per HTTP request (method, path, status, elapsed ms)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -93,6 +122,19 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-app.Run();
+try
+{
+    Log.Information("Starting Dourak.Api");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Dourak.Api terminated unexpectedly");
+    throw;
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
 public partial class Program { } // exposed for WebApplicationFactory in integration tests

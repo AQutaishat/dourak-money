@@ -24,6 +24,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      seq:
+        condition: service_started
     environment:
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=dourak;Username=dourak;Password=dourak_dev_password"
       Jwt__Secret: "${JWT_SECRET:-CHANGE_ME_TO_A_LONG_RANDOM_SECRET_IN_PRODUCTION_ENVIRONMENT_VARIABLE}"
@@ -32,8 +34,16 @@ services:
       # Phase 2: payment-claim evidence is written to disk inside the container; the named
       # volume below is what makes it survive `docker compose up -d --build`.
       Storage__EvidencePath: "/app/data/evidence"
+      # Structured logs also ship to Seq (see the "seq" service below) in addition to
+      # console + the rolling file under /app/logs. Container name, not localhost —
+      # this env var travels with the container on both local compose and production.
+      # datalust/seq listens on port 80 *inside* the container (mapped to host 5341
+      # below) — from another container on the same compose network it's reached
+      # at http://seq:80, not :5341.
+      Seq__ServerUrl: "http://seq:80"
     volumes:
       - dourak-evidence-data:/app/data/evidence
+      - dourak-api-logs:/app/logs
     ports:
       - "5000:8080"
 
@@ -88,6 +98,37 @@ services:
       - "127.0.0.1:8081:8080"
     restart: unless-stopped
 
+  # ---------------------------------------------------------------------------
+  # Seq — structured log server. The API ships every log event to it (see
+  # Seq__ServerUrl on the api service above) in addition to the console and the
+  # rolling file under the dourak-api-logs volume, so logs survive container
+  # restarts and are queryable/filterable in one place instead of grepping text.
+  #
+  # SECURITY: same reasoning as Adminer above — Seq's own UI has no auth enabled
+  # by default, so it is bound to 127.0.0.1 only, on both local dev and production.
+  # Reach it on the server via an SSH tunnel:
+  #     ssh -L 5341:127.0.0.1:5341 <user>@<server>     # then open http://localhost:5341
+  # If you want it reachable without a tunnel, set Seq's ACCEPT_EULA/admin
+  # password and put it behind Caddy with HTTPS + basic auth first.
+  # ---------------------------------------------------------------------------
+  seq:
+    image: datalust/seq:latest
+    container_name: dourak-seq
+    environment:
+      ACCEPT_EULA: "Y"
+      # Seq requires either an admin password or an explicit opt-out on first run.
+      # Since Seq itself is bound to 127.0.0.1 only (see the port mapping and the
+      # comment above), an SSH-tunnel is already the access control; skipping its
+      # own login is an acceptable tradeoff for that loopback-only exposure.
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "true"
+    volumes:
+      - dourak-seq-data:/data
+    ports:
+      - "127.0.0.1:5341:80"
+    restart: unless-stopped
+
 volumes:
   dourak-postgres-data:
   dourak-evidence-data:
+  dourak-api-logs:
+  dourak-seq-data:
