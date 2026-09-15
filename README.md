@@ -85,6 +85,15 @@ Update `src/Dourak.Api/appsettings.json` (or an environment variable /
 `appsettings.Development.json`) with your own `Jwt:Secret` before any real deployment —
 the checked-in value is a placeholder.
 
+**For the docker-compose deployment specifically:** `docker-compose.yml` already
+reads the JWT secret from a `JWT_SECRET` environment variable
+(`Jwt__Secret: "${JWT_SECRET:-CHANGE_ME_...}"`), falling back to the placeholder
+only if it isn't set. Copy `.env.example` to `.env` (in the same directory as
+`docker-compose.yml`) and set a real secret there — generate one with
+`openssl rand -base64 64`. `.env` is gitignored, so it survives every
+`git pull` + `docker compose up -d --build` untouched; you only need to set it
+once per server, not on every deploy.
+
 ### 3. Frontend
 ```bash
 cd frontend
