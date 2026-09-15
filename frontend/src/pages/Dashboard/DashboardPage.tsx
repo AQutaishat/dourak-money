@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Box, Card, CardContent, Typography, Grid, Chip, Button, Stack } from "@mui/material";
+import { Box, Typography, Grid, Button, Stack } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { circlesApi } from "../../api/circles";
 import { CurrentCycleSummaryCard } from "../CircleOverview/CurrentCycleSummaryCard";
+import { PendingInvitationsSection } from "./PendingInvitationsSection";
+import { CircleInfoCard } from "./CircleInfoCard";
 
 export function DashboardPage() {
   const { t } = useTranslation();
@@ -15,13 +17,18 @@ export function DashboardPage() {
 
   if (!circles || circles.length === 0) {
     return (
-      <Box textAlign="center" py={8}>
-        <Typography variant="h6" gutterBottom>{t("circle.myCircles")}</Typography>
-        <Typography color="text.secondary" gutterBottom>{t("app.tagline")}</Typography>
-        <Button component={RouterLink} to="/circles/new" variant="contained" sx={{ mt: 2 }}>
-          {t("circle.createCircle")}
-        </Button>
-      </Box>
+      <Stack spacing={4}>
+        {/* Someone invited to their first circle has no circles of their own yet — the
+            invitations section must still show (prompt02 §4). */}
+        <PendingInvitationsSection />
+        <Box textAlign="center" py={6}>
+          <Typography variant="h6" gutterBottom>{t("circle.myCircles")}</Typography>
+          <Typography color="text.secondary" gutterBottom>{t("app.tagline")}</Typography>
+          <Button component={RouterLink} to="/circles/new" variant="contained" sx={{ mt: 2 }}>
+            {t("circle.createCircle")}
+          </Button>
+        </Box>
+      </Stack>
     );
   }
 
@@ -32,9 +39,7 @@ export function DashboardPage() {
         <Button component={RouterLink} to="/circles/new" variant="contained">{t("circle.createCircle")}</Button>
       </Stack>
 
-      {activeCircles.length === 0 && (
-        <Typography color="text.secondary">{t("circle.draft")} / {t("circle.active")} —</Typography>
-      )}
+      <PendingInvitationsSection />
 
       <Grid container spacing={2}>
         {activeCircles.map((circle) => (
@@ -48,17 +53,7 @@ export function DashboardPage() {
       <Grid container spacing={2}>
         {circles.map((circle) => (
           <Grid item xs={12} sm={6} md={4} key={circle.id}>
-            <Card component={RouterLink} to={`/circles/${circle.id}`} sx={{ textDecoration: "none", display: "block" }}>
-              <CardContent>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="subtitle1" fontWeight={600}>{circle.name}</Typography>
-                  <Chip size="small" label={t(`circle.${circle.status.toLowerCase()}`)} />
-                </Stack>
-                <Typography variant="body2" color="text.secondary">
-                  {circle.memberCount} · {circle.contributionAmount} {circle.currency}
-                </Typography>
-              </CardContent>
-            </Card>
+            <CircleInfoCard circle={circle} />
           </Grid>
         ))}
       </Grid>

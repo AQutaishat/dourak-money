@@ -29,6 +29,11 @@ services:
       Jwt__Secret: "${JWT_SECRET:-CHANGE_ME_TO_A_LONG_RANDOM_SECRET_IN_PRODUCTION_ENVIRONMENT_VARIABLE}"
       Cors__AllowedOrigins__0: "http://localhost:5173"
       ASPNETCORE_ENVIRONMENT: "Production"
+      # Phase 2: payment-claim evidence is written to disk inside the container; the named
+      # volume below is what makes it survive `docker compose up -d --build`.
+      Storage__EvidencePath: "/app/data/evidence"
+    volumes:
+      - dourak-evidence-data:/app/data/evidence
     ports:
       - "5000:8080"
 
@@ -43,5 +48,46 @@ services:
     ports:
       - "80:80"
 
+  # ---------------------------------------------------------------------------
+  # Postgres GUI client (prompt02 §Other requirement).
+  #
+  # Adminer, not pgAdmin. Both browse tables and run queries; the difference is cost:
+  # Adminer is a single ~10 MB stateless PHP page, while pgAdmin is a ~600 MB stateful
+  # container that needs its own volume, its own account store, and its own upgrade path.
+  # For "open the database and look at it" on a small Oracle Cloud box, Adminer is the
+  # lighter, lower-maintenance choice — and its login IS the Postgres login, so there is no
+  # second set of credentials to create, rotate, or leak.
+  #
+  # SECURITY TRADEOFF (deliberate, flagged rather than silently exposed):
+  # the port is published on 127.0.0.1 only, so Adminer is NOT reachable from the internet
+  # on the production host even though the service runs there. Reach it over an SSH tunnel:
+  #
+  #     ssh -L 8081:127.0.0.1:8081 <user>@<server>     # then open http://localhost:8081
+  #
+  # Rationale: Adminer authenticates against Postgres, so exposing it publicly would put a
+  # form that accepts database credentials on the open internet — one weak password away
+  # from full data access, with no rate limiting or MFA in front of it. Binding to loopback
+  # means an attacker must already hold SSH access to the server before they can even see
+  # the login page, which is the same bar that protects `psql` on the box today. If public
+  # access is ever genuinely needed, put it behind the existing Caddy reverse proxy with
+  # HTTPS plus basic auth, and only then change this binding.
+  #
+  # Locally this is identical: http://localhost:8081, log in with
+  #   System: PostgreSQL  ·  Server: postgres  ·  Username: dourak  ·  Database: dourak
+  # ---------------------------------------------------------------------------
+  adminer:
+    image: adminer:4-standalone
+    container_name: dourak-adminer
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: dracula
+    ports:
+      - "127.0.0.1:8081:8080"
+    restart: unless-stopped
+
 volumes:
   dourak-postgres-data:
+  dourak-evidence-data:

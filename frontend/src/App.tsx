@@ -17,6 +17,7 @@ import { MyCirclesPage } from "./pages/MyCircles/MyCirclesPage";
 import { CreateCirclePage } from "./pages/CreateCircle/CreateCirclePage";
 import { CircleOverviewPage } from "./pages/CircleOverview/CircleOverviewPage";
 import { MemberHistoryPage } from "./pages/CircleOverview/MemberHistoryPage";
+import { ProfilePage } from "./pages/Profile/ProfilePage";
 
 function ProtectedRoute({ children }: { children: React.ReactElement }) {
   const { isAuthenticated } = useAuth();
@@ -49,6 +50,7 @@ function ThemedApp() {
               <Route path="/circles/new" element={<CreateCirclePage />} />
               <Route path="/circles/:circleId" element={<CircleOverviewPage />} />
               <Route path="/circles/:circleId/members/:memberId/history" element={<MemberHistoryPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

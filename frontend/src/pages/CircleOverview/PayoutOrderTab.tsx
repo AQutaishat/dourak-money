@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Box, Button, List, ListItem, ListItemText, Stack, IconButton, Typography, Alert, Chip,
+  Box, Button, List, ListItem, ListItemText, Stack, IconButton, Typography, Alert, Chip, Tooltip,
 } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -9,6 +9,7 @@ import ShuffleIcon from "@mui/icons-material/Shuffle";
 import { useTranslation } from "react-i18next";
 import { circlesApi } from "../../api/circles";
 import type { CircleDetail } from "../../api/types";
+import { ActivateCircleButton } from "./ActivateCircleButton";
 
 export function PayoutOrderTab({ circle, onActivated }: { circle: CircleDetail; onActivated: () => void }) {
   const { t } = useTranslation();
@@ -16,14 +17,15 @@ export function PayoutOrderTab({ circle, onActivated }: { circle: CircleDetail; 
   const { data: members } = useQuery({ queryKey: ["members", circle.id], queryFn: () => circlesApi.members(circle.id) });
   const { data: order, refetch } = useQuery({ queryKey: ["payoutOrder", circle.id], queryFn: () => circlesApi.payoutOrder(circle.id) });
 
-  const activeMembers = members?.filter((m) => m.isActive) ?? [];
+  // Declined and not-yet-accepted members are excluded from the order (prompt02 §5).
+  const participatingMembers = members?.filter((m) => m.isParticipating) ?? [];
   const [localOrder, setLocalOrder] = useState<{ memberId: number; memberName: string }[]>([]);
 
   useEffect(() => {
     if (order && order.length > 0) {
       setLocalOrder(order.map((o) => ({ memberId: o.memberId, memberName: o.memberName })));
     } else {
-      setLocalOrder(activeMembers.map((m) => ({ memberId: m.id, memberName: m.name })));
+      setLocalOrder(participatingMembers.map((m) => ({ memberId: m.id, memberName: m.name })));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order, members]);
@@ -44,19 +46,9 @@ export function PayoutOrderTab({ circle, onActivated }: { circle: CircleDetail; 
     onSuccess: async () => { invalidate(); await refetch(); },
   });
 
-  const confirmMutation = useMutation({
-    mutationFn: () => circlesApi.confirmOrder(circle.id),
-    onSuccess: invalidate,
-  });
-
   const resetMutation = useMutation({
     mutationFn: () => circlesApi.resetOrder(circle.id),
     onSuccess: invalidate,
-  });
-
-  const activateMutation = useMutation({
-    mutationFn: () => circlesApi.activate(circle.id),
-    onSuccess: onActivated,
   });
 
   const move = (index: number, direction: -1 | 1) => {
@@ -80,17 +72,18 @@ export function PayoutOrderTab({ circle, onActivated }: { circle: CircleDetail; 
     );
   }
 
-  if (activeMembers.length === 0) {
-    return <Alert severity="info">{t("circle.addMember")} — add members first.</Alert>;
+  if (participatingMembers.length === 0) {
+    return <Alert severity="info">{t("circle.addMember")}</Alert>;
   }
 
   const hasOrder = (order?.length ?? 0) > 0;
+  const canManage = circle.isOrganizer;
 
   return (
     <Box>
       <Typography variant="h6" gutterBottom>{t("circle.payoutOrder")}</Typography>
 
-      {!circle.payoutOrderConfirmed && (
+      {canManage && (
         <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
           <Button startIcon={<ShuffleIcon />} variant="outlined" onClick={() => drawMutation.mutate()}>{t("circle.runDraw")}</Button>
           {hasOrder && <Button color="warning" onClick={() => resetMutation.mutate()}>{t("circle.resetOrder")}</Button>}
@@ -103,35 +96,39 @@ export function PayoutOrderTab({ circle, onActivated }: { circle: CircleDetail; 
             key={entry.memberId}
             sx={{ bgcolor: "background.paper", mb: 1, borderRadius: 2 }}
             secondaryAction={
-              !circle.payoutOrderConfirmed && (
+              canManage && (
                 <Stack direction="row">
-                  <IconButton size="small" onClick={() => move(index, -1)} disabled={index === 0}><ArrowUpwardIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" onClick={() => move(index, 1)} disabled={index === localOrder.length - 1}><ArrowDownwardIcon fontSize="small" /></IconButton>
+                  <Tooltip title={t("circle.moveUp")}>
+                    <span>
+                      <IconButton size="small" onClick={() => move(index, -1)} disabled={index === 0}><ArrowUpwardIcon fontSize="small" /></IconButton>
+                    </span>
+                  </Tooltip>
+                  <Tooltip title={t("circle.moveDown")}>
+                    <span>
+                      <IconButton size="small" onClick={() => move(index, 1)} disabled={index === localOrder.length - 1}><ArrowDownwardIcon fontSize="small" /></IconButton>
+                    </span>
+                  </Tooltip>
                 </Stack>
               )
             }
           >
-            <Chip label={index + 1} size="small" sx={{ mr: 2 }} />
+            <Chip label={index + 1} size="small" sx={{ marginInlineEnd: 2 }} />
             <ListItemText primary={entry.memberName} />
           </ListItem>
         ))}
       </List>
 
-      {!circle.payoutOrderConfirmed ? (
-        <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+      {canManage && (
+        <Stack direction="row" spacing={1} sx={{ mt: 2 }} alignItems="center">
           <Button variant="outlined" onClick={() => saveManualMutation.mutate()}>{t("common.save")}</Button>
-          <Button
-            variant="contained"
-            onClick={async () => { await saveManualMutation.mutateAsync(); await confirmMutation.mutateAsync(); }}
-          >
-            {t("circle.confirmOrder")}
-          </Button>
+          {/* prompt02 §Payout Order tab: no separate "Confirm Order" — activation fixes the order,
+              so saving and activating is the whole flow. */}
+          <ActivateCircleButton
+            circleId={circle.id}
+            onActivated={onActivated}
+            disabled={saveManualMutation.isPending}
+          />
         </Stack>
-      ) : (
-        <Alert severity="success" sx={{ mt: 2 }}>
-          {t("circle.lockOrder")}
-          <Button sx={{ ml: 2 }} variant="contained" onClick={() => activateMutation.mutate()}>{t("circle.activate")}</Button>
-        </Alert>
       )}
     </Box>
   );

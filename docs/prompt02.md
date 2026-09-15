@@ -71,12 +71,12 @@ silently on privacy-shaped decisions.
 
 ## Functional requirements
 
-### 1. User profile — add phone number
+### 1. [DONE] User profile — add phone number
 
 Add a phone number field to the registered user's profile/account information
 (alongside name, email, preferred language, etc. that already exist).
 
-### 2. Adding a member — search existing users
+### 2. [DONE] Adding a member — search existing users
 
 Replace/extend the "add member" flow with **one textbox using autocomplete-style
 live search**:
@@ -86,7 +86,7 @@ live search**:
 - Organizer picks a result to add that user to the circle (pending their
   acceptance — see below).
 
-### 3. Inviting someone not yet registered
+### 3. [DONE] Inviting someone not yet registered
 
 In the same "add member" flow, include an option to **invite someone who isn't a
 Dourak user yet**:
@@ -98,7 +98,7 @@ Dourak user yet**:
 - This is a lightweight invite-to-register flow, not a full deep-link/invitation-
   token system unless you find that's trivially easy to add alongside it.
 
-### 4. Accept / decline flow
+### 4. [DONE] Accept / decline flow
 
 - An invited (but not-yet-accepted) member shows up somewhere the invitee can see
   and act on it: **accept** or **decline**.
@@ -108,7 +108,7 @@ Dourak user yet**:
   the natural long-term home for this too, but is **deferred to future work** (see
   `docs/future-work.md`) — the main-page invitations section is what ships now.
 
-### 5. Member status inside a circle
+### 5. [DONE] Member status inside a circle
 
 On the **Circle Details / Members** page, next to each member, show whether they
 have:
@@ -122,7 +122,7 @@ inactive/deactivated member would be (not part of payout order, schedule, or
 contribution tracking). The organizer can **re-invite** a declined member (sends
 a fresh invitation through the same flow).
 
-### 6. Payment self-reporting, evidence, and organizer approval
+### 6. [DONE] Payment self-reporting, evidence, and organizer approval
 
 Two ways a contribution gets marked paid, both must coexist:
 
@@ -154,13 +154,13 @@ same as today.
 This requires an attachment/evidence storage mechanism (image or document) tied
 to a payment claim — design this properly rather than as an afterthought.
 
-### 7. Simplified registration screen
+### 7. [DONE] Simplified registration screen
 
 Remove the **Name** and **Preferred Language** fields from the register screen —
 it should only ask for **Email** and **Password**. Name (and phone, per §1) are
 added later by the user themselves, from their profile page (see §8).
 
-### 8. Account menu + profile page
+### 8. [DONE] Account menu + profile page
 
 **Top navigation:** add a button showing an **anonymous-person icon** plus the
 current user's **display name** next to it. If the user has no name set yet, show
@@ -187,14 +187,14 @@ their **email** instead. Clicking it opens a dropdown menu containing:
   way email uniqueness is already normalized — otherwise trivially different
   strings that are really the same value would slip past the check.
 
-## UI/UX fixes and refinements to existing (Phase 1) screens
+## [DONE] UI/UX fixes and refinements to existing (Phase 1) screens
 
 These are polish/fix items on screens that already exist — not new Phase 2
 features, but part of this same execution pass. Apply the same "common
 behaviour" pattern wherever a rule is described as shared (e.g. field validation
 style) rather than re-implementing it differently per screen.
 
-### Login screen
+### [DONE] Login screen
 - Wrong email or wrong password currently shows a flash error, then the page
   **reloads and clears the fields** — remove this behavior entirely.
 - Instead: show a clear, non-dismissing message — **"Invalid credentials"** — and
@@ -208,7 +208,7 @@ style) rather than re-implementing it differently per screen.
     format").
   - Applies to both email and password on this screen.
 
-### Register screen
+### [DONE] Register screen
 - Remove **Name** and **Preferred Language** fields (already specified in §7) —
   only Email and Password remain.
 - Email: same common on-blur validation as above — red border + error text if
@@ -220,7 +220,7 @@ style) rather than re-implementing it differently per screen.
 - If the email is already registered, show a **clear, specific message** saying
   so (not a generic/unclear failure).
 
-### Top navigation — branding, layout, and account menu
+### [DONE] Top navigation — branding, layout, and account menu
 - Change the displayed app name from **"دورك"** to **"تطبيق دورك"** or **"برنامج
   دورك"** (include the word app/program, not just the bare name).
 - Fix menu alignment per language direction — this is currently wrong:
@@ -236,7 +236,7 @@ style) rather than re-implementing it differently per screen.
     mirrored correctly for each direction.
 - **Browser tab title:** currently shows "frontend" — change it to **"Dourak"**.
 
-### Dashboard — circle cards
+### [DONE] Dashboard — circle cards
 - Show the **circle creator (organizer/admin) name** and **creation date** on the
   circle info card, in both the draft and active card sections.
 - **Active** circle status badge: currently gray — change to **green, blue, or
@@ -244,7 +244,7 @@ style) rather than re-implementing it differently per screen.
 - Active circle cards should also show: **member count** and the **single
   (per-member) payment amount**.
 
-### Create Circle screen
+### [DONE] Create Circle screen
 - Circle name: apply the common validation pattern — on blur, if empty, red
   border + "this field is required" text.
 - Contribution amount input: when focused, **select the existing text** (so
@@ -258,7 +258,7 @@ style) rather than re-implementing it differently per screen.
 - Add a **Cancel** button that returns to the previous screen without creating
   the circle.
 
-### Circle Details — Draft circles
+### [DONE] Circle Details — Draft circles
 - The **first tab** shown should be a **Basic Info** tab with: name, description,
   start date, contribution amount, **total monthly amount** (computed:
   `members count × contribution amount`), and **last payment month** (computed:
@@ -279,7 +279,7 @@ style) rather than re-implementing it differently per screen.
   simply becomes fixed once the circle is activated, so there's no need for a
   distinct confirm step before that.
 
-### Circle Details — Active circles
+### [DONE] Circle Details — Active circles
 - Active circles should also show basic info similar to the draft view — **or,
   preferably, merge this into the top of the Current Cycle tab as a read-only
   info block** rather than a separate tab. Use your judgment on whichever reads
@@ -310,7 +310,7 @@ style) rather than re-implementing it differently per screen.
   font) showing **"صاحب الدور"** plus the **current recipient's name** — this
   should stand out, not be buried inside a smaller card.
 
-## Other requirement — local Postgres GUI client (developer tooling, not app scope)
+## [DONE] Other requirement — local Postgres GUI client (developer tooling, not app scope)
 
 Add a **Postgres browser/GUI client** as a Docker service in `docker-compose.yml`
 so the database can be opened and browsed visually (tables, run queries, inspect

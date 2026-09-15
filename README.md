@@ -4,7 +4,11 @@ A simple, Arabic-first organizer for **جمعية / Savings Circles (ROSCA)**. P
 tracking and coordination tool for one organizer — it never holds, transfers, or
 processes money.
 
-## Status: Phase 1 (see [Definition of Done](#definition-of-phase-1-done) below)
+## Status: Phase 2 — member self-service & invitations (see `docs/prompt02.md`, `docs/progress.md`)
+
+Phase 2 adds: adding members by searching registered users, invitation accept/decline,
+view-only circle access for accepted members, member payment self-reporting with evidence
+subject to organizer approval, and a user profile with name/phone.
 
 ## Architecture
 
@@ -107,19 +111,50 @@ Runs on `http://localhost:5173`. Set `VITE_API_BASE_URL` in `.env` if the API is
 ```bash
 docker compose up -d
 ```
-Builds and runs Postgres + the API (port 5000). Run the frontend separately with `npm run dev`
-for now (a frontend Dockerfile/nginx step can be added when there's a real deployment target).
+Builds and runs Postgres, the API (port 5000), the frontend (port 80) and Adminer — a
+lightweight database GUI.
+
+### 5. Browsing the database (Adminer)
+
+`docker compose` runs **Adminer** on `http://localhost:8081`. Log in with
+`System: PostgreSQL · Server: postgres · Username: dourak · Database: dourak`.
+
+Adminer was chosen over pgAdmin because it is a single ~10 MB stateless container whose
+login *is* the Postgres login — pgAdmin is ~600 MB, stateful, and adds a second set of
+credentials to manage.
+
+**On the production server it is bound to loopback only** (`127.0.0.1:8081`), so it is not
+reachable from the internet. Reach it through an SSH tunnel:
+
+```bash
+ssh -L 8081:127.0.0.1:8081 <user>@<server>   # then open http://localhost:8081
+```
+
+This is a deliberate tradeoff: Adminer's login form accepts database credentials, so
+exposing it publicly without rate limiting or MFA would be one weak password away from full
+data access. See the comment in `docker-compose.yml` for how to widen it safely (behind the
+existing Caddy reverse proxy with HTTPS + basic auth) if that's ever needed.
+
+### Payment-claim evidence storage
+
+Phase 2 evidence files (images/PDFs attached to a member's payment self-report) are written
+to disk by the API under `Storage:EvidencePath` — `/app/data/evidence` in Docker, mounted as
+the `dourak-evidence-data` volume so uploads survive `docker compose up -d --build`. Limits:
+5 MB per file, images and PDFs only; the database stores only the reference.
 
 ## Tests
 ```bash
 cd backend
 dotnet test
 ```
-21 Domain tests cover: random-draw completeness/fairness, payout-order uniqueness,
-schedule generation, activation locking, member replacement, contribution/late-status
-derivation. 3 Application tests cover the full organizer journey end-to-end (create →
-members → order → activate → contributions → payout → history) against a real EF Core
-model.
+**55 tests.** 34 Domain tests cover: random-draw completeness/fairness, payout-order
+uniqueness, schedule generation, activation locking, member replacement, contribution/late-status
+derivation, plus the Phase 2 invitation lifecycle (accept/decline/re-invite, declined-member
+exclusion) and payment-claim review rules. 21 Application tests cover the full organizer
+journey end-to-end (create → members → order → activate → contributions → payout → history)
+plus the Phase 2 flows — invite by user search, accept/decline, payment self-report with
+approval/rejection, claim privacy, circle deletion, and name/phone uniqueness — against a
+real EF Core model.
 
 ## Phase 1 business rules (enforced in code)
 
@@ -133,6 +168,26 @@ See `Dourak.Domain.Entities.SavingsCircle` for the authoritative implementation.
 6. Contribution paid amount can't exceed the expected amount (partial payments supported).
 7. "Late" status is derived from due date + outstanding balance, never stored — it can't drift.
 8. All money columns are `decimal(18,2)` — no floating point.
+
+## Phase 2 business rules (enforced in code)
+
+9. A member linked to a registered user must **accept** their invitation before they count as
+   part of the circle; **declined** members are excluded exactly like deactivated ones
+   (`CircleMember.IsParticipating`, used everywhere the aggregate builds the order/schedule).
+10. A member can self-report **only their own** payment — the contribution is resolved from the
+    caller's own member row, so there is no member id to spoof — and only one claim may be open
+    per contribution at a time.
+11. A self-reported payment is **not** paid until the organizer approves it; approval routes
+    through `Contribution.RecordPayment`, so rule #6 still holds on that path.
+12. A payment claim, its evidence and its rejection are visible **only** to the submitting
+    member and the organizer. Payment *status* stays visible to every member.
+13. Accepted members get **read-only** access to their whole circle; every mutation stays
+    organizer-only (`ICircleReadRequest` vs. `ICircleOwnedRequest`).
+14. Members never see other members' phone/email; they do see who the organizer is.
+15. A user's name and phone are optional but **unique when set**, compared on a normalized
+    value (case-insensitive name, formatting-stripped phone) in both the app and the database.
+16. A circle can be deleted only while it has **zero recorded payments** — rule #5's "never
+    hard-delete financial history" is preserved by never offering deletion after that point.
 
 ## Phase 1 Business Decisions
 

@@ -22,8 +22,12 @@ public class DiskEvidenceFileStorage : IEvidenceFileStorage
     public DiskEvidenceFileStorage(IConfiguration configuration, ILogger<DiskEvidenceFileStorage> logger)
     {
         _logger = logger;
-        _root = configuration["Storage:EvidencePath"]
-                ?? Path.Combine(AppContext.BaseDirectory, "data", "evidence");
+        // Treat an unset *or blank* setting as "use the default" — appsettings ships the key
+        // with an empty value so it's discoverable, and "" must not become the storage root.
+        var configured = configuration["Storage:EvidencePath"];
+        _root = string.IsNullOrWhiteSpace(configured)
+            ? Path.Combine(AppContext.BaseDirectory, "data", "evidence")
+            : configured;
         Directory.CreateDirectory(_root);
     }
 
