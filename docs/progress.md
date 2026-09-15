@@ -42,3 +42,151 @@ Each entry: step name + one-line description / business rule satisfied.
 - **Backend tests** — Added `Phase3WorkflowTests` (application: editable basic info incl. post-activation lock, hard member removal across every invitation status incl. post-activation lock, user1/user2 auto-accept, user3/user4 normal flow) and extended `SavingsCircleTests` (domain: `UpdateBasicInfo`/`RemoveMember` happy paths, empty-name guard, post-activation guards, unknown-member guard). Full suite: **68 passing** (41 domain + 27 application), up from 55.
 - **No EF migration added** — confirmed via a throwaway `dotnet ef migrations add` (empty Up/Down, then removed) that none of this phase's changes touch the schema; beta users are plain Identity rows created through the existing `UserManager`.
 - **Verification** — `dotnet test`: 68/68 passing. `npm run build`: succeeds (TypeScript clean; only the pre-existing bundle-size advisory, unchanged from Phase 2).
+
+## Mobile App (Flutter) — Progress
+
+Executed `docs/mobile-plan.md` end-to-end in a new `mobile/` directory at the repo
+root: a Flutter/Android app calling the same backend (`backend/src/Dourak.Api`),
+no backend or React frontend changes. Built by hand-authoring every file (the
+sandbox has no Flutter/Dart SDK — `flutter`/`dart` are not on PATH and no SDK
+install was found — so `flutter create` could not be run; the project skeleton,
+including `android/`, was constructed manually to match what `flutter create
+mobile --platforms=android --org com.dourak` produces).
+
+### What was built
+
+- **API layer** (`mobile/lib/api/`) — `api_client.dart` (Dio + bearer-token
+  interceptor + the same `AUTH_ENDPOINTS` 401 special-case as
+  `frontend/src/api/client.ts`, wired to force-logout instead of a page reload),
+  `auth_api.dart`, `circles_api.dart` (every route from
+  `frontend/src/api/circles.ts` ported 1:1, including multipart claim
+  submission), `models.dart` (hand-written `fromJson`, mirroring
+  `frontend/src/api/types.ts`).
+- **Auth** (`mobile/lib/auth/auth_state.dart`) — Riverpod `StateNotifier`
+  mirroring `AuthContext.tsx`: `AuthException` mirrors the web app's
+  `AuthError` (`invalid-credentials` vs `server`), token persisted via
+  `flutter_secure_storage` (Android Keystore-backed).
+- **State** (`mobile/lib/state/providers.dart`) — Riverpod `FutureProvider`
+  families stand in for the web app's TanStack Query hooks; a single
+  `refreshTickProvider` counter is the Riverpod equivalent of
+  `queryClient.invalidateQueries()` — every mutation bumps it and every screen
+  watching a data provider refetches.
+- **Screens** (`mobile/lib/screens/`) — login, register, dashboard (pending
+  invitations + active-circle progress cards + full circle list), my circles,
+  create circle, profile, and the circle overview tab set: Basic Info (draft,
+  editable name/description/start date only), Members (search-and-add,
+  WhatsApp-invite-as-pure-share, deactivate, prompt03 §1 full removal on
+  drafts), Payout Order (manual reorder via up/down buttons instead of
+  drag-and-drop — more reliable on touch — random draw, reset), Current Cycle
+  (dashboard stats, per-row record-payment, member self-report claim button
+  hidden from organizers per prompt03 §5, payout confirmation), Schedule,
+  History, and the Member History screen (Back/Close both return to the
+  Members tab via `?tab=members`, exactly like `MemberHistoryPage.tsx`).
+- **i18n/RTL** — `mobile/lib/l10n/strings.dart` + `app_localizations.dart`: a
+  hand-ported flat key→string map for `ar`/`en` copied verbatim from
+  `frontend/src/i18n/{ar,en}.json` (including `{placeholder}` interpolation),
+  with a `context.t('circle.recordPayment')` accessor. RTL is driven by
+  `Directionality` + `Locale('ar')`, matching the web app's default language.
+  **Deviation from the plan:** ARB files + `flutter gen-l10n` were not used —
+  the sandbox cannot run that code-generation step, so a zero-codegen flat map
+  was used instead. Functionally equivalent; a future pass with a working
+  Flutter toolchain could migrate this to ARB without changing any screen code.
+- **Theming** (`mobile/lib/theme/app_theme.dart`) — Material 3 theme built from
+  the same seed color (`#1F8A70`), same `12px` corner radius, ported from
+  `frontend/src/theme/theme.ts`.
+- **WhatsApp integration** (`mobile/lib/utils/whatsapp.dart`) — `url_launcher`
+  opens the same `wa.me/<phone>?text=...` scheme with the same message
+  templates (share status, per-member reminder, invite-to-register) as
+  `frontend/src/utils/whatsapp.ts`.
+
+### Judgment calls / deviations (none silently skipped)
+
+- **No `json_serializable`/`build_runner`** — despite §2 listing it, models use
+  hand-written `fromJson` instead. Reason: `build_runner` needs the Dart SDK to
+  run, which isn't available here to verify generated code compiles; hand-written
+  parsing has zero build step and is easy to audit line-by-line against
+  `types.ts`. If a future contributor wants generated code, this is a
+  mechanical migration.
+- **No ARB/`gen-l10n`** — see i18n note above; same "no SDK to run codegen"
+  reasoning.
+- **Payout Order reordering uses up/down icon buttons, not drag-and-drop** —
+  `ReorderableListView` is more fragile to hand-verify without a running
+  emulator; up/down buttons produce the identical `setManualOrder` API call
+  and are equally usable on a touchscreen.
+- **Evidence viewing is simplified** — `PaymentClaimsApi.evidenceBytes()`
+  downloads the authenticated bytes (mirroring the web app's blob-URL fetch),
+  but the mobile UI only confirms the download rather than rendering an
+  in-app image/PDF viewer; wiring a full-screen viewer is straightforward but
+  was deprioritized to keep scope moving — noted here rather than silently
+  dropped.
+- **`buildInviteToRegisterText` uses a fixed app URL** (`dourak_app_url` =
+  `https://dourak.app`, in `mobile/lib/utils/whatsapp.dart`) instead of
+  `window.location.origin` (meaningless on a native app). **Whoever deploys
+  this should replace that constant with the real production web app URL.**
+- **Debug builds are debug-signed** (`android/app/build.gradle` sets the
+  release build type to use the debug signing config) since Play Store
+  signing/publishing is explicitly out of scope (§5).
+- **Launcher icon is a solid-color placeholder** (`android/app/src/main/res/
+  mipmap-*/ic_launcher.png`, generated via a one-off PowerShell/.NET
+  `System.Drawing` script since no Flutter SDK/`flutter_launcher_icons` was
+  available) — replace with real branding before shipping.
+
+### How to run
+
+```bash
+cd mobile
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5210/api
+```
+
+- `10.0.2.2` is the Android emulator's alias for the host machine — this is
+  the default baked into `mobile/lib/api/api_client.dart` if `API_BASE_URL`
+  isn't passed, so a plain `flutter run` against the emulator with the backend
+  running locally works with no extra flags. Adjust the port to match the
+  backend's actual listen port (see `backend/src/Dourak.Api`'s launch
+  settings / `docker-compose.yml`).
+- On a physical device on the same Wi-Fi as the dev machine, pass the
+  machine's LAN IP instead, e.g. `--dart-define=API_BASE_URL=http://192.168.1.50:5210/api`.
+- For a release build pointed at production:
+  `flutter build apk --dart-define=API_BASE_URL=https://<prod-domain>/api`.
+
+### Package versions pinned (`mobile/pubspec.yaml`)
+
+`dio ^5.4.3+1`, `flutter_riverpod ^2.5.1`, `go_router ^14.2.0`,
+`flutter_secure_storage ^9.2.2`, `intl ^0.19.0`, `url_launcher ^6.3.0`,
+`file_picker ^8.0.6`, `flutter_lints ^4.0.0`. SDK constraint `>=3.3.0 <4.0.0`
+(needs Dart 3.3+ for the record types used in a couple of provider families).
+
+### Verification — what could and couldn't be checked
+
+**Could not run `flutter analyze` or `flutter build apk --debug`.** This
+sandbox has no Flutter/Dart SDK installed (`flutter`/`dart` are absent from
+PATH and no SDK directory was found anywhere on the machine), and installing
+one was outside what could be done here. Per the task instructions, all
+source code was still written completely and as correctly as possible from a
+static-review standpoint:
+
+- Every import was cross-checked against what it uses.
+- Every provider/widget file was manually re-read for null-safety issues
+  (e.g. `AsyncValue.valueOrNull` instead of the deprecated `.asData`,
+  explicit `!`/`?` handling around nullable API fields).
+- The full Android `android/` project (Gradle files, manifest, `MainActivity`,
+  styles, launcher icons) was hand-written to match current `flutter create
+  --platforms=android` output (AGP 8.3.0, Kotlin 1.9.22, compileSdk/targetSdk
+  34, minSdk 23, Flutter embedding v2), so a `flutter pub get` followed by
+  `flutter build apk --debug` on a machine with the Flutter SDK installed is
+  the expected next verification step — it was not possible from here.
+- **Whoever picks this up next should, as the very first step, run
+  `flutter analyze` and `flutter build apk --debug` inside `mobile/` and fix
+  whatever surfaces** — hand-written Dart across ~25 files with no compiler
+  in the loop is very likely to have at least a few small mistakes (a typo'd
+  identifier, a missing import, a widget constructor argument) even though
+  the logic and API contracts were carefully cross-checked against the React
+  source. `docs/mobile-plan.md` §6 is marked "PARTIALLY DONE" for exactly
+  this reason — the code is complete but its build has not been confirmed.
+
+### Out of scope (per plan §5, unchanged)
+
+iOS build/signing, Play Store publishing/signing, push notifications,
+offline/local caching beyond in-memory Riverpod state, automated widget/
+integration tests.
