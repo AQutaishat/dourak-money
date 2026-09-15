@@ -62,10 +62,10 @@
     "noUsersFound": "لا يوجد مستخدم مسجل مطابق.",
     "inviteUnregistered": "دعوة شخص غير مسجل في دورك",
     "inviteByWhatsApp": "دعوة عبر واتساب",
-    "invitePersonName": "الاسم (اختياري)",
-    "invitePersonPhone": "رقم الهاتف",
-    "inviteSentNote": "سنضيفه أيضًا إلى هذه الجمعية كسجل عادي حتى تتمكن من متابعته.",
+    "inviteSentNote": "هذا يفتح رسالة واتساب لدعوته للتسجيل فقط — لا تتم إضافته إلى هذه الجمعية. بعد أن يسجّل حسابه، أضفه من الأعلى كأي مستخدم آخر.",
     "addExistingUser": "إضافة مستخدم مسجل",
+    "removeMember": "إزالة العضو",
+    "removeMemberConfirm": "هل تريد إزالة {{name}} من هذه الجمعية؟ لا يمكن التراجع عن هذا الإجراء.",
     "invitationStatus": "حالة الدعوة",
     "invitationPending": "بانتظار الرد",
     "invitationAccepted": "قبل الدعوة",
@@ -80,7 +80,7 @@
     "moveUp": "تحريك للأعلى",
     "moveDown": "تحريك للأسفل",
 
-    "iPaid": "لقد دفعت",
+    "iPaid": "سجّل دفعتي",
     "submitClaim": "الإبلاغ عن دفعتي",
     "claimAmount": "المبلغ المدفوع",
     "claimNote": "ملاحظة (اختياري)",
@@ -106,6 +106,6 @@
   "common": {
     "save": "حفظ", "cancel": "إلغاء", "back": "رجوع", "next": "التالي", "loading": "جارٍ التحميل...",
     "confirm": "تأكيد", "close": "إغلاق", "delete": "حذف", "add": "إضافة", "yes": "نعم", "no": "لا",
-    "submit": "إرسال", "error": "حدث خطأ ما. حاول مرة أخرى."
+    "submit": "إرسال", "error": "حدث خطأ ما. حاول مرة أخرى.", "edit": "تعديل"
   }
 }

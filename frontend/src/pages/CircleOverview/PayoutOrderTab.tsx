@@ -9,9 +9,8 @@ import ShuffleIcon from "@mui/icons-material/Shuffle";
 import { useTranslation } from "react-i18next";
 import { circlesApi } from "../../api/circles";
 import type { CircleDetail } from "../../api/types";
-import { ActivateCircleButton } from "./ActivateCircleButton";
 
-export function PayoutOrderTab({ circle, onActivated }: { circle: CircleDetail; onActivated: () => void }) {
+export function PayoutOrderTab({ circle }: { circle: CircleDetail }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: members } = useQuery({ queryKey: ["members", circle.id], queryFn: () => circlesApi.members(circle.id) });
@@ -121,13 +120,8 @@ export function PayoutOrderTab({ circle, onActivated }: { circle: CircleDetail; 
       {canManage && (
         <Stack direction="row" spacing={1} sx={{ mt: 2 }} alignItems="center">
           <Button variant="outlined" onClick={() => saveManualMutation.mutate()}>{t("common.save")}</Button>
-          {/* prompt02 §Payout Order tab: no separate "Confirm Order" — activation fixes the order,
-              so saving and activating is the whole flow. */}
-          <ActivateCircleButton
-            circleId={circle.id}
-            onActivated={onActivated}
-            disabled={saveManualMutation.isPending}
-          />
+          {/* prompt03 §1: Activate is no longer duplicated here — it exists only as the
+              persistent/sticky action beneath all tabs on the draft circle details page. */}
         </Stack>
       )}
     </Box>

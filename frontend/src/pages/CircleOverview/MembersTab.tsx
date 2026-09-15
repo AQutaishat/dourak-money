@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Alert, Box, Button, Chip, IconButton, List, ListItem, ListItemText, Stack, Tooltip, Typography,
+  Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
+  IconButton, List, ListItem, ListItemText, Stack, Tooltip, Typography,
 } from "@mui/material";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import HistoryIcon from "@mui/icons-material/History";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import RefreshIcon from "@mui/icons-material/Replay";
@@ -21,6 +23,7 @@ export function MembersTab({ circle }: { circle: CircleDetail }) {
 
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null);
 
   const isDraft = circle.status === "Draft";
   // Members get the same view but no controls (prompt02 "Member visibility").
@@ -45,6 +48,14 @@ export function MembersTab({ circle }: { circle: CircleDetail }) {
   const addSelfMutation = useMutation({
     mutationFn: () => circlesApi.addSelfAsMember(circle.id),
     onSuccess: invalidate,
+    onError: () => setError(t("common.error")),
+  });
+
+  // prompt03 §1: while the circle is still a draft, a member row can be fully removed —
+  // regardless of invitation status — not just deactivated/soft-excluded.
+  const removeMutation = useMutation({
+    mutationFn: (memberId: number) => circlesApi.removeMember(circle.id, memberId),
+    onSuccess: () => { invalidate(); setRemoveTarget(null); },
     onError: () => setError(t("common.error")),
   });
 
@@ -103,6 +114,16 @@ export function MembersTab({ circle }: { circle: CircleDetail }) {
                       </IconButton>
                     </Tooltip>
                   )}
+
+                  {/* prompt03 §1: outright removal, pre-activation only, regardless of
+                      invitation status (pending/accepted/declined/not-invited all qualify). */}
+                  {canManage && isDraft && (
+                    <Tooltip title={t("circle.removeMember")}>
+                      <IconButton size="small" color="error" onClick={() => setRemoveTarget({ id: m.id, name: m.name })}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </Stack>
               }
             >
@@ -123,6 +144,26 @@ export function MembersTab({ circle }: { circle: CircleDetail }) {
         circleName={circle.name}
         organizerName={circle.organizerName}
       />
+
+      <Dialog open={!!removeTarget} onClose={() => setRemoveTarget(null)} fullWidth maxWidth="xs">
+        <DialogTitle>{t("circle.removeMember")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t("circle.removeMemberConfirm", { name: removeTarget?.name ?? "" })}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRemoveTarget(null)}>{t("common.cancel")}</Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={removeMutation.isPending}
+            onClick={() => removeTarget && removeMutation.mutate(removeTarget.id)}
+          >
+            {t("common.delete")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

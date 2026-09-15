@@ -11,6 +11,7 @@ public record CreateCircleRequest(
     string Name, string? Description, string Currency, decimal ContributionAmount,
     DateOnly StartDate);
 
+public record UpdateCircleBasicInfoRequest(string Name, string? Description, DateOnly StartDate);
 public record SetManualOrderRequest(IReadOnlyList<int> MemberIdsInOrder);
 public record ReplaceMemberRequest(int OldMemberId, int NewMemberId);
 public record AddUserMemberRequest(string UserId);
@@ -38,6 +39,14 @@ public class CirclesController : ControllerBase
             request.Name, request.Description, request.Currency, request.ContributionAmount,
             request.StartDate));
         return CreatedAtAction(nameof(GetDetail), new { circleId = id }, id);
+    }
+
+    /// <summary>prompt03 §1: edit name/description/start date while still a draft.</summary>
+    [HttpPut("{circleId:int}/basic-info")]
+    public async Task<IActionResult> UpdateBasicInfo(int circleId, UpdateCircleBasicInfoRequest request)
+    {
+        await _mediator.Send(new UpdateCircleBasicInfoCommand(circleId, request.Name, request.Description, request.StartDate));
+        return NoContent();
     }
 
     [HttpPost("{circleId:int}/activate")]
@@ -93,6 +102,14 @@ public class CirclesController : ControllerBase
     public async Task<IActionResult> DeactivateMember(int circleId, int memberId)
     {
         await _mediator.Send(new DeactivateMemberCommand(circleId, memberId));
+        return NoContent();
+    }
+
+    /// <summary>prompt03 §1: fully remove a member row while the circle is still a draft.</summary>
+    [HttpDelete("{circleId:int}/members/{memberId:int}")]
+    public async Task<IActionResult> RemoveMember(int circleId, int memberId)
+    {
+        await _mediator.Send(new RemoveMemberCommand(circleId, memberId));
         return NoContent();
     }
 

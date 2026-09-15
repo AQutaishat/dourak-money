@@ -37,6 +37,43 @@ public class SavingsCircle : AuditableEntity
     }
 
     /// <summary>
+    /// prompt03 §1: while still a draft, the organizer may edit name, description and start
+    /// date directly (contribution amount stays non-editable, same as before and after
+    /// activation). Once activated these fields are locked, same as everything else the
+    /// aggregate freezes on Activate().
+    /// </summary>
+    public void UpdateBasicInfo(string name, string? description, DateOnly startDate)
+    {
+        EnsureDraft("edit the circle's basic info");
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("Circle name is required.");
+        Name = name;
+        Description = description;
+        StartDate = startDate;
+    }
+
+    /// <summary>
+    /// prompt03 §1: while still a draft, a member row can be removed outright (not just
+    /// deactivated) regardless of its invitation status — a draft hasn't started collecting
+    /// money yet, so there is no financial history to protect (contrast with
+    /// <see cref="CircleMember.Deactivate"/>, which is the only option post-activation).
+    /// Also drops any payout position already assigned to this member so the order stays
+    /// internally consistent.
+    /// </summary>
+    public void RemoveMember(int memberId)
+    {
+        EnsureDraft("remove this member");
+        var member = Members.FirstOrDefault(m => m.Id == memberId)
+            ?? throw new DomainException("This member does not belong to this circle.");
+
+        var position = PayoutPositions.FirstOrDefault(p => p.MemberId == memberId);
+        if (position is not null)
+            PayoutPositions.Remove(position);
+
+        Members.Remove(member);
+    }
+
+    /// <summary>
     /// Sets a manual payout order. Requires every active member to appear exactly
     /// once (BRD rule #1, #3). Only allowed while the circle is still in Draft.
     /// </summary>

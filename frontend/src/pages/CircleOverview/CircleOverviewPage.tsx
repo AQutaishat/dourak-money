@@ -114,8 +114,12 @@ export function CircleOverviewPage() {
               </Menu>
             </>
           )}
-          {/* Return/close button back to My Circles, on both draft and active views. */}
-          <Button startIcon={<CloseIcon />} onClick={() => navigate("/circles")}>{t("common.close")}</Button>
+          {/* prompt03 §1: on a draft circle the close button moves to its own row at the
+              bottom of the page so it can't be confused with / mis-clicked next to Activate.
+              Active circles keep it here (unchanged from Phase 2). */}
+          {!isDraft && (
+            <Button startIcon={<CloseIcon />} onClick={() => navigate("/circles")}>{t("common.close")}</Button>
+          )}
         </Stack>
       </Stack>
 
@@ -127,18 +131,29 @@ export function CircleOverviewPage() {
 
       {isDraft && tab === 0 && <BasicInfoBlock circle={circle} />}
       {isDraft && tab === 1 && <MembersTab circle={circle} />}
-      {isDraft && tab === 2 && <PayoutOrderTab circle={circle} onActivated={invalidateCircle} />}
+      {isDraft && tab === 2 && <PayoutOrderTab circle={circle} />}
 
       {!isDraft && tab === 0 && <CurrentCycleTab circle={circle} />}
       {!isDraft && tab === 1 && <ScheduleTab circleId={id} currency={circle.currency} />}
       {!isDraft && tab === 2 && <MembersTab circle={circle} />}
       {!isDraft && tab === 3 && <HistoryTab circleId={id} currency={circle.currency} />}
 
-      {/* Persistent activate action beneath all tabs on a draft circle (prompt02 §Draft circles). */}
+      {/* Persistent activate action beneath all tabs on a draft circle (prompt02 §Draft circles).
+          prompt03 §1: normal-sized button aligned to one side, not a full-width block. */}
       {isDraft && canManage && (
         <Paper elevation={2} sx={{ position: "sticky", bottom: 0, mt: 4, p: 2, zIndex: 2 }}>
-          <ActivateCircleButton circleId={id} fullWidth onActivated={invalidateCircle} />
+          <Stack direction="row" justifyContent="flex-end">
+            <ActivateCircleButton circleId={id} onActivated={invalidateCircle} />
+          </Stack>
         </Paper>
+      )}
+
+      {/* prompt03 §1: Close lives on its own row at the bottom, separate from Activate above,
+          so the two actions can't be confused or mis-clicked. */}
+      {isDraft && (
+        <Stack direction="row" justifyContent="flex-end" sx={{ mt: 2 }}>
+          <Button variant="outlined" startIcon={<CloseIcon />} onClick={() => navigate("/circles")}>{t("common.close")}</Button>
+        </Stack>
       )}
 
       {/* Close button at the bottom of the active circle details page. */}

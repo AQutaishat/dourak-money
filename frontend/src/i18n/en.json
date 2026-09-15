@@ -62,10 +62,10 @@
     "noUsersFound": "No registered user matches that.",
     "inviteUnregistered": "Invite someone who isn't on Dourak yet",
     "inviteByWhatsApp": "Invite via WhatsApp",
-    "invitePersonName": "Name (optional)",
-    "invitePersonPhone": "Phone number",
-    "inviteSentNote": "We'll also add them to this circle as a plain record so you can track them.",
+    "inviteSentNote": "This just opens a WhatsApp message inviting them to register — nothing is added to this circle. Once they've registered, add them above like any other user.",
     "addExistingUser": "Add a registered user",
+    "removeMember": "Remove member",
+    "removeMemberConfirm": "Remove {{name}} from this circle? This cannot be undone.",
     "invitationStatus": "Invitation",
     "invitationPending": "Pending",
     "invitationAccepted": "Accepted",
@@ -80,7 +80,7 @@
     "moveUp": "Move up",
     "moveDown": "Move down",
 
-    "iPaid": "I paid",
+    "iPaid": "Record my payment",
     "submitClaim": "Report my payment",
     "claimAmount": "Amount paid",
     "claimNote": "Note (optional)",
@@ -106,6 +106,6 @@
   "common": {
     "save": "Save", "cancel": "Cancel", "back": "Back", "next": "Next", "loading": "Loading...",
     "confirm": "Confirm", "close": "Close", "delete": "Delete", "add": "Add", "yes": "Yes", "no": "No",
-    "submit": "Submit", "error": "Something went wrong. Please try again."
+    "submit": "Submit", "error": "Something went wrong. Please try again.", "edit": "Edit"
   }
 }

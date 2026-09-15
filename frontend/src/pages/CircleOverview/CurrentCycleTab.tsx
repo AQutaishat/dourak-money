@@ -87,10 +87,15 @@ export function CurrentCycleTab({ circle }: { circle: CircleDetail }) {
           living in its own tab (prompt02 §Active circles). */}
       <BasicInfoBlock circle={circle} dense />
 
-      {/* Prominent recipient line above the summary cards. */}
-      <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 2 }} flexWrap="wrap">
-        <Typography variant="h6" color="text.secondary">{t("circle.currentRecipientLabel")}:</Typography>
-        <Typography variant="h5" fontWeight={700} color="primary">{dashboard.recipientName}</Typography>
+      {/* Prominent recipient line above the summary cards. prompt03 §5: "Share to WhatsApp"
+          moves up here, well clear of the record-payment/claim controls below, so the two
+          don't crowd each other. justifyContent="space-between" mirrors correctly for RTL. */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }} flexWrap="wrap" gap={1}>
+        <Stack direction="row" spacing={1} alignItems="baseline" flexWrap="wrap">
+          <Typography variant="h6" color="text.secondary">{t("circle.currentRecipientLabel")}:</Typography>
+          <Typography variant="h5" fontWeight={700} color="primary">{dashboard.recipientName}</Typography>
+        </Stack>
+        <Button size="small" startIcon={<WhatsAppIcon />} onClick={handleShareStatus}>{t("circle.shareStatus")}</Button>
       </Stack>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -101,8 +106,6 @@ export function CurrentCycleTab({ circle }: { circle: CircleDetail }) {
       </Grid>
 
       <Stack direction="row" spacing={1} sx={{ mb: 2 }} flexWrap="wrap" gap={1}>
-        <Button size="small" startIcon={<WhatsAppIcon />} onClick={handleShareStatus}>{t("circle.shareStatus")}</Button>
-
         {/* Organizer's payment-claim inbox, badged with the pending count. */}
         {canManage && (
           <Badge badgeContent={dashboard.pendingClaimCount} color="warning">
@@ -110,11 +113,12 @@ export function CurrentCycleTab({ circle }: { circle: CircleDetail }) {
           </Badge>
         )}
 
-        {/* A member can report their own payment — only for themselves, never for anyone else. */}
-        {myRow && myOutstanding > 0 && !myRow.hasPendingClaim && (
+        {/* prompt03 §5: member self-report only — must never appear to the organizer, even
+            when the organizer is also a participating member of their own circle. */}
+        {!canManage && myRow && myOutstanding > 0 && !myRow.hasPendingClaim && (
           <Button size="small" variant="outlined" onClick={() => setClaimDialogOpen(true)}>{t("circle.iPaid")}</Button>
         )}
-        {myRow?.myClaimStatus && <ClaimStatusChip status={myRow.myClaimStatus} />}
+        {!canManage && myRow?.myClaimStatus && <ClaimStatusChip status={myRow.myClaimStatus} />}
       </Stack>
 
       <Table size="small">
@@ -205,7 +209,7 @@ export function CurrentCycleTab({ circle }: { circle: CircleDetail }) {
         </DialogActions>
       </Dialog>
 
-      {myRow && (
+      {!canManage && myRow && (
         <SubmitPaymentClaimDialog
           open={claimDialogOpen}
           onClose={() => setClaimDialogOpen(false)}

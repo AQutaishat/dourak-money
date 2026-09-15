@@ -37,6 +37,17 @@ should be built unless a future prompt explicitly pulls it back into scope.
   - This is a distinct role/permission level from "organizer" — needs its own
     authorization design when it's picked up.
 
+## From Phase 3 (deferred out of `prompt03.md`)
+
+- **Beta auto-accept for user1/user2 (`docs/prompt03.md` §4)** — `user1`/`user2` are
+  currently auto-accepted into any circle the moment they're added, bypassing the
+  normal invitation consent step entirely. This is a **temporary beta-testing
+  mechanism only** (see `BetaTestUsers.IsAutoAccept` and `BetaUserSeeder` in
+  `backend/src/Dourak.Infrastructure`/`Dourak.Application`) — **remove this bypass,
+  and ideally the seeded beta accounts themselves, before any real production
+  launch.** A real user must always explicitly consent to joining a circle; no
+  permanent product rule should ever skip that.
+
 ## Carried over from the original Phase 1 BRD (still not built, still deferred)
 
 These were already out of scope for Phase 1 and remain so unless a future prompt

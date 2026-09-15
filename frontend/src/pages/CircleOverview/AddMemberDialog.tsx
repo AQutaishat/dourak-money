@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Alert, Autocomplete, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
@@ -12,9 +12,11 @@ import type { UserSearchResult } from "../../api/types";
 import { buildInviteToRegisterText, currentAppUrl, shareToWhatsApp } from "../../utils/whatsapp";
 
 /**
- * prompt02 §2 + §3 in one flow:
+ * prompt02 §2 + prompt03 §2 in one flow:
  *  - one textbox with autocomplete-style live search over registered users (name/email/phone),
- *  - plus an "invite someone who isn't on Dourak yet" option that shares the app URL on WhatsApp.
+ *  - plus a single "invite via WhatsApp" button for someone who isn't on Dourak yet. Per
+ *    prompt03 §2 this is a pure share action — no name/phone fields, no member record created.
+ *    Once that person registers, the organizer adds them the normal way, above.
  */
 export function AddMemberDialog({
   open, onClose, circleId, circleName, organizerName,
@@ -35,10 +37,6 @@ export function AddMemberDialog({
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<UserSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Invite-an-unregistered-person sub-form.
-  const [inviteName, setInviteName] = useState("");
-  const [invitePhone, setInvitePhone] = useState("");
 
   // Debounced so every keystroke doesn't hit the API while the organizer is still typing.
   useEffect(() => {
@@ -66,8 +64,7 @@ export function AddMemberDialog({
   };
 
   const reset = () => {
-    setTerm(""); setDebounced(""); setSelected(null); setOptions([]);
-    setInviteName(""); setInvitePhone(""); setError(null);
+    setTerm(""); setDebounced(""); setSelected(null); setOptions([]); setError(null);
   };
 
   const addUser = useMutation({
@@ -77,35 +74,23 @@ export function AddMemberDialog({
   });
 
   /**
-   * The unregistered person is also stored as a plain Phase 1 member record, so the organizer can
-   * keep tracking them in this circle straight away; once they register, the organizer can add
-   * their account properly. This is the "lightweight invite-to-register" the spec asked for —
-   * no deep-link/token system.
+   * prompt03 §2: sending the WhatsApp invite is a pure share action — it must not create any
+   * member/invitation record at all. No name/phone fields, no backend call whatsoever. Once
+   * the invited person registers on their own, the organizer adds them the normal way, above,
+   * via the user-search flow; there is no link tracked between this button and that later signup.
    */
-  const inviteUnregistered = useMutation({
-    mutationFn: () => circlesApi.addMember(circleId, {
-      name: inviteName.trim() || invitePhone.trim(),
-      phone: invitePhone.trim() || undefined,
-    }),
-    onSuccess: () => {
-      shareToWhatsApp(
-        buildInviteToRegisterText({
-          personName: inviteName.trim() || null,
-          circleName,
-          organizerName,
-          appUrl: currentAppUrl(),
-          isArabic,
-        }),
-        invitePhone,
-      );
-      invalidate();
-      reset();
-      onClose();
-    },
-    onError: (err: unknown) => setError(extractMessage(err, t("common.error"))),
-  });
-
-  const canInvite = useMemo(() => invitePhone.trim().length >= 6, [invitePhone]);
+  const inviteByWhatsApp = () => {
+    shareToWhatsApp(
+      buildInviteToRegisterText({
+        personName: null,
+        circleName,
+        organizerName,
+        appUrl: currentAppUrl(),
+        isArabic,
+      }),
+      null,
+    );
+  };
 
   return (
     <Dialog open={open} onClose={() => { reset(); onClose(); }} fullWidth maxWidth="sm">
@@ -171,25 +156,12 @@ export function AddMemberDialog({
 
           <Box>
             <Typography variant="subtitle2" gutterBottom>{t("circle.inviteUnregistered")}</Typography>
-            <Stack spacing={2}>
-              <TextField label={t("circle.invitePersonName")} value={inviteName} onChange={(e) => setInviteName(e.target.value)} fullWidth />
-              <TextField
-                label={t("circle.invitePersonPhone")}
-                value={invitePhone}
-                onChange={(e) => setInvitePhone(e.target.value)}
-                fullWidth
-                required
-                helperText={t("circle.inviteSentNote")}
-              />
-              <Button
-                variant="outlined"
-                startIcon={<WhatsAppIcon />}
-                disabled={!canInvite || inviteUnregistered.isPending}
-                onClick={() => inviteUnregistered.mutate()}
-              >
-                {t("circle.inviteByWhatsApp")}
-              </Button>
-            </Stack>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+              {t("circle.inviteSentNote")}
+            </Typography>
+            <Button variant="outlined" startIcon={<WhatsAppIcon />} onClick={inviteByWhatsApp}>
+              {t("circle.inviteByWhatsApp")}
+            </Button>
           </Box>
         </Stack>
       </DialogContent>

@@ -213,4 +213,89 @@ public class SavingsCircleTests
 
         act.Should().Throw<DomainException>();
     }
+
+    // ---------- prompt03 §1: editable basic info + hard-delete member, draft-only ----------
+
+    [Fact]
+    public void UpdateBasicInfo_WhileDraft_ChangesNameDescriptionAndStartDate()
+    {
+        var circle = CreateCircleWithMembers(2);
+
+        circle.UpdateBasicInfo("New Name", "New description", new DateOnly(2027, 6, 1));
+
+        circle.Name.Should().Be("New Name");
+        circle.Description.Should().Be("New description");
+        circle.StartDate.Should().Be(new DateOnly(2027, 6, 1));
+    }
+
+    [Fact]
+    public void UpdateBasicInfo_RequiresNonEmptyName()
+    {
+        var circle = CreateCircleWithMembers(2);
+
+        var act = () => circle.UpdateBasicInfo("  ", null, circle.StartDate);
+
+        act.Should().Throw<DomainException>();
+    }
+
+    [Fact]
+    public void UpdateBasicInfo_OnceActivated_Throws()
+    {
+        var circle = CreateCircleWithMembers(2);
+        circle.SetManualPayoutOrder(new List<int> { 1, 2 });
+        circle.Activate();
+
+        var act = () => circle.UpdateBasicInfo("Renamed", null, circle.StartDate);
+
+        act.Should().Throw<DomainException>();
+    }
+
+    [Fact]
+    public void RemoveMember_WhileDraft_DeletesTheMemberRowAndItsPayoutPosition()
+    {
+        var circle = CreateCircleWithMembers(3);
+        circle.SetManualPayoutOrder(new List<int> { 1, 2, 3 });
+
+        circle.RemoveMember(2);
+
+        circle.Members.Should().OnlyContain(m => m.Id != 2);
+        circle.PayoutPositions.Should().OnlyContain(p => p.MemberId != 2);
+    }
+
+    [Fact]
+    public void RemoveMember_RegardlessOfInvitationStatus_CanBeRemovedWhileDraft()
+    {
+        var circle = CreateCircleWithMembers(0);
+        circle.Members.Add(new CircleMember { Id = 1, Name = "Pending", IsActive = true, InvitationStatus = InvitationStatus.Pending });
+        circle.Members.Add(new CircleMember { Id = 2, Name = "Declined", IsActive = true, InvitationStatus = InvitationStatus.Declined });
+        circle.Members.Add(new CircleMember { Id = 3, Name = "Accepted", IsActive = true, InvitationStatus = InvitationStatus.Accepted });
+
+        circle.RemoveMember(1);
+        circle.RemoveMember(2);
+        circle.RemoveMember(3);
+
+        circle.Members.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveMember_OnceActivated_Throws()
+    {
+        var circle = CreateCircleWithMembers(2);
+        circle.SetManualPayoutOrder(new List<int> { 1, 2 });
+        circle.Activate();
+
+        var act = () => circle.RemoveMember(1);
+
+        act.Should().Throw<DomainException>();
+    }
+
+    [Fact]
+    public void RemoveMember_UnknownMemberId_Throws()
+    {
+        var circle = CreateCircleWithMembers(2);
+
+        var act = () => circle.RemoveMember(999);
+
+        act.Should().Throw<DomainException>();
+    }
 }

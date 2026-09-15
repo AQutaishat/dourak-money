@@ -57,7 +57,14 @@ public class AddUserMemberCommandHandler : IRequestHandler<AddUserMemberCommand,
             Phone = profile.Phone,
             IsActive = true
         };
-        member.Invite(DateTimeOffset.UtcNow);
+        var now = DateTimeOffset.UtcNow;
+        member.Invite(now);
+
+        // prompt03 §4 — TEMPORARY beta-testing mechanism (see BetaTestUsers): user1/user2 are
+        // added as already-accepted immediately, skipping the pending/invite step entirely,
+        // regardless of who added them or which circle. Remove before real launch.
+        if (BetaTestUsers.IsAutoAccept(profile.Email))
+            member.AcceptInvitation(now);
 
         _db.CircleMembers.Add(member);
         await _db.SaveChangesAsync(cancellationToken);

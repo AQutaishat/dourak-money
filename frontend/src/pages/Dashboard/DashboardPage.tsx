@@ -44,7 +44,13 @@ export function DashboardPage() {
       <Grid container spacing={2}>
         {activeCircles.map((circle) => (
           <Grid item xs={12} md={6} key={circle.id}>
-            <CurrentCycleSummaryCard circleId={circle.id} circleName={circle.name} currency={circle.currency} />
+            <CurrentCycleSummaryCard
+              circleId={circle.id}
+              circleName={circle.name}
+              currency={circle.currency}
+              memberCount={circle.memberCount}
+              organizerName={circle.organizerName}
+            />
           </Grid>
         ))}
       </Grid>

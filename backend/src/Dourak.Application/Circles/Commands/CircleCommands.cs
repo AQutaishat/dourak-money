@@ -61,6 +61,58 @@ public class CreateCircleCommandHandler : IRequestHandler<CreateCircleCommand, i
     }
 }
 
+// ---------- Update basic info (prompt03 §1: editable pre-activation) ----------
+
+public record UpdateCircleBasicInfoCommand(int CircleId, string Name, string? Description, DateOnly StartDate)
+    : IRequest, Common.Behaviors.ICircleOwnedRequest;
+
+public class UpdateCircleBasicInfoCommandValidator : AbstractValidator<UpdateCircleBasicInfoCommand>
+{
+    public UpdateCircleBasicInfoCommandValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+    }
+}
+
+public class UpdateCircleBasicInfoCommandHandler : IRequestHandler<UpdateCircleBasicInfoCommand>
+{
+    private readonly IAppDbContext _db;
+    public UpdateCircleBasicInfoCommandHandler(IAppDbContext db) => _db = db;
+
+    public async Task Handle(UpdateCircleBasicInfoCommand request, CancellationToken cancellationToken)
+    {
+        var circle = await _db.Circles.FirstOrDefaultAsync(c => c.Id == request.CircleId, cancellationToken)
+            ?? throw new NotFoundException(nameof(SavingsCircle), request.CircleId);
+
+        circle.UpdateBasicInfo(request.Name, request.Description, request.StartDate);
+        circle.UpdatedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+// ---------- Remove Member (prompt03 §1: hard delete, draft-only) ----------
+
+public record RemoveMemberCommand(int CircleId, int MemberId) : IRequest, Common.Behaviors.ICircleOwnedRequest;
+
+public class RemoveMemberCommandHandler : IRequestHandler<RemoveMemberCommand>
+{
+    private readonly IAppDbContext _db;
+    public RemoveMemberCommandHandler(IAppDbContext db) => _db = db;
+
+    public async Task Handle(RemoveMemberCommand request, CancellationToken cancellationToken)
+    {
+        var circle = await SetManualPayoutOrderCommandHandler.LoadAggregateAsync(_db, request.CircleId, cancellationToken);
+        var member = circle.Members.FirstOrDefault(m => m.Id == request.MemberId)
+            ?? throw new NotFoundException(nameof(CircleMember), request.MemberId);
+
+        circle.RemoveMember(request.MemberId);
+        // Explicit removal from the DbSet, not just the in-memory collection: EF's default fixup
+        // for an optional-looking FK can otherwise just null it out instead of deleting the row.
+        _db.CircleMembers.Remove(member);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+}
+
 // ---------- Add Member ----------
 
 public record AddMemberCommand(int CircleId, string Name, string? Phone, string? Email, string? Notes) : IRequest<int>, Common.Behaviors.ICircleOwnedRequest;

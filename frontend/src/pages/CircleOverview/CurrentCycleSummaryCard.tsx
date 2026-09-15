@@ -6,7 +6,17 @@ import { useTranslation } from "react-i18next";
 import { circlesApi } from "../../api/circles";
 import { buildCurrentCycleShareText, shareToWhatsApp } from "../../utils/whatsapp";
 
-export function CurrentCycleSummaryCard({ circleId, circleName, currency }: { circleId: number; circleName: string; currency: string }) {
+export function CurrentCycleSummaryCard({
+  circleId, circleName, currency, memberCount, organizerName,
+}: {
+  circleId: number;
+  circleName: string;
+  currency: string;
+  /** prompt03 §3: the active-with-progress card variant was missing these (Phase 2 only added
+      them to the general/draft grid cards below). */
+  memberCount: number;
+  organizerName: string;
+}) {
   const { t, i18n } = useTranslation();
   const { data: dashboard } = useQuery({ queryKey: ["dashboard", circleId], queryFn: () => circlesApi.dashboard(circleId) });
 
@@ -30,6 +40,10 @@ export function CurrentCycleSummaryCard({ circleId, circleName, currency }: { ci
           <Typography variant="subtitle1" fontWeight={700}>{circleName}</Typography>
           <Typography variant="caption" color="text.secondary">{monthLabel}</Typography>
         </Stack>
+
+        <Typography variant="caption" color="text.secondary" display="block">
+          {t("circle.organizer")}: {organizerName} · {memberCount} {t("circle.members")}
+        </Typography>
 
         <Stack direction="row" spacing={1} sx={{ my: 1 }}>
           <Chip size="small" color="success" label={`${t("circle.paid")}: ${dashboard.membersPaid}/${dashboard.membersTotal}`} />

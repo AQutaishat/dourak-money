@@ -5,6 +5,7 @@ using Dourak.Infrastructure;
 using Dourak.Infrastructure.Identity;
 using Dourak.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -114,6 +115,11 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DourakDbContext>();
     db.Database.Migrate();
+
+    // prompt03 §4 — TEMPORARY beta-testing mechanism: seed four fixed test accounts
+    // (idempotent). Remove before real production launch (see docs/future-work.md).
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    await BetaUserSeeder.SeedAsync(userManager, app.Logger);
 }
 
 try

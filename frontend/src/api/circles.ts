@@ -17,6 +17,9 @@ export const circlesApi = {
   detail: (id: number) => apiClient.get<CircleDetail>(`/circles/${id}`).then((r) => r.data),
   create: (payload: CreateCirclePayload) => apiClient.post<number>("/circles", payload).then((r) => r.data),
   remove: (id: number) => apiClient.delete(`/circles/${id}`),
+  /** prompt03 §1 — edit name/description/start date while still a draft. */
+  updateBasicInfo: (id: number, data: { name: string; description?: string; startDate: string }) =>
+    apiClient.put(`/circles/${id}/basic-info`, data),
   activate: (id: number) => apiClient.post(`/circles/${id}/activate`),
   pause: (id: number) => apiClient.post(`/circles/${id}/pause`),
   resume: (id: number) => apiClient.post(`/circles/${id}/resume`),
@@ -35,6 +38,9 @@ export const circlesApi = {
     apiClient.put(`/circles/${id}/members/${memberId}`, data),
   deactivateMember: (id: number, memberId: number) =>
     apiClient.post(`/circles/${id}/members/${memberId}/deactivate`),
+  /** prompt03 §1 — fully remove a member row, draft circles only. */
+  removeMember: (id: number, memberId: number) =>
+    apiClient.delete(`/circles/${id}/members/${memberId}`),
   replaceMember: (id: number, oldMemberId: number, newMemberId: number) =>
     apiClient.post(`/circles/${id}/members/replace`, { oldMemberId, newMemberId }),
 
