@@ -4,6 +4,18 @@ Items deliberately pushed out of the current phase(s), tracked here so they're
 not forgotten but also don't creep into active scope uninvited. Nothing here
 should be built unless a future prompt explicitly pulls it back into scope.
 
+## Infrastructure / DevOps
+
+- **GitHub Actions deployment pipeline** — add a CI/CD workflow that deploys to
+  the production Oracle server automatically (e.g. on push to `main`, or on a
+  tag/release), instead of the current manual `ssh` + `git pull` +
+  `docker compose up -d --build` steps. Needs: a way to reach the server from
+  GitHub Actions (SSH key stored as a repo secret, or a self-hosted runner on
+  the server itself), and care around not disrupting the JWT secret / `.env`
+  file already set up there. Also consider adding a test/build gate (run
+  `dotnet test` and `npm run build`) before deploying, so a broken commit on
+  `main` never reaches production automatically.
+
 ## From Phase 2 (deferred out of `prompt02.md`)
 
 - **Multiple organizers / co-organizer roles** — a circle currently has exactly
