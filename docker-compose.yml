@@ -34,13 +34,16 @@ services:
       # Phase 2: payment-claim evidence is written to disk inside the container; the named
       # volume below is what makes it survive `docker compose up -d --build`.
       Storage__EvidencePath: "/app/data/evidence"
-      # Structured logs also ship to Seq (see the "seq" service below) in addition to
-      # console + the rolling file under /app/logs. Container name, not localhost —
-      # this env var travels with the container on both local compose and production.
-      # datalust/seq listens on port 80 *inside* the container (mapped to host 5341
-      # below) — from another container on the same compose network it's reached
-      # at http://seq:80, not :5341.
-      Seq__ServerUrl: "http://seq:80"
+      # Serilog's sinks come entirely from appsettings.json's "Serilog:WriteTo" array
+      # (Console + a rolling file under /app/logs, matching the volume above). This
+      # adds a third sink — Seq — the same way Cors__AllowedOrigins__0 above adds an
+      # array element via env vars, so Program.cs never has an `if` deciding whether
+      # Seq is on; it's purely a configuration difference between environments.
+      # "seq" (not localhost) because containers reach each other by service name;
+      # port 80 because that's Seq's port *inside* its own container, not the 5341
+      # host-side mapping on the seq service below.
+      Serilog__WriteTo__2__Name: "Seq"
+      Serilog__WriteTo__2__Args__serverUrl: "http://seq:80"
     volumes:
       - dourak-evidence-data:/app/data/evidence
       - dourak-api-logs:/app/logs

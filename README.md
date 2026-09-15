@@ -138,17 +138,23 @@ existing Caddy reverse proxy with HTTPS + basic auth) if that's ever needed.
 
 ## Logging
 
-The API uses **Serilog** (replacing the default logging provider entirely) with three
-sinks, configured in `appsettings.json` / `appsettings.Development.json`:
+The API uses **Serilog** (replacing the default logging provider entirely). Every
+sink — which ones are active and their args — comes entirely from the `Serilog:WriteTo`
+array in `appsettings.json` / `appsettings.Development.json`, read via
+`Serilog.Settings.Configuration`'s `ReadFrom.Configuration(...)`; `Program.cs` has no
+sink construction or conditional logic in code at all:
 
-- **Console** — what you see in the terminal when running `dotnet run`.
-- **Rolling file** — `backend/src/Dourak.Api/logs/dourak-YYYYMMDD.log` (daily, 14 days
-  retained; gitignored). This is what persists once the terminal closes, since console
-  output otherwise disappears with it.
-- **Seq** — a structured log server you can query/filter in a browser. Optional and off
-  by default: it only activates when `Seq:ServerUrl` (or the `Seq__ServerUrl` env var)
-  is set, so running the API standalone with no Seq container present never fails or
-  blocks startup.
+- **Console** — always on; what you see in the terminal when running `dotnet run`.
+- **Rolling file** — always on; `backend/src/Dourak.Api/logs/dourak-YYYYMMDD.log`
+  (daily, 14 days retained; gitignored). This is what persists once the terminal
+  closes, since console output otherwise disappears with it.
+- **Seq** — a structured log server you can query/filter in a browser. Off in the
+  base `appsettings.json` (Production); `appsettings.Development.json` adds it back
+  as a third `WriteTo` entry for local dev, and `docker-compose.yml` adds it back for
+  containerized runs via `Serilog__WriteTo__2__Name`/`__Args__serverUrl` env vars —
+  the same array-via-env-var pattern already used for `Cors__AllowedOrigins__0`.
+  Either way, it's a pure configuration difference between environments, not code
+  deciding whether Seq is reachable.
 
 Every HTTP request also gets one structured log line (method, path, status, elapsed ms)
 via `UseSerilogRequestLogging()`.
@@ -162,10 +168,10 @@ up there as soon as the container is running — no other config needed.
 `SEQ_FIRSTRUN_NOAUTHENTICATION` skips Seq's own login; acceptable here only because
 the port is bound to loopback (see below), not exposed to anything else.
 
-**Via `docker compose`:** a `seq` service is already included and the `api` service is
-wired to it (`Seq__ServerUrl: http://seq:80` — Seq's *container* port is `80`; `5341`
-is only the host-side port mapping). Just `docker compose up -d` and open
-`http://localhost:5341`.
+**Via `docker compose`:** a `seq` service is already included and the `api` service adds
+it as a `WriteTo` entry via `Serilog__WriteTo__2__Args__serverUrl: http://seq:80` — Seq's
+*container* port is `80`; `5341` is only the host-side port mapping. Just
+`docker compose up -d` and open `http://localhost:5341`.
 
 **Security note (same tradeoff as Adminer above):** Seq has no authentication of its
 own here, so both locally and **in production** it is bound to `127.0.0.1` only —

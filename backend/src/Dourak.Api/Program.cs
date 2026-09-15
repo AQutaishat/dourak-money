@@ -18,26 +18,20 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog replaces the default provider entirely. Sinks (console/file/Seq) and
-// minimum levels are read from the "Serilog" section in appsettings.json /
-// appsettings.Development.json, so no sink configuration lives in code.
-builder.Host.UseSerilog((context, services, configuration) =>
-{
-    configuration
-        .ReadFrom.Configuration(context.Configuration)
-        .ReadFrom.Services(services)
-        .Enrich.FromLogContext()
-        .Enrich.WithProperty("Application", "Dourak.Api");
-
-    // Seq is optional: only wired up when a server URL is configured (Seq:ServerUrl,
-    // or SEQ__SERVERURL as an env var in docker-compose), so running the API with
-    // no Seq container present never fails or blocks startup.
-    var seqUrl = context.Configuration["Seq:ServerUrl"];
-    if (!string.IsNullOrWhiteSpace(seqUrl))
-    {
-        configuration.WriteTo.Seq(seqUrl);
-    }
-});
+// Serilog replaces the default provider entirely. Every sink (console/file/Seq),
+// its args, and minimum levels are read entirely from the "Serilog" section in
+// appsettings.json / appsettings.Development.json via Serilog.Settings.Configuration
+// (ReadFrom.Configuration) — no sink is constructed in code. Seq is simply absent
+// from the base appsettings.json's WriteTo array; appsettings.Development.json adds
+// it back for local dev, and docker-compose.yml adds it back in production via
+// Serilog__WriteTo__2__Name / __Args__serverUrl env vars (same pattern already used
+// for Cors__AllowedOrigins__0) — so it's still opt-in per environment, just entirely
+// through configuration instead of an `if` in Program.cs.
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "Dourak.Api"));
 
 // ----- Services -----
 
