@@ -27,7 +27,7 @@ management ecosystem, easy RTL + i18n support (Arabic is a hard requirement
 here, matching the web app), and it can extend to iOS later at near-zero
 extra cost — consistent with the web app's bilingual/RTL design.
 
-## 1. [DONE] Project scaffolding
+## 1. Project scaffolding
 
 - New top-level directory: `mobile/` (sibling to `backend/` and `frontend/`).
 - `flutter create mobile --platforms=android --org com.dourak` (Android only
@@ -55,7 +55,7 @@ extra cost — consistent with the web app's bilingual/RTL design.
   - `theme/` — Material theme approximating the MUI theme (colors, typography)
     from `frontend/src/theme/`.
 
-## 2. [DONE] Core packages
+## 2. Core packages
 
 - `dio` — HTTP client (interceptors for JWT bearer header + 401 handling,
   mirrors `frontend/src/api/client.ts`).
@@ -74,7 +74,7 @@ extra cost — consistent with the web app's bilingual/RTL design.
 - `url_launcher` — WhatsApp share intent (mirrors the web app's
   `wa.me` link generation for invites and cycle sharing).
 
-## 3. [DONE] Screens & feature parity checklist
+## 3. Screens & feature parity checklist
 
 Each item ports the matching React page/feature 1:1 in behavior:
 
@@ -109,7 +109,7 @@ Each item ports the matching React page/feature 1:1 in behavior:
 - **Payment claims review**: organizer approve/reject pending self-reported
   payments.
 
-## 4. [DONE] Cross-cutting rules ported as-is (not re-decided)
+## 4. Cross-cutting rules ported as-is (not re-decided)
 
 - Contact info between members stays hidden except to the organizer
   (`CircleReadAccessBehavior` rule) — mobile UI must not display member
@@ -121,7 +121,7 @@ Each item ports the matching React page/feature 1:1 in behavior:
 - Same currency/date formatting conventions as the web app (reuse the same
   locale codes: `ar`/`en`).
 
-## 5. [DONE] Out of scope for this pass
+## 5. Out of scope for this pass
 
 - iOS build/signing, Play Store publishing/signing config, push
   notifications, offline mode/local caching beyond in-memory Riverpod cache,
@@ -129,7 +129,7 @@ Each item ports the matching React page/feature 1:1 in behavior:
   `docs/future-work.md` if deferred).
 - No backend changes of any kind — the mobile app is a pure API consumer.
 
-## 6. [DONE] Definition of done for this pass
+## 6. Definition of done for this pass
 
 - `flutter analyze` passes with no errors.
 - App builds a debug APK successfully (`flutter build apk --debug`).
