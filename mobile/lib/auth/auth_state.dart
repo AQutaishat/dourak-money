@@ -11,6 +11,9 @@ class AuthException implements Exception {
   AuthException(this.message, this.kind);
   final String message;
   final String kind; // 'invalid-credentials' | 'server'
+
+  @override
+  String toString() => 'AuthException(kind: $kind, message: $message)';
 }
 
 AuthException _toAuthError(Object err, String fallback) {
