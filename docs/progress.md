@@ -190,3 +190,67 @@ static-review standpoint:
 iOS build/signing, Play Store publishing/signing, push notifications,
 offline/local caching beyond in-memory Riverpod state, automated widget/
 integration tests.
+
+### Build verified [DONE] (post-implementation, once Flutter/Android SDKs were installed)
+
+`flutter analyze` and `flutter build apk --debug` were run for real once the
+Flutter SDK + Android toolchain were installed locally. `flutter analyze`
+came back clean (only cosmetic lint `info`s — deprecated `withOpacity`/
+`DropdownButtonFormField.value`, left as-is since both still work on the
+current stable Flutter). Two small real bugs were found and fixed:
+- `pubspec.yaml`'s `intl: ^0.19.0` conflicted with `flutter_localizations`'s
+  own `intl` requirement — bumped to `^0.20.2`.
+- A handful of unused imports/an unused top-level function (`_n` in
+  `lib/api/models.dart`, `auth_state.dart` imports in `main.dart` and
+  `app_scaffold.dart`) — removed.
+- A `BuildContext` used across an `await` without a `mounted` guard in
+  `activate_circle_button.dart` — fixed.
+
+Getting `flutter build apk --debug` green also required several **local
+Android-toolchain fixes** (all committed, not just done ad hoc on one
+machine — future builds on a fresh machine should hit far less of this):
+- Gradle wrapper bumped **8.6 → 9.1.0** (Java 25 on this machine needs
+  Gradle 9.1+; Gradle 8.6 only supports up to Java ~23).
+- Android Gradle Plugin bumped **8.3.0 → 9.0.1** and Kotlin Gradle Plugin
+  **1.9.22 → 2.3.20** (Flutter's own bundled Gradle plugin enforces minimum
+  AGP/Kotlin versions; 8.3.0/1.9.22 were both too old for this Flutter SDK).
+- Removed the `ndkVersion flutter.ndkVersion` line from
+  `android/app/build.gradle` — this project has no native (C/C++) code, and
+  the automatic NDK download that line triggered was crashing partway
+  through the ~2.1 GB download inside Gradle's worker process. The NDK
+  wasn't actually needed at all once removed.
+- `compileSdk`/`targetSdk` bumped **34 → 36** in
+  `android/app/build.gradle` — several plugins (`flutter_plugin_android_lifecycle`,
+  `url_launcher_android`, current `androidx.core`) require compiling against
+  API 36 or newer.
+- `android/gradle.properties`: added `kotlin.incremental=false` and
+  `org.gradle.parallel=false` — Kotlin's build-tools-api incremental
+  compiler cache hit a Windows-specific double-registration bug with
+  parallel compile workers on this Kotlin/Gradle combo
+  (`url_launcher_android:compileDebugKotlin` failed with
+  "Could not close incremental caches" / "Storage ... is already
+  registered"). Disabling incremental compilation avoids it; this only
+  slows down debug rebuilds, no runtime effect.
+- `file_picker` bumped **^8.0.6 → ^10.3.3** — v8's Android build script
+  hardcoded `compileSdk 34` directly (not via the shared `flutter.compileSdkVersion`
+  property other plugins use), so no project-level Gradle override could
+  patch it in time before AGP read the value. v10 fixed this at the source.
+  The `FilePicker.platform.pickFiles(...)` call site in
+  `payment_claim_dialogs.dart` needed no changes — the API is unchanged
+  across this range.
+
+**Result**: `flutter build apk --debug` succeeds, producing
+`mobile/build/app/outputs/flutter-apk/app-debug.apk` (~155 MB, unsigned
+debug build). Built with
+`--dart-define=API_BASE_URL=http://<dev-machine-LAN-IP>:5210/api` so a
+real phone on the same Wi-Fi can reach a locally-running backend (the
+default `10.0.2.2` base URL only works from the Android emulator). To
+install on a physical device: enable USB debugging, then either
+`flutter install` from `mobile/`, or copy the APK over and tap it
+(needs "install from unknown sources"). The backend must be started
+bound to all interfaces (e.g. `dotnet run --urls http://0.0.0.0:5210`)
+and the dev machine's firewall must allow inbound TCP on that port for
+a physical device to actually connect.
+
+`docs/mobile-plan.md` §6 is now marked `[DONE]` — build is verified, not
+just statically reviewed.

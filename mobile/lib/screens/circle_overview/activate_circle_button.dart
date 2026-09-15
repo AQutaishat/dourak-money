@@ -26,7 +26,7 @@ class _ActivateCircleButtonState extends ConsumerState<ActivateCircleButton> {
       ref.read(refreshTickProvider.notifier).state++;
       if (mounted) Navigator.of(context).pop();
     } catch (err) {
-      error = extractErrorMessage(err, context.t('common.error'));
+      if (mounted) error = extractErrorMessage(err, context.t('common.error'));
     } finally {
       if (mounted) setState(() => activating = false);
       if (error != null && mounted) {

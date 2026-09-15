@@ -129,7 +129,7 @@ Each item ports the matching React page/feature 1:1 in behavior:
   `docs/future-work.md` if deferred).
 - No backend changes of any kind — the mobile app is a pure API consumer.
 
-## 6. Definition of done for this pass [PARTIALLY DONE — see docs/progress.md]
+## 6. [DONE] Definition of done for this pass
 
 - `flutter analyze` passes with no errors.
 - App builds a debug APK successfully (`flutter build apk --debug`).

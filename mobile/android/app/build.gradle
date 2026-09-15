@@ -15,8 +15,7 @@ def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "
 
 android {
     namespace "com.dourak.mobile"
-    compileSdk 34
-    ndkVersion flutter.ndkVersion
+    compileSdk 36
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -34,8 +33,8 @@ android {
     defaultConfig {
         // Mirrors `flutter create --org com.dourak` (docs/mobile-plan.md §1).
         applicationId "com.dourak.mobile"
-        minSdk 23
-        targetSdk 34
+        minSdkVersion flutter.minSdkVersion
+        targetSdk 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }

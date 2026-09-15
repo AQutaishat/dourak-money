@@ -2,8 +2,6 @@
 // Hand-written fromJson/toJson (no build_runner) so the app has zero code-generation
 // step — see docs/progress.md "Mobile App" section for why this was chosen.
 
-T? _n<T>(Map<String, dynamic> j, String key) => j[key] as T?;
-
 class CircleSummary {
   final int id;
   final String name;

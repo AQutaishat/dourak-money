@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../auth/auth_state.dart';
 import '../l10n/app_localizations.dart';
 import '../state/locale_provider.dart';
 import '../state/providers.dart';
