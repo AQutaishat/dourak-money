@@ -6,6 +6,14 @@ should be built unless a future prompt explicitly pulls it back into scope.
 
 ## Infrastructure / DevOps
 
+- **"Forgot password" functionality** — a self-service password reset flow
+  (currently there is none: a user who forgets their password has no way to
+  regain access). Needs: a way to reach the user out-of-band (email is the
+  natural choice, but Dourak has no email-sending infrastructure yet — see
+  the "Push notifications, SMS, email notifications" line under Phase 1 BRD
+  carryovers below), a reset-token endpoint (ASP.NET Core Identity already
+  supports `GeneratePasswordResetTokenAsync`/`ResetPasswordAsync`), and a
+  matching UI flow on both the web app and the Flutter mobile app.
 - **GitHub Actions deployment pipeline** — add a CI/CD workflow that deploys to
   the production Oracle server automatically (e.g. on push to `main`, or on a
   tag/release), instead of the current manual `ssh` + `git pull` +
