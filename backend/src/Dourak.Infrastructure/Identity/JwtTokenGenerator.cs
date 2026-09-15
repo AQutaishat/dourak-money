@@ -20,7 +20,9 @@ public class JwtTokenGenerator
             new Claim(JwtRegisteredClaimNames.Sub, user.Id),
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
-            new Claim("displayName", user.DisplayName),
+            // DisplayName is optional from Phase 2 on; fall back to the email so the token
+            // always carries something usable for the account menu label (prompt02 §8).
+            new Claim("displayName", string.IsNullOrWhiteSpace(user.DisplayName) ? (user.Email ?? string.Empty) : user.DisplayName),
             new Claim("preferredLanguage", user.PreferredLanguage),
         };
 

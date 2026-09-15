@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         services.AddSingleton<IRandomShuffler, CryptoRandomShuffler>();
+        services.AddSingleton<IEvidenceFileStorage, Storage.DiskEvidenceFileStorage>();
 
         return services;
     }

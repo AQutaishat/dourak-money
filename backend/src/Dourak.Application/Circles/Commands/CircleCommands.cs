@@ -10,9 +10,14 @@ namespace Dourak.Application.Circles.Commands;
 
 // ---------- Create Circle ----------
 
+/// <summary>
+/// prompt02 §Create Circle: the frequency selector and the "I am a member of this circle"
+/// checkbox are gone. Frequency is implicitly Monthly, and the organizer adds themselves
+/// from the draft circle's members list instead (AddSelfAsMemberCommand).
+/// </summary>
 public record CreateCircleCommand(
     string Name, string? Description, string Currency, decimal ContributionAmount,
-    DateOnly StartDate, bool OrganizerIsMember, string? OrganizerMemberName) : IRequest<int>;
+    DateOnly StartDate) : IRequest<int>;
 
 public class CreateCircleCommandValidator : AbstractValidator<CreateCircleCommand>
 {
@@ -49,15 +54,6 @@ public class CreateCircleCommandHandler : IRequestHandler<CreateCircleCommand, i
             Status = CircleStatus.Draft,
             CreatedBy = _currentUser.UserId
         };
-
-        if (request.OrganizerIsMember)
-        {
-            circle.Members.Add(new CircleMember
-            {
-                Name = string.IsNullOrWhiteSpace(request.OrganizerMemberName) ? (_currentUser.DisplayName ?? "Organizer") : request.OrganizerMemberName,
-                IsActive = true
-            });
-        }
 
         _db.Circles.Add(circle);
         await _db.SaveChangesAsync(cancellationToken);

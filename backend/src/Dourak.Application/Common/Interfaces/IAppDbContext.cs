@@ -17,6 +17,13 @@ public interface IAppDbContext
     DbSet<Cycle> Cycles { get; }
     DbSet<Contribution> Contributions { get; }
     DbSet<Payout> Payouts { get; }
+    DbSet<PaymentClaim> PaymentClaims { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Needed for the "delete a circle that has no payments yet" rule (prompt02 §Draft circles),
+    /// which removes an aggregate root rather than mutating it.
+    /// </summary>
+    void RemoveCircle(SavingsCircle circle);
 }

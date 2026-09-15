@@ -2,10 +2,23 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Dourak.Infrastructure.Identity;
 
-/// <summary>Organizer account (BRD §6.1). Minimal profile: name, preferred language, currency, time zone.</summary>
+/// <summary>
+/// User account (BRD §6.1). Phase 2: a user can be an organizer, a circle member, or both.
+/// The phone number itself lives on <see cref="IdentityUser.PhoneNumber"/> (prompt02 §1).
+/// </summary>
 public class ApplicationUser : IdentityUser
 {
-    public string DisplayName { get; set; } = string.Empty;
+    /// <summary>Optional from Phase 2 on — registration only asks for email + password (prompt02 §7).</summary>
+    public string? DisplayName { get; set; }
+
+    /// <summary>
+    /// prompt02 §8: name and phone must be unique across users after normalization, otherwise
+    /// "Anas" vs "anas " (or "+962 79…" vs "+96279…") would slip past the check. These mirror
+    /// the way Identity already keeps NormalizedEmail alongside Email, and carry the unique indexes.
+    /// </summary>
+    public string? NormalizedDisplayName { get; set; }
+    public string? NormalizedPhoneNumber { get; set; }
+
     public string PreferredLanguage { get; set; } = "ar";
     public string DefaultCurrency { get; set; } = "SAR";
     public string? TimeZone { get; set; }

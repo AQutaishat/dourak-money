@@ -67,7 +67,7 @@ public class SavingsCircle : AuditableEntity
     public void RunRandomDraw(IRandomShuffler shuffler)
     {
         EnsureDraft("run the random draw");
-        var activeMemberIds = Members.Where(m => m.IsActive).Select(m => m.Id).ToList();
+        var activeMemberIds = Members.Where(m => m.IsParticipating).Select(m => m.Id).ToList();
         if (activeMemberIds.Count == 0)
             throw new DomainException("Cannot run the draw: the circle has no active members.");
 
@@ -116,7 +116,7 @@ public class SavingsCircle : AuditableEntity
 
     private void ValidateOrderCoversAllActiveMembers(IReadOnlyList<int> memberIds)
     {
-        var activeMemberIds = Members.Where(m => m.IsActive).Select(m => m.Id).ToHashSet();
+        var activeMemberIds = Members.Where(m => m.IsParticipating).Select(m => m.Id).ToHashSet();
         var providedIds = memberIds.ToHashSet();
 
         if (memberIds.Count != memberIds.Distinct().Count())
@@ -133,8 +133,14 @@ public class SavingsCircle : AuditableEntity
     public void Activate()
     {
         EnsureDraft("activate the circle");
-        if (!PayoutOrderConfirmed)
-            throw new DomainException("Cannot activate: the payout order has not been confirmed.");
+
+        // prompt02 §Payout Order tab: the separate "Confirm Order" step is gone — activation IS
+        // the confirmation (the organizer confirms the member order in the activation dialog),
+        // so the order is validated and confirmed here instead of requiring a prior action.
+        if (PayoutPositions.Count == 0)
+            throw new DomainException("Cannot activate: no payout order has been set.");
+        ConfirmPayoutOrder();
+
         if (ContributionAmount <= 0)
             throw new DomainException("Cannot activate: contribution amount must be greater than zero.");
 
@@ -147,7 +153,7 @@ public class SavingsCircle : AuditableEntity
 
     private void GenerateSchedule()
     {
-        var activeMemberCount = Members.Count(m => m.IsActive);
+        var activeMemberCount = Members.Count(m => m.IsParticipating);
         var expectedPool = activeMemberCount * ContributionAmount;
         var orderedPositions = PayoutPositions.OrderBy(p => p.Position).ToList();
 
@@ -165,7 +171,7 @@ public class SavingsCircle : AuditableEntity
                 Status = CycleStatus.Pending
             };
 
-            foreach (var member in Members.Where(m => m.IsActive))
+            foreach (var member in Members.Where(m => m.IsParticipating))
             {
                 cycle.Contributions.Add(new Contribution
                 {

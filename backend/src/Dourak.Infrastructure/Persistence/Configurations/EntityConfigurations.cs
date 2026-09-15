@@ -27,6 +27,54 @@ public class CircleMemberConfiguration : IEntityTypeConfiguration<CircleMember>
         builder.Property(m => m.Name).IsRequired().HasMaxLength(200);
         builder.Property(m => m.Phone).HasMaxLength(50);
         builder.Property(m => m.Email).HasMaxLength(200);
+
+        // Phase 2: a registered user appears at most once per circle. The unique index makes
+        // the "already a member" rule impossible to violate even under a race.
+        builder.Property(m => m.UserId).HasMaxLength(450);
+        builder.Ignore(m => m.IsParticipating);
+        builder.HasIndex(m => new { m.CircleId, m.UserId }).IsUnique()
+            .HasFilter("\"UserId\" IS NOT NULL");
+        builder.HasIndex(m => m.UserId);
+    }
+}
+
+public class PaymentClaimConfiguration : IEntityTypeConfiguration<PaymentClaim>
+{
+    public void Configure(EntityTypeBuilder<PaymentClaim> builder)
+    {
+        builder.Property(pc => pc.ClaimedAmount).HasPrecision(18, 2);
+        builder.Property(pc => pc.SubmittedByUserId).IsRequired().HasMaxLength(450);
+        builder.Property(pc => pc.ReviewedByUserId).HasMaxLength(450);
+        builder.Property(pc => pc.Note).HasMaxLength(1000);
+        builder.Property(pc => pc.RejectionReason).HasMaxLength(1000);
+        builder.Property(pc => pc.EvidenceStoredFileName).HasMaxLength(200);
+        builder.Property(pc => pc.EvidenceOriginalFileName).HasMaxLength(260);
+        builder.Property(pc => pc.EvidenceContentType).HasMaxLength(100);
+        builder.Ignore(pc => pc.HasEvidence);
+
+        builder.HasIndex(pc => new { pc.CircleId, pc.Status });
+        builder.HasIndex(pc => pc.SubmittedByUserId);
+
+        builder.HasOne(pc => pc.Contribution).WithMany().HasForeignKey(pc => pc.ContributionId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(pc => pc.Member).WithMany().HasForeignKey(pc => pc.MemberId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class ApplicationUserConfiguration : IEntityTypeConfiguration<Dourak.Infrastructure.Identity.ApplicationUser>
+{
+    public void Configure(EntityTypeBuilder<Dourak.Infrastructure.Identity.ApplicationUser> builder)
+    {
+        builder.Property(u => u.DisplayName).HasMaxLength(200);
+        builder.Property(u => u.NormalizedDisplayName).HasMaxLength(200);
+        builder.Property(u => u.NormalizedPhoneNumber).HasMaxLength(50);
+
+        // prompt02 §8: name/phone uniqueness enforced in the database on the normalized value,
+        // so it holds regardless of which code path writes a profile. Filtered so the many users
+        // who leave these blank don't collide on NULL.
+        builder.HasIndex(u => u.NormalizedDisplayName).IsUnique()
+            .HasFilter("\"NormalizedDisplayName\" IS NOT NULL");
+        builder.HasIndex(u => u.NormalizedPhoneNumber).IsUnique()
+            .HasFilter("\"NormalizedPhoneNumber\" IS NOT NULL");
     }
 }
 

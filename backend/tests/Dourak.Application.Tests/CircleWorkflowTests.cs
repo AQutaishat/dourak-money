@@ -21,7 +21,7 @@ public class CircleWorkflowTests
         // 1. Create circle
         var createHandler = new CreateCircleCommandHandler(db, currentUser);
         var circleId = await createHandler.Handle(
-            new CreateCircleCommand("Family Circle", null, "sar", 1000m, new DateOnly(2027, 1, 1), false, null),
+            new CreateCircleCommand("Family Circle", null, "sar", 1000m, new DateOnly(2027, 1, 1)),
             default);
 
         // 2. Add three members
@@ -51,7 +51,7 @@ public class CircleWorkflowTests
         await recordContribHandler.Handle(new RecordContributionCommand(firstCycleId, m2, 400m, DateTimeOffset.UtcNow, null, null), default);
 
         // 7. Dashboard reflects collected/expected/outstanding and unpaid/late counts
-        var dashboard = await new GetCurrentCycleDashboardQueryHandler(db).Handle(new GetCurrentCycleDashboardQuery(circleId), default);
+        var dashboard = await new GetCurrentCycleDashboardQueryHandler(db, currentUser).Handle(new GetCurrentCycleDashboardQuery(circleId), default);
         dashboard.Should().NotBeNull();
         dashboard!.Collected.Should().Be(1400m);
         dashboard.Expected.Should().Be(3000m);
@@ -64,7 +64,7 @@ public class CircleWorkflowTests
         await recordPayoutHandler.Handle(new RecordPayoutCommand(firstCycleId, 1400m, DateTimeOffset.UtcNow, null, "Partial pool paid out"), default);
 
         // 9. Current cycle dashboard now shows cycle 2 (Omar)
-        var dashboardAfterPayout = await new GetCurrentCycleDashboardQueryHandler(db).Handle(new GetCurrentCycleDashboardQuery(circleId), default);
+        var dashboardAfterPayout = await new GetCurrentCycleDashboardQueryHandler(db, currentUser).Handle(new GetCurrentCycleDashboardQuery(circleId), default);
         dashboardAfterPayout!.RecipientName.Should().Be("Omar");
 
         // 10. Circle history shows the completed first cycle
@@ -87,7 +87,7 @@ public class CircleWorkflowTests
         var currentUser = new FakeCurrentUser("organizer-1");
 
         var circleId = await new CreateCircleCommandHandler(db, currentUser).Handle(
-            new CreateCircleCommand("Circle", null, "SAR", 500m, new DateOnly(2027, 1, 1), false, null), default);
+            new CreateCircleCommand("Circle", null, "SAR", 500m, new DateOnly(2027, 1, 1)), default);
 
         var addMemberHandler = new AddMemberCommandHandler(db);
         await addMemberHandler.Handle(new AddMemberCommand(circleId, "A", null, null, null), default);
@@ -106,7 +106,7 @@ public class CircleWorkflowTests
         var currentUser = new FakeCurrentUser("organizer-1");
 
         var circleId = await new CreateCircleCommandHandler(db, currentUser).Handle(
-            new CreateCircleCommand("Circle", null, "SAR", 500m, new DateOnly(2027, 1, 1), false, null), default);
+            new CreateCircleCommand("Circle", null, "SAR", 500m, new DateOnly(2027, 1, 1)), default);
         var m1 = await new AddMemberCommandHandler(db).Handle(new AddMemberCommand(circleId, "A", null, null, null), default);
         await new SetManualPayoutOrderCommandHandler(db).Handle(new SetManualPayoutOrderCommand(circleId, new List<int> { m1 }), default);
         await new ConfirmPayoutOrderCommandHandler(db).Handle(new ConfirmPayoutOrderCommand(circleId), default);

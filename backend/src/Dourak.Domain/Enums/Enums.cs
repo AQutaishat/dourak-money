@@ -58,3 +58,27 @@ public enum PaymentMethod
     DigitalWallet = 2,
     Other = 3
 }
+
+/// <summary>
+/// Phase 2 (§4, §5): whether a circle member linked to a real Dourak user account has
+/// responded to their invitation. <see cref="NotInvited"/> keeps Phase 1 behaviour intact —
+/// a plain record typed in by the organizer was never invited and participates immediately.
+/// </summary>
+public enum InvitationStatus
+{
+    /// <summary>Plain organizer-entered record with no linked user account (Phase 1 behaviour).</summary>
+    NotInvited = 0,
+    Pending = 1,
+    Accepted = 2,
+    Declined = 3
+}
+
+/// <summary>
+/// Phase 2 §6b: lifecycle of a member's self-reported payment claim awaiting organizer review.
+/// </summary>
+public enum PaymentClaimStatus
+{
+    Pending = 0,
+    Approved = 1,
+    Rejected = 2
+}

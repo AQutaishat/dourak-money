@@ -104,11 +104,27 @@ public class SavingsCircleTests
         act.Should().Throw<DomainException>();
     }
 
+    /// <summary>
+    /// Phase 2 (prompt02 §Payout Order tab): the separate "Confirm Order" step was removed —
+    /// activation itself confirms and locks the order, so a set-but-unconfirmed order activates.
+    /// </summary>
     [Fact]
-    public void Activate_WithoutConfirmedOrder_Throws()
+    public void Activate_WithSetButUnconfirmedOrder_ConfirmsAndActivates()
     {
         var circle = CreateCircleWithMembers(3);
         circle.SetManualPayoutOrder(new List<int> { 1, 2, 3 });
+        circle.PayoutOrderConfirmed.Should().BeFalse();
+
+        circle.Activate();
+
+        circle.PayoutOrderConfirmed.Should().BeTrue();
+        circle.Status.Should().Be(CircleStatus.Active);
+    }
+
+    [Fact]
+    public void Activate_WithNoOrderAtAll_Throws()
+    {
+        var circle = CreateCircleWithMembers(3);
 
         var act = () => circle.Activate();
 

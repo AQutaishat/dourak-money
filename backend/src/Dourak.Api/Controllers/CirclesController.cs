@@ -9,10 +9,11 @@ namespace Dourak.Api.Controllers;
 
 public record CreateCircleRequest(
     string Name, string? Description, string Currency, decimal ContributionAmount,
-    DateOnly StartDate, bool OrganizerIsMember, string? OrganizerMemberName);
+    DateOnly StartDate);
 
 public record SetManualOrderRequest(IReadOnlyList<int> MemberIdsInOrder);
 public record ReplaceMemberRequest(int OldMemberId, int NewMemberId);
+public record AddUserMemberRequest(string UserId);
 
 [ApiController]
 [Authorize]
@@ -35,7 +36,7 @@ public class CirclesController : ControllerBase
     {
         var id = await _mediator.Send(new CreateCircleCommand(
             request.Name, request.Description, request.Currency, request.ContributionAmount,
-            request.StartDate, request.OrganizerIsMember, request.OrganizerMemberName));
+            request.StartDate));
         return CreatedAtAction(nameof(GetDetail), new { circleId = id }, id);
     }
 
@@ -95,6 +96,24 @@ public class CirclesController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>prompt02 §2: add an already-registered Dourak user (pending their acceptance).</summary>
+    [HttpPost("{circleId:int}/members/by-user")]
+    public async Task<ActionResult<int>> AddUserMember(int circleId, AddUserMemberRequest request) =>
+        Ok(await _mediator.Send(new AddUserMemberCommand(circleId, request.UserId)));
+
+    /// <summary>prompt02 §Draft circles: quick "add me as a member" shortcut for the organizer.</summary>
+    [HttpPost("{circleId:int}/members/self")]
+    public async Task<ActionResult<int>> AddSelfAsMember(int circleId) =>
+        Ok(await _mediator.Send(new AddSelfAsMemberCommand(circleId)));
+
+    /// <summary>prompt02 §5: send a fresh invitation to a member who declined.</summary>
+    [HttpPost("{circleId:int}/members/{memberId:int}/reinvite")]
+    public async Task<IActionResult> ReinviteMember(int circleId, int memberId)
+    {
+        await _mediator.Send(new ReinviteMemberCommand(circleId, memberId));
+        return NoContent();
+    }
+
     [HttpPost("{circleId:int}/members/replace")]
     public async Task<IActionResult> ReplaceMember(int circleId, ReplaceMemberRequest request)
     {
@@ -150,4 +169,22 @@ public class CirclesController : ControllerBase
     [HttpGet("{circleId:int}/members/{memberId:int}/history")]
     public async Task<ActionResult<MemberHistoryDto>> GetMemberHistory(int circleId, int memberId) =>
         Ok(await _mediator.Send(new GetMemberHistoryQuery(circleId, memberId)));
+
+    // ----- Phase 2 -----
+
+    /// <summary>prompt02 §Draft circles: delete a circle that has no recorded payments yet.</summary>
+    [HttpDelete("{circleId:int}")]
+    public async Task<IActionResult> Delete(int circleId)
+    {
+        await _mediator.Send(new DeleteCircleCommand(circleId));
+        return NoContent();
+    }
+
+    /// <summary>
+    /// prompt02 §6: organizer sees every claim in their circle; a member sees only their own
+    /// (the filtering lives in the handler, not here).
+    /// </summary>
+    [HttpGet("{circleId:int}/payment-claims")]
+    public async Task<ActionResult<IReadOnlyList<PaymentClaimDto>>> GetPaymentClaims(int circleId, [FromQuery] bool pendingOnly = false) =>
+        Ok(await _mediator.Send(new GetCirclePaymentClaimsQuery(circleId, pendingOnly)));
 }
