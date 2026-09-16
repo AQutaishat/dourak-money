@@ -60,6 +60,13 @@ services:
       - api
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      # Caddy's ACME account + issued Let's Encrypt certs — must persist across
+      # `docker compose up -d --build`, or every rebuild re-requests a fresh
+      # certificate (Let's Encrypt rate-limits repeated issuance for the same domain).
+      - dourak-caddy-data:/data
+      - dourak-caddy-config:/config
 
   # ---------------------------------------------------------------------------
   # Postgres GUI client (prompt02 §Other requirement).
@@ -135,3 +142,5 @@ volumes:
   dourak-evidence-data:
   dourak-api-logs:
   dourak-seq-data:
+  dourak-caddy-data:
+  dourak-caddy-config:

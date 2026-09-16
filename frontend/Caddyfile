@@ -1,8 +1,11 @@
-# No domain configured yet (deferred per project decision) — this is a plain
-# ":80" address, so Caddy will NOT attempt automatic HTTPS/ACME for it. Once a
-# domain is pointed at this server, replace ":80" with the domain name and
-# Caddy will provision a free Let's Encrypt certificate automatically.
-:80 {
+# Domain is live (dourak.money, registered via Namecheap) — Caddy automatically
+# requests and renews a free Let's Encrypt certificate for it via ACME HTTP-01
+# challenge (needs port 80 reachable from the internet for the initial challenge,
+# then serves everything over HTTPS on port 443; HTTP requests are auto-redirected
+# to HTTPS). Requires the domain's DNS A record to point at this server's public IP
+# before the container starts, or the ACME challenge fails and Caddy falls back to
+# retrying in the background.
+dourak.money, www.dourak.money {
 	# API calls stay same-origin from the browser's point of view — Caddy
 	# forwards them to the api container, path unchanged (e.g. /api/circles
 	# arrives at the API as /api/circles, matching its [Route("api/...")]).
