@@ -68,15 +68,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset('assets/images/dourak_logo.png', width: 64, height: 64),
+                    ),
+                    const SizedBox(height: 12),
                     Text(context.t('app.name'),
+                        textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).colorScheme.primary,
                             )),
                     const SizedBox(height: 4),
-                    Text(context.t('app.tagline'), style: Theme.of(context).textTheme.bodyMedium),
+                    Text(context.t('app.tagline'), textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 20),
                     if (error != null) ...[
                       Container(

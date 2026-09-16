@@ -4,6 +4,7 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AuthError, useAuth } from "../../auth/AuthContext";
 import { useValidatedField } from "../../components/ValidatedTextField";
+import dourakLogo from "../../assets/dourak-logo.png";
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -44,8 +45,11 @@ export function LoginPage() {
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "background.default", p: 2 }}>
       <Paper sx={{ p: 4, width: 360, maxWidth: "100%" }}>
-        <Typography variant="h5" fontWeight={700} color="primary" gutterBottom>{t("app.name")}</Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>{t("app.tagline")}</Typography>
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+          <Box component="img" src={dourakLogo} alt="" width={64} height={64} sx={{ borderRadius: 2 }} />
+        </Box>
+        <Typography variant="h5" fontWeight={700} color="primary" gutterBottom align="center">{t("app.name")}</Typography>
+        <Typography variant="body2" color="text.secondary" gutterBottom align="center">{t("app.tagline")}</Typography>
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 2 }}>
           <Stack spacing={2}>
             {/* Non-dismissing: it stays until the next submit attempt. */}

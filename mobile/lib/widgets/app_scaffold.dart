@@ -24,6 +24,14 @@ class AppScaffold extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leadingWidth: 56,
+        leading: Padding(
+          padding: const EdgeInsets.all(8),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset('assets/images/dourak_logo.png'),
+          ),
+        ),
         title: Text(title),
         actions: [
           ...?actions,
@@ -62,7 +70,17 @@ class AppScaffold extends ConsumerWidget {
           child: ListView(
             children: [
               DrawerHeader(
-                child: Text(context.t('app.name'), style: Theme.of(context).textTheme.titleLarge),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset('assets/images/dourak_logo.png', width: 40, height: 40),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(context.t('app.name'), style: Theme.of(context).textTheme.titleLarge),
+                  ],
+                ),
               ),
               ListTile(
                 leading: const Icon(Icons.home_outlined),

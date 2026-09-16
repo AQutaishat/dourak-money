@@ -9,6 +9,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { Outlet, Link as RouterLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/AuthContext";
+import dourakLogo from "../assets/dourak-logo.png";
 
 /**
  * prompt02 §Top navigation: nav links follow the app name on the *start* side of the reading
@@ -32,14 +33,16 @@ export function AppLayout() {
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <AppBar position="static" color="inherit" elevation={0} sx={{ borderBottom: "1px solid #eee" }}>
         <Toolbar sx={{ gap: 1 }}>
-          <Typography
-            variant="h6"
+          <Box
             component={RouterLink}
             to="/"
-            sx={{ textDecoration: "none", color: "primary.main", fontWeight: 700, marginInlineEnd: 3 }}
+            sx={{ display: "flex", alignItems: "center", gap: 1, textDecoration: "none", marginInlineEnd: 3 }}
           >
-            {t("app.name")}
-          </Typography>
+            <Box component="img" src={dourakLogo} alt="" width={32} height={32} sx={{ borderRadius: 1 }} />
+            <Typography variant="h6" sx={{ color: "primary.main", fontWeight: 700 }}>
+              {t("app.name")}
+            </Typography>
+          </Box>
 
           {/* Nav links: immediately after the app name, on the start side. */}
           <Stack direction="row" spacing={1} alignItems="center" sx={{ marginInlineStart: 2 }}>
