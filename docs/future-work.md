@@ -14,15 +14,16 @@ should be built unless a future prompt explicitly pulls it back into scope.
   carryovers below), a reset-token endpoint (ASP.NET Core Identity already
   supports `GeneratePasswordResetTokenAsync`/`ResetPasswordAsync`), and a
   matching UI flow on both the web app and the Flutter mobile app.
-- **GitHub Actions deployment pipeline** — add a CI/CD workflow that deploys to
-  the production Oracle server automatically (e.g. on push to `main`, or on a
-  tag/release), instead of the current manual `ssh` + `git pull` +
-  `docker compose up -d --build` steps. Needs: a way to reach the server from
-  GitHub Actions (SSH key stored as a repo secret, or a self-hosted runner on
-  the server itself), and care around not disrupting the JWT secret / `.env`
-  file already set up there. Also consider adding a test/build gate (run
-  `dotnet test` and `npm run build`) before deploying, so a broken commit on
-  `main` never reaches production automatically.
+- ~~**GitHub Actions deployment pipeline**~~ — **[DONE]** see
+  `.github/workflows/deploy.yml`: backend (`dotnet test`) and frontend
+  (`npm run build`) gates run on every push to `main`, then an SSH step
+  re-runs `git pull --ff-only && docker compose up -d --build` on the Oracle
+  server. Requires repo secrets `ORACLE_HOST`, `ORACLE_USERNAME`,
+  `ORACLE_SSH_KEY` (private key matching a public key already in the
+  server's `~/.ssh/authorized_keys`), and `ORACLE_DEPLOY_PATH` (the cloned
+  repo's directory on the server) — set once in GitHub repo Settings →
+  Secrets and variables → Actions. Also runnable on demand from the Actions
+  tab (workflow_dispatch) without a new commit.
 
 ## From Phase 2 (deferred out of `prompt02.md`)
 

@@ -1,0 +1,63 @@
+name: Deploy to production
+
+# Runs on every push to main: tests/builds both apps first (a broken commit never
+# reaches the server), then SSHes into the Oracle box and re-deploys via the same
+# `git pull && docker compose up -d --build` flow described in README.md — just
+# automated instead of run by hand. Can also be triggered manually from the
+# Actions tab (workflow_dispatch) without needing a new commit.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  backend-tests:
+    name: Backend build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Restore
+        run: dotnet restore backend/Dourak.sln
+      - name: Build
+        run: dotnet build backend/Dourak.sln --no-restore --configuration Release
+      - name: Test
+        run: dotnet test backend/Dourak.sln --no-build --configuration Release
+
+  frontend-build:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  deploy:
+    name: Deploy to Oracle server
+    needs: [backend-tests, frontend-build]
+    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and redeploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USERNAME }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            set -e
+            cd "${{ secrets.ORACLE_DEPLOY_PATH }}"
+            git pull --ff-only
+            docker compose up -d --build
+            docker image prune -f
