@@ -30,6 +30,9 @@ services:
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=dourak;Username=dourak;Password=dourak_dev_password"
       Jwt__Secret: "${JWT_SECRET:-CHANGE_ME_TO_A_LONG_RANDOM_SECRET_IN_PRODUCTION_ENVIRONMENT_VARIABLE}"
       Cors__AllowedOrigins__0: "http://localhost:5173"
+      # Flutter web dev server (mobile/) — pinned via `flutter run -d chrome --web-port=8090`
+      # so this origin stays stable across runs instead of a random port each time.
+      Cors__AllowedOrigins__1: "http://localhost:8090"
       ASPNETCORE_ENVIRONMENT: "Production"
       # Phase 2: payment-claim evidence is written to disk inside the container; the named
       # volume below is what makes it survive `docker compose up -d --build`.
