@@ -1,0 +1,17 @@
+# Plain :80, no domain/TLS here — this container is internal-only, reverse-proxied to by the
+# main "web" service's Caddy (see frontend/Caddyfile's admin.dourak.money block), which owns
+# the public HTTPS entrypoint and cert for admin.dourak.money.
+:80 {
+	# Same pattern as frontend/Caddyfile: API calls stay same-origin from the browser's
+	# point of view (no CORS needed) by proxying straight to the api container internally.
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		root * /srv
+		encode gzip
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -1,6 +1,8 @@
 using System.Net;
 using Dourak.Application.Auth;
 using Dourak.Application.Common.Interfaces;
+using Dourak.Domain.Entities;
+using Dourak.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -16,17 +18,20 @@ public class IdentityService : IIdentityService
     private readonly JwtTokenGenerator _tokenGenerator;
     private readonly IEmailSender _emailSender;
     private readonly AppOptions _appOptions;
+    private readonly IAppDbContext _db;
 
     public IdentityService(
         UserManager<ApplicationUser> userManager,
         JwtTokenGenerator tokenGenerator,
         IEmailSender emailSender,
-        IOptions<AppOptions> appOptions)
+        IOptions<AppOptions> appOptions,
+        IAppDbContext db)
     {
         _userManager = userManager;
         _tokenGenerator = tokenGenerator;
         _emailSender = emailSender;
         _appOptions = appOptions.Value;
+        _db = db;
     }
 
     public async Task<AuthResult> RegisterAsync(string email, string password)
@@ -62,7 +67,14 @@ public class IdentityService : IIdentityService
         if (user is null || !await _userManager.CheckPasswordAsync(user, password))
             return new AuthResult(false, null, null, null, new[] { "Invalid credentials." });
 
-        var (token, expiresAt) = _tokenGenerator.Generate(user);
+        // Admin "deactivate user" (see AdminSetActiveAsync) reuses Identity's lockout
+        // mechanism — check it here since this hand-rolled login bypasses SignInManager
+        // (which would otherwise enforce it automatically).
+        if (await _userManager.IsLockedOutAsync(user))
+            return new AuthResult(false, null, null, null, new[] { "This account has been deactivated." });
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var (token, expiresAt) = _tokenGenerator.Generate(user, roles);
         return new AuthResult(true, user.Id, token, expiresAt, Array.Empty<string>());
     }
 
@@ -198,6 +210,109 @@ public class IdentityService : IIdentityService
         if (user is null) return OperationResult.Fail("This reset link is invalid or has expired.");
 
         var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+        return result.Succeeded
+            ? OperationResult.Ok
+            : OperationResult.Fail(result.Errors.Select(e => e.Description).ToArray());
+    }
+
+    // ---------- Admin site ----------
+
+    public async Task<AdminStatsDto> GetAdminStatsAsync()
+    {
+        var totalUsers = await _userManager.Users.CountAsync();
+        var verifiedUsers = await _userManager.Users.CountAsync(u => u.EmailConfirmed);
+        var activeUsers = await _userManager.Users.CountAsync(u => u.LockoutEnd == null || u.LockoutEnd <= DateTimeOffset.UtcNow);
+        var totalCircles = await _db.Circles.CountAsync();
+        var draftCircles = await _db.Circles.CountAsync(c => c.Status == CircleStatus.Draft);
+        var activeCircles = await _db.Circles.CountAsync(c => c.Status == CircleStatus.Active);
+
+        return new AdminStatsDto(totalUsers, verifiedUsers, activeUsers, totalCircles, draftCircles, activeCircles);
+    }
+
+    public async Task<IReadOnlyList<AdminUserDto>> GetAllUsersForAdminAsync()
+    {
+        var users = await _userManager.Users.ToListAsync();
+
+        // One query each for the organizer and membership side, instead of N+1 per user.
+        var organized = await _db.Circles
+            .Select(c => new { c.OrganizerUserId, c.Id, c.Name, c.Status })
+            .ToListAsync();
+        var memberships = await _db.CircleMembers
+            .Where(m => m.UserId != null)
+            .Select(m => new { m.UserId, m.CircleId, CircleName = m.Circle!.Name, CircleStatus = m.Circle!.Status })
+            .ToListAsync();
+
+        var organizedByUser = organized.GroupBy(c => c.OrganizerUserId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<AdminCircleSummaryDto>)g
+                .Select(c => new AdminCircleSummaryDto(c.Id, c.Name, c.Status.ToString())).ToList());
+        var memberByUser = memberships.GroupBy(m => m.UserId!)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<AdminCircleSummaryDto>)g
+                .Select(m => new AdminCircleSummaryDto(m.CircleId, m.CircleName, m.CircleStatus.ToString())).ToList());
+
+        var now = DateTimeOffset.UtcNow;
+        return users.Select(u => new AdminUserDto(
+            u.Id,
+            u.DisplayName,
+            u.Email,
+            u.PhoneNumber,
+            u.EmailConfirmed,
+            IsActive: u.LockoutEnd is null || u.LockoutEnd <= now,
+            organizedByUser.TryGetValue(u.Id, out var org) ? org : Array.Empty<AdminCircleSummaryDto>(),
+            memberByUser.TryGetValue(u.Id, out var mem) ? mem : Array.Empty<AdminCircleSummaryDto>()
+        )).ToList();
+    }
+
+    public async Task<OperationResult> AdminSetPasswordAsync(string userId, string newPassword)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null) return OperationResult.Fail("User not found.");
+
+        // Admin-driven — no old password or token needed. RemovePasswordAsync first because
+        // AddPasswordAsync fails if a password hash already exists.
+        var removeResult = await _userManager.RemovePasswordAsync(user);
+        if (!removeResult.Succeeded)
+            return OperationResult.Fail(removeResult.Errors.Select(e => e.Description).ToArray());
+
+        var addResult = await _userManager.AddPasswordAsync(user, newPassword);
+        return addResult.Succeeded
+            ? OperationResult.Ok
+            : OperationResult.Fail(addResult.Errors.Select(e => e.Description).ToArray());
+    }
+
+    public async Task<OperationResult> AdminSetActiveAsync(string userId, bool isActive)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null) return OperationResult.Fail("User not found.");
+
+        if (!isActive)
+        {
+            if (!user.LockoutEnabled) await _userManager.SetLockoutEnabledAsync(user, true);
+            await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+        }
+        else
+        {
+            await _userManager.SetLockoutEndDateAsync(user, null);
+        }
+
+        return OperationResult.Ok;
+    }
+
+    public async Task<OperationResult> AdminDeleteUserAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null) return OperationResult.Fail("User not found.");
+
+        var organizesAnyCircle = await _db.Circles.AnyAsync(c => c.OrganizerUserId == userId);
+        if (organizesAnyCircle)
+            return OperationResult.Fail("This user organizes one or more circles. Reassign or delete those circles first.");
+
+        // Detach rather than leave dangling — the same state as an invited-but-not-yet-registered
+        // member, which CircleMember.UserId already supports being null for.
+        var memberships = await _db.CircleMembers.Where(m => m.UserId == userId).ToListAsync();
+        foreach (var m in memberships) m.UserId = null;
+        if (memberships.Count > 0) await _db.SaveChangesAsync();
+
+        var result = await _userManager.DeleteAsync(user);
         return result.Succeeded
             ? OperationResult.Ok
             : OperationResult.Fail(result.Errors.Select(e => e.Description).ToArray());

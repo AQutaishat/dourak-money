@@ -63,15 +63,27 @@ should be built unless a future prompt explicitly pulls it back into scope.
   (proper email pattern, not just "not empty") and phone number (valid phone
   number format/pattern, ideally with country-code awareness given Dourak's
   Arabic/GCC-first audience).
-- **Super Admin pages** — a separate admin-only area (not the regular organizer
-  dashboard) that can see and act across **all** users' data platform-wide:
-  - View/search all members and all circles across every user, not just one's own.
-  - Perform administrative actions on them (e.g. deactivate a circle, edit/remove
-    a problematic member or user, investigate an issue).
-  - Show platform-wide statistics (e.g. total users, total circles, active vs.
-    completed circles, total volume tracked, growth over time).
-  - This is a distinct role/permission level from "organizer" — needs its own
-    authorization design when it's picked up.
+- ~~**Super Admin pages**~~ — **[PARTIALLY DONE]** the first version now
+  exists: a separate `admin/` codebase deployed at `admin.dourak.money`,
+  gated by an `Admin` Identity role (see `docs/progress.md` "Admin Site"
+  for the full breakdown). Currently covers:
+  - A dashboard with platform-wide totals (users, verified users, active
+    users, circles by status).
+  - A users-management page: every user, which circles they organize/
+    belong to, email-verified status, reset password, deactivate/
+    reactivate, delete.
+
+  **Still not built** (deferred further, not part of this pass):
+  - Any circle-level admin actions (view/search circles directly, edit/
+    remove a specific circle or member from the admin side rather than
+    through the user who owns it).
+  - Growth-over-time / historical statistics (current dashboard is a
+    point-in-time snapshot only).
+  - An audit log of admin actions (who reset whose password, when,
+    etc.) — currently nothing records this.
+  - A UI for granting/revoking the `Admin` role itself (today it's done
+    once via `.env`'s `ADMIN_EMAIL`/`ADMIN_PASSWORD` + a server restart —
+    fine for a single admin, not for managing several).
 
 ## From Phase 3 (deferred out of `prompt03.md`)
 

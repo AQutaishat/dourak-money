@@ -7,6 +7,7 @@ using Dourak.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
@@ -120,6 +121,12 @@ using (var scope = app.Services.CreateScope())
     // (idempotent). Remove before real production launch (see docs/future-work.md).
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     await BetaUserSeeder.SeedAsync(userManager, app.Logger);
+
+    // Admin site (admin.dourak.money): ensures the "Admin" role exists, and — when
+    // Admin:Email/Password are configured (see .env.example) — that account has it.
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var adminOptions = scope.ServiceProvider.GetRequiredService<IOptions<AdminOptions>>();
+    await AdminSeeder.SeedAsync(userManager, roleManager, adminOptions, app.Logger);
 }
 
 try

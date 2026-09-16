@@ -61,6 +61,21 @@ public class FakeIdentityService : IIdentityService
     public Task<OperationResult> ResetPasswordAsync(string userId, string token, string newPassword) =>
         Task.FromResult(OperationResult.Ok);
 
+    public Task<AdminStatsDto> GetAdminStatsAsync() =>
+        throw new NotSupportedException();
+
+    public Task<IReadOnlyList<AdminUserDto>> GetAllUsersForAdminAsync() =>
+        throw new NotSupportedException();
+
+    public Task<OperationResult> AdminSetPasswordAsync(string userId, string newPassword) =>
+        Task.FromResult(OperationResult.Ok);
+
+    public Task<OperationResult> AdminSetActiveAsync(string userId, bool isActive) =>
+        Task.FromResult(OperationResult.Ok);
+
+    public Task<OperationResult> AdminDeleteUserAsync(string userId) =>
+        Task.FromResult(OperationResult.Ok);
+
     public Task<UserProfileDto?> GetProfileAsync(string userId) =>
         Task.FromResult(_users.TryGetValue(userId, out var u) ? u : null);
 

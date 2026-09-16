@@ -70,6 +70,46 @@ public interface IIdentityService
     Task RequestPasswordResetAsync(string email, CancellationToken cancellationToken = default);
 
     Task<OperationResult> ResetPasswordAsync(string userId, string token, string newPassword);
+
+    // ---------- Admin site ----------
+
+    Task<AdminStatsDto> GetAdminStatsAsync();
+
+    /// <summary>Every user, with the circles they organize/belong to — for the admin users table.</summary>
+    Task<IReadOnlyList<AdminUserDto>> GetAllUsersForAdminAsync();
+
+    /// <summary>Admin sets a new password directly — no token/email round-trip.</summary>
+    Task<OperationResult> AdminSetPasswordAsync(string userId, string newPassword);
+
+    /// <summary>Deactivating blocks login (via Identity's lockout mechanism); reactivating clears it.</summary>
+    Task<OperationResult> AdminSetActiveAsync(string userId, bool isActive);
+
+    /// <summary>
+    /// Refuses to delete a user who currently organizes any circle (that circle would be
+    /// left with a dangling organizer — Identity and the circle tables are separate stores
+    /// with no enforced FK, so this check is the only thing preventing that). A user who is
+    /// merely a member elsewhere is fine to delete — their CircleMember rows are detached
+    /// (UserId set to null) rather than left dangling, the same state as a not-yet-registered
+    /// invited member.
+    /// </summary>
+    Task<OperationResult> AdminDeleteUserAsync(string userId);
+}
+
+public record AdminStatsDto(int TotalUsers, int VerifiedUsers, int ActiveUsers, int TotalCircles, int DraftCircles, int ActiveCircles);
+
+public record AdminCircleSummaryDto(int CircleId, string Name, string Status);
+
+public record AdminUserDto(
+    string UserId,
+    string? Name,
+    string? Email,
+    string? Phone,
+    bool EmailConfirmed,
+    bool IsActive,
+    IReadOnlyList<AdminCircleSummaryDto> OrganizedCircles,
+    IReadOnlyList<AdminCircleSummaryDto> MemberCircles)
+{
+    public string DisplayLabel => string.IsNullOrWhiteSpace(Name) ? (Email ?? UserId) : Name;
 }
 
 /// <summary>

@@ -5,6 +5,15 @@
 # to HTTPS). Requires the domain's DNS A record to point at this server's public IP
 # before the container starts, or the ACME challenge fails and Caddy falls back to
 # retrying in the background.
+# Admin site (separate codebase — see admin/) — Caddy automatically requests its own
+# Let's Encrypt cert for this hostname too, independent of the main site's. Proxied to the
+# admin-web container (internal-only, not published on the host) rather than serving it
+# from this container directly, so the two codebases/builds stay fully separate while both
+# still go through this single public HTTPS entrypoint.
+admin.dourak.money {
+	reverse_proxy admin-web:80
+}
+
 dourak.money, www.dourak.money {
 	# API calls stay same-origin from the browser's point of view — Caddy
 	# forwards them to the api container, path unchanged (e.g. /api/circles

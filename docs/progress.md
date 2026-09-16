@@ -313,3 +313,67 @@ another weaker mechanism as a stopgap — see future-work.md's reasoning).
 
 **Verified**: `dotnet build`/`dotnet test` (68/68 passing) and
 `npm run build` both succeed with all of the above.
+
+## Admin Site — Progress
+
+New `admin/` — a separate React/Vite/TS/MUI codebase from `frontend/` (own
+`package.json`, own Docker build), deployed under `admin.dourak.money`.
+Shares the main backend/database rather than a separate user store.
+
+**Backend**:
+- `.AddRoles<IdentityRole>()` added to Identity setup — no migration
+  needed, `AspNetRoles`/`AspNetUserRoles` already exist (`DourakDbContext`
+  derives `IdentityDbContext<ApplicationUser>`, which always includes
+  them).
+- `JwtTokenGenerator.Generate` now takes an optional `roles` param and
+  adds one `ClaimTypes.Role` claim per role; `IdentityService.LoginAsync`
+  fetches roles via `GetRolesAsync` and also now checks
+  `IsLockedOutAsync` (this hand-rolled login bypasses `SignInManager`,
+  which would otherwise enforce lockout automatically) — rejects with
+  "This account has been deactivated." if locked out.
+- "Deactivate" reuses Identity's lockout fields directly (`LockoutEnabled`
+  + `LockoutEnd = DateTimeOffset.MaxValue`) rather than adding a new
+  column — no migration needed for this either.
+- New `IIdentityService` admin methods (`GetAdminStatsAsync`,
+  `GetAllUsersForAdminAsync`, `AdminSetPasswordAsync`,
+  `AdminSetActiveAsync`, `AdminDeleteUserAsync`) + matching MediatR
+  commands/queries in `Dourak.Application/Admin/AdminQueries.cs` + new
+  `AdminController` (`/api/admin/*`, class-level
+  `[Authorize(Roles = "Admin")]`).
+- **Delete-user safety**: refuses to delete a user who currently
+  organizes any circle (would leave it with a dangling organizer — no DB-
+  level FK exists between Identity and the circle tables to prevent
+  this). A user who is merely a member elsewhere is fine to delete —
+  their `CircleMember.UserId` rows are set to `null` (the same state as
+  an invited-but-not-yet-registered member) rather than left dangling.
+- New `AdminSeeder` (mirrors the existing `BetaUserSeeder` pattern):
+  ensures the `Admin` role exists, and when `Admin:Email`/`Password` are
+  configured, ensures that account exists and has the role — idempotent,
+  runs on every startup. Both empty by default (no admin account until
+  explicitly configured).
+- New config: `Admin:Email`/`Admin:Password` (`.env`'s `ADMIN_EMAIL`/
+  `ADMIN_PASSWORD` → `docker-compose.yml`).
+
+**Admin frontend** (`admin/`): Login page (same `/api/auth/login`, checks
+for the `Admin` role client-side by decoding the JWT payload — UX only,
+the server independently enforces the role on every `/api/admin/*` call
+regardless), Dashboard page (total counts only, per spec), Users page
+(table: name, email, phone, verified/unverified chip, active/deactivated
+chip, expandable row showing circles organized + circles joined, and
+per-row actions: reset password via dialog, activate/deactivate toggle,
+delete with a confirmation dialog explaining the organizer-safety
+refusal).
+
+**Deployment**: `admin-web` is a new Docker Compose service, **not**
+published on the host — the existing `web` service's Caddy reverse-
+proxies `admin.dourak.money` to it internally and owns its Let's Encrypt
+cert (added as a second site block in `frontend/Caddyfile`); `admin-web`'s
+own Caddy in turn proxies its `/api/*` calls to the `api` container the
+same way `frontend/Caddyfile` already does for the main site — so the
+admin site's browser calls are same-origin, no CORS entry needed for it.
+**Requires a new DNS A record** for `admin.dourak.money` (not yet added
+as of this writing — see `docs/future-work.md`).
+
+**Verified**: `dotnet build`/`dotnet test` (68/68 passing),
+`npm run build` (`frontend/`) and `npm run build` (`admin/`) all succeed;
+`docker compose config -q` validates the updated compose file.

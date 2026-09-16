@@ -189,6 +189,41 @@ to disk by the API under `Storage:EvidencePath` — `/app/data/evidence` in Dock
 the `dourak-evidence-data` volume so uploads survive `docker compose up -d --build`. Limits:
 5 MB per file, images and PDFs only; the database stores only the reference.
 
+## Admin site
+
+`admin/` is a **separate codebase** from `frontend/` — its own `package.json`, own React app,
+own Docker build — deployed under its own subdomain (`admin.dourak.money`). It shares the
+same backend/database as the main app rather than having its own user store: access is
+gated by an **`Admin` Identity role** on a normal user account, not a separate login system.
+
+- **Pages**: a dashboard (total user/circle counts) and a users-management page (every user,
+  their circles organized/joined, email-verified status, and admin actions: reset password,
+  deactivate/reactivate, delete).
+- **Auth**: logs in via the same `/api/auth/login` endpoint as the main app; the JWT only
+  grants access to `/api/admin/*` endpoints if the account has the `Admin` role (enforced
+  server-side via `[Authorize(Roles = "Admin")]` — the admin site's own login screen also
+  checks this client-side for a clearer error message, but that check is UX only).
+- **Getting an admin account**: set `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env` — `AdminSeeder`
+  (runs on every API startup, idempotent) creates that account if it doesn't exist and/or
+  grants it the `Admin` role. To promote an *existing* user instead, set `ADMIN_EMAIL` to
+  their email and leave `ADMIN_PASSWORD` empty — only the role is added, their password is
+  untouched.
+- **Networking**: not published on the host at all — the main `web` service's Caddy
+  reverse-proxies `admin.dourak.money` to the internal `admin-web` container (see
+  `frontend/Caddyfile`), and `admin-web`'s own Caddy proxies its `/api/*` calls to the `api`
+  container the same way `frontend/Caddyfile` does — so the admin site never makes a
+  cross-origin request and needs no CORS entry.
+- **DNS**: needs its own `A` record — `admin.dourak.money` → the server's IP (in Cloudflare,
+  alongside the existing `@`/`www` records) — before Caddy can obtain its Let's Encrypt cert
+  for it.
+
+```bash
+cd admin
+npm install
+npm run dev       # local dev server, calls VITE_API_BASE_URL or /api
+npm run build     # production build (also run by admin/Dockerfile)
+```
+
 ## Deployment (GitHub Actions)
 
 `.github/workflows/deploy.yml` deploys to the production Oracle server automatically

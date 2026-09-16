@@ -33,6 +33,9 @@ services:
       # Flutter web dev server (mobile/) — pinned via `flutter run -d chrome --web-port=8090`
       # so this origin stays stable across runs instead of a random port each time.
       Cors__AllowedOrigins__1: "http://localhost:8090"
+      # Note: the admin site (admin.dourak.money) does NOT need a CORS entry here — its own
+      # Caddy container proxies /api/* to this same api container internally (see
+      # admin/Caddyfile), so its browser calls are same-origin, not cross-origin.
       ASPNETCORE_ENVIRONMENT: "Production"
       # Base URL used to build email-verification / password-reset links. Override with
       # ${FRONTEND_BASE_URL} in .env if this ever differs (e.g. a staging domain).
@@ -46,6 +49,11 @@ services:
       Email__Password: "${SMTP_PASSWORD:-}"
       Email__FromAddress: "${SMTP_FROM_ADDRESS:-no-reply@dourak.money}"
       Email__FromName: "Dourak"
+      # Admin site login (admin.dourak.money) — empty by default, so no admin account exists
+      # until explicitly set in .env. Safe to change later; the seeder just adds the Admin
+      # role to this account (or creates it) on every startup, idempotently.
+      Admin__Email: "${ADMIN_EMAIL:-}"
+      Admin__Password: "${ADMIN_PASSWORD:-}"
       # Phase 2: payment-claim evidence is written to disk inside the container; the named
       # volume below is what makes it survive `docker compose up -d --build`.
       Storage__EvidencePath: "/app/data/evidence"
@@ -82,6 +90,19 @@ services:
       # certificate (Let's Encrypt rate-limits repeated issuance for the same domain).
       - dourak-caddy-data:/data
       - dourak-caddy-config:/config
+
+  # Admin site (admin.dourak.money) — separate codebase (admin/), gated by the Admin Identity
+  # role rather than a separate user store. Not published on the host: the "web" service's
+  # Caddy (above) reverse-proxies admin.dourak.money to this container internally and owns
+  # the public HTTPS cert for it, same pattern as api/8080 above.
+  admin-web:
+    build:
+      context: ./admin
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: dourak-admin-web
+    depends_on:
+      - api
 
   # ---------------------------------------------------------------------------
   # Postgres GUI client (prompt02 §Other requirement).

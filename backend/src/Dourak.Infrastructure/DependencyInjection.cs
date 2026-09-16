@@ -28,6 +28,11 @@ public static class DependencyInjection
                 options.Password.RequireUppercase = false;
                 options.User.RequireUniqueEmail = true;
             })
+            // Roles power the admin site's access control (Admin role) — the AspNetRoles/
+            // AspNetUserRoles tables already exist in the schema (DourakDbContext derives
+            // IdentityDbContext<ApplicationUser>, which always includes them), so this is
+            // purely a DI registration, no migration needed.
+            .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<DourakDbContext>()
             .AddDefaultTokenProviders();
 
@@ -36,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IIdentityService, IdentityService>();
 
         services.Configure<AppOptions>(configuration.GetSection(AppOptions.SectionName));
+        services.Configure<AdminOptions>(configuration.GetSection(AdminOptions.SectionName));
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
         // No SMTP host configured -> log emails instead of sending (see LoggingEmailSender);
         // set Email:Host (e.g. via env vars once a provider like Zoho Mail is set up) to switch
