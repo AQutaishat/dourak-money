@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Plain white, matching the flat launcher icon's background (frontend/public/favicon.svg
-         is rendered on white for both) so the adaptive icon and legacy icon look consistent. -->
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Deep teal, matching the "circle of members" launcher icon's background so the
+         adaptive icon (foreground: ic_launcher_foreground, dots only) and the flat
+         legacy icon (mipmap-*/ic_launcher.png, full composition) look consistent. -->
+    <color name="ic_launcher_background">#0F6B57</color>
 </resources>
