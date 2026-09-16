@@ -189,6 +189,27 @@ to disk by the API under `Storage:EvidencePath` — `/app/data/evidence` in Dock
 the `dourak-evidence-data` volume so uploads survive `docker compose up -d --build`. Limits:
 5 MB per file, images and PDFs only; the database stores only the reference.
 
+## Deployment (GitHub Actions)
+
+`.github/workflows/deploy.yml` deploys to the production Oracle server automatically
+on every push to `main` (or manually via the Actions tab → "Deploy to production" →
+Run workflow). It runs `dotnet test` and `npm run build` as gates first — a commit
+that fails either never reaches the server — then SSHes in and re-runs the same
+`git pull --ff-only && docker compose up -d --build` steps you'd otherwise run by hand.
+
+**One-time setup**, in the GitHub repo → Settings → Secrets and variables → Actions
+→ New repository secret, add:
+
+| Secret | Value |
+|---|---|
+| `ORACLE_HOST` | The server's public IP or hostname (e.g. `84.13.136.178`) |
+| `ORACLE_USERNAME` | The SSH user (e.g. `ubuntu`) |
+| `ORACLE_SSH_KEY` | The **private** key (full contents, e.g. of `dourak_oracle`) whose matching public key is already in the server's `~/.ssh/authorized_keys` — generate a dedicated deploy key rather than reusing your personal one if you'd rather be able to revoke it independently |
+| `ORACLE_DEPLOY_PATH` | Absolute path to the cloned repo on the server (e.g. `/home/ubuntu/dourak-money`) |
+
+The server's `.env` (JWT secret, etc. — see "Local setup" → step 2 above) is untouched
+by this workflow; it's gitignored and already persists across `git pull` on the server.
+
 ## Tests
 ```bash
 cd backend
