@@ -49,11 +49,18 @@ services:
       Email__Password: "${SMTP_PASSWORD:-}"
       Email__FromAddress: "${SMTP_FROM_ADDRESS:-no-reply@dourak.money}"
       Email__FromName: "Dourak"
-      # Admin site login (admin.dourak.money) — empty by default, so no admin account exists
-      # until explicitly set in .env. Safe to change later; the seeder just adds the Admin
-      # role to this account (or creates it) on every startup, idempotently.
-      Admin__Email: "${ADMIN_EMAIL:-}"
-      Admin__Password: "${ADMIN_PASSWORD:-}"
+      # Admin site login (admin.dourak.money) — up to 3 static admin accounts, same
+      # array-via-env-var pattern as Cors__AllowedOrigins__N above. Empty by default, so no
+      # admin account exists until set in .env. Safe to add/remove entries later; the seeder
+      # just adds the Admin role to each configured account (or creates it) on every startup,
+      # idempotently — an already-existing account only gets the role, its password is
+      # untouched (so this also works to promote an existing regular user to admin).
+      Admin__Accounts__0__Email: "${ADMIN_1_EMAIL:-}"
+      Admin__Accounts__0__Password: "${ADMIN_1_PASSWORD:-}"
+      Admin__Accounts__1__Email: "${ADMIN_2_EMAIL:-}"
+      Admin__Accounts__1__Password: "${ADMIN_2_PASSWORD:-}"
+      Admin__Accounts__2__Email: "${ADMIN_3_EMAIL:-}"
+      Admin__Accounts__2__Password: "${ADMIN_3_PASSWORD:-}"
       # Phase 2: payment-claim evidence is written to disk inside the container; the named
       # volume below is what makes it survive `docker compose up -d --build`.
       Storage__EvidencePath: "/app/data/evidence"

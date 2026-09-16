@@ -203,11 +203,11 @@ gated by an **`Admin` Identity role** on a normal user account, not a separate l
   grants access to `/api/admin/*` endpoints if the account has the `Admin` role (enforced
   server-side via `[Authorize(Roles = "Admin")]` — the admin site's own login screen also
   checks this client-side for a clearer error message, but that check is UX only).
-- **Getting an admin account**: set `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env` — `AdminSeeder`
-  (runs on every API startup, idempotent) creates that account if it doesn't exist and/or
-  grants it the `Admin` role. To promote an *existing* user instead, set `ADMIN_EMAIL` to
-  their email and leave `ADMIN_PASSWORD` empty — only the role is added, their password is
-  untouched.
+- **Getting an admin account**: set `ADMIN_1_EMAIL`/`ADMIN_1_PASSWORD` (and `ADMIN_2_*`/
+  `ADMIN_3_*` for more — see `.env.example`) in `.env` — `AdminSeeder` (runs on every API
+  startup, idempotent) creates each account if it doesn't exist and/or grants it the `Admin`
+  role. To promote an *existing* Dourak user instead of creating a new account, set their
+  email with no password — only the role is added, their password is untouched.
 - **Networking**: not published on the host at all — the main `web` service's Caddy
   reverse-proxies `admin.dourak.money` to the internal `admin-web` container (see
   `frontend/Caddyfile`), and `admin-web`'s own Caddy proxies its `/api/*` calls to the `api`

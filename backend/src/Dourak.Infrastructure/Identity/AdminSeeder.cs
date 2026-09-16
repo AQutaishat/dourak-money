@@ -4,21 +4,31 @@ using Microsoft.Extensions.Options;
 
 namespace Dourak.Infrastructure.Identity;
 
-public class AdminOptions
+public class AdminAccountOptions
 {
-    public const string SectionName = "Admin";
-
-    /// <summary>Empty by default — no admin account is seeded until this is set (via .env's
-    /// ADMIN_EMAIL, see docker-compose.yml), so a fresh environment never has a surprise
-    /// pre-existing admin login.</summary>
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
 }
 
+public class AdminOptions
+{
+    public const string SectionName = "Admin";
+
+    /// <summary>
+    /// Static, config-defined admin accounts — several are supported (not just one), each
+    /// bound the same way appsettings.json/env vars already bind Cors:AllowedOrigins and
+    /// Serilog:WriteTo arrays elsewhere in this project (Admin__Accounts__0__Email, etc. via
+    /// docker-compose.yml). Empty by default — no admin account exists until this is set.
+    /// </summary>
+    public List<AdminAccountOptions> Accounts { get; set; } = new();
+}
+
 /// <summary>
-/// Ensures the "Admin" role exists, and — when Admin:Email/Password are configured — that
-/// account has it. Idempotent (safe on every startup): if the account already exists (e.g. a
-/// regular user is being promoted), only the role is added, its password is left untouched.
+/// Ensures the "Admin" role exists, and every configured account (see AdminOptions.Accounts)
+/// exists and has it. Idempotent (safe on every startup): an account that already exists
+/// (e.g. a regular user being promoted by listing their email here) only gets the role added,
+/// its password is left untouched — only a brand-new account is created with the configured
+/// password.
 /// </summary>
 public static class AdminSeeder
 {
@@ -33,39 +43,41 @@ public static class AdminSeeder
         if (!await roleManager.RoleExistsAsync(AdminRole))
             await roleManager.CreateAsync(new IdentityRole(AdminRole));
 
-        var adminOptions = options.Value;
-        if (string.IsNullOrWhiteSpace(adminOptions.Email)) return;
-
-        var user = await userManager.FindByEmailAsync(adminOptions.Email);
-        if (user is null)
+        foreach (var account in options.Value.Accounts)
         {
-            if (string.IsNullOrWhiteSpace(adminOptions.Password))
+            if (string.IsNullOrWhiteSpace(account.Email)) continue;
+
+            var user = await userManager.FindByEmailAsync(account.Email);
+            if (user is null)
             {
-                logger.LogWarning("Admin:Email is set but Admin:Password is empty — skipping admin account creation for {Email}.", adminOptions.Email);
-                return;
+                if (string.IsNullOrWhiteSpace(account.Password))
+                {
+                    logger.LogWarning("Admin account {Email} has no password configured — skipping creation (it doesn't exist yet).", account.Email);
+                    continue;
+                }
+
+                user = new ApplicationUser
+                {
+                    UserName = account.Email,
+                    Email = account.Email,
+                    EmailConfirmed = true,
+                    DisplayName = "Admin",
+                    NormalizedDisplayName = "ADMIN",
+                    PreferredLanguage = "en",
+                };
+
+                var createResult = await userManager.CreateAsync(user, account.Password);
+                if (!createResult.Succeeded)
+                {
+                    logger.LogWarning(
+                        "Admin account seed failed for {Email}: {Errors}",
+                        account.Email, string.Join("; ", createResult.Errors.Select(e => e.Description)));
+                    continue;
+                }
             }
 
-            user = new ApplicationUser
-            {
-                UserName = adminOptions.Email,
-                Email = adminOptions.Email,
-                EmailConfirmed = true,
-                DisplayName = "Admin",
-                NormalizedDisplayName = "ADMIN",
-                PreferredLanguage = "en",
-            };
-
-            var createResult = await userManager.CreateAsync(user, adminOptions.Password);
-            if (!createResult.Succeeded)
-            {
-                logger.LogWarning(
-                    "Admin account seed failed for {Email}: {Errors}",
-                    adminOptions.Email, string.Join("; ", createResult.Errors.Select(e => e.Description)));
-                return;
-            }
+            if (!await userManager.IsInRoleAsync(user, AdminRole))
+                await userManager.AddToRoleAsync(user, AdminRole);
         }
-
-        if (!await userManager.IsInRoleAsync(user, AdminRole))
-            await userManager.AddToRoleAsync(user, AdminRole);
     }
 }

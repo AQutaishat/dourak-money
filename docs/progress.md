@@ -347,12 +347,17 @@ Shares the main backend/database rather than a separate user store.
   their `CircleMember.UserId` rows are set to `null` (the same state as
   an invited-but-not-yet-registered member) rather than left dangling.
 - New `AdminSeeder` (mirrors the existing `BetaUserSeeder` pattern):
-  ensures the `Admin` role exists, and when `Admin:Email`/`Password` are
-  configured, ensures that account exists and has the role — idempotent,
-  runs on every startup. Both empty by default (no admin account until
-  explicitly configured).
-- New config: `Admin:Email`/`Admin:Password` (`.env`'s `ADMIN_EMAIL`/
-  `ADMIN_PASSWORD` → `docker-compose.yml`).
+  ensures the `Admin` role exists, then loops `Admin:Accounts` (a list,
+  not a single email/password — several static admin accounts are
+  supported at once, per explicit request) ensuring each exists and has
+  the role — idempotent, runs on every startup. Setting only an email
+  (no password) for an address that already has a regular account
+  promotes that user instead of creating a new one, password untouched
+  either way. Empty by default (no admin account until configured).
+- New config: `Admin:Accounts` (a list of `{Email, Password}`), wired via
+  `.env`'s `ADMIN_1_EMAIL`/`ADMIN_1_PASSWORD` (and `_2_`/`_3_` for more —
+  same array-via-indexed-env-var pattern as `Cors:AllowedOrigins` and
+  `Serilog:WriteTo` elsewhere in this project) → `docker-compose.yml`.
 
 **Admin frontend** (`admin/`): Login page (same `/api/auth/login`, checks
 for the `Admin` role client-side by decoding the JWT payload — UX only,
