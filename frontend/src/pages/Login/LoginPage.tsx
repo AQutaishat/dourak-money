@@ -56,6 +56,9 @@ export function LoginPage() {
             {error && <Alert severity="error">{error}</Alert>}
             <TextField label={t("auth.email")} type="email" fullWidth autoComplete="email" {...email.fieldProps} />
             <TextField label={t("auth.password")} type="password" fullWidth autoComplete="current-password" {...password.fieldProps} />
+            <MuiLink component={RouterLink} to="/forgot-password" variant="body2" sx={{ alignSelf: "flex-end" }}>
+              {t("auth.forgotPassword")}
+            </MuiLink>
             <Button type="submit" variant="contained" size="large" disabled={loading}>{t("auth.loginCta")}</Button>
             <Typography variant="body2">
               {t("auth.noAccount")} <MuiLink component={RouterLink} to="/register">{t("auth.register")}</MuiLink>

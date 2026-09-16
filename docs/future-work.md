@@ -6,14 +6,29 @@ should be built unless a future prompt explicitly pulls it back into scope.
 
 ## Infrastructure / DevOps
 
-- **"Forgot password" functionality** — a self-service password reset flow
-  (currently there is none: a user who forgets their password has no way to
-  regain access). Needs: a way to reach the user out-of-band (email is the
-  natural choice, but Dourak has no email-sending infrastructure yet — see
-  the "Push notifications, SMS, email notifications" line under Phase 1 BRD
-  carryovers below), a reset-token endpoint (ASP.NET Core Identity already
-  supports `GeneratePasswordResetTokenAsync`/`ResetPasswordAsync`), and a
-  matching UI flow on both the web app and the Flutter mobile app.
+- ~~**"Forgot password" functionality**~~ — **[DONE]** email verification +
+  password reset both implemented (backend: `IIdentityService` email
+  methods, `AuthController` endpoints; web: `/forgot-password`,
+  `/reset-password`, `/verify-email` pages, verified/unverified badge on
+  the profile page, a dismissible corner banner nudging unverified users
+  to verify — never blocks any action). Two real gaps remain, both
+  deliberate for now:
+  - **No real SMTP provider configured** — `LoggingEmailSender` (see
+    `Dourak.Infrastructure/Email`) logs verification/reset emails instead
+    of sending them until `Email:Host` etc. are set (via `.env` — see
+    `.env.example`). Set these up once a provider (Zoho Mail, Resend SMTP,
+    etc.) is chosen; no code change needed, just config.
+  - **Mobile (Flutter) doesn't have this flow yet** — web-only so far;
+    port the same three screens + badge + banner to `mobile/` when picked
+    up.
+  - **No fallback recovery for a user stuck with an unreachable/fake
+    email** (can't verify, can't receive a reset link) — the only path
+    today is registering a fresh account with a real email and having
+    their circle's organizer re-add them. A proper fix needs a real
+    admin/support role (see "Super Admin pages" below) to manually verify
+    identity out-of-band and reset an account — deliberately not built
+    now rather than adding a weaker mechanism (e.g. security questions)
+    as a stopgap.
 - ~~**GitHub Actions deployment pipeline**~~ — **[DONE]** see
   `.github/workflows/deploy.yml`: backend (`dotnet test`) and frontend
   (`npm run build`) gates run on every push to `main`, then an SSH step

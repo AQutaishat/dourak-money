@@ -11,6 +11,9 @@ import { createEmotionCache } from "./theme/emotionCache";
 import { isRtl } from "./i18n";
 import { AppLayout } from "./layouts/AppLayout";
 import { LoginPage } from "./pages/Login/LoginPage";
+import { ForgotPasswordPage } from "./pages/Login/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/Login/ResetPasswordPage";
+import { VerifyEmailPage } from "./pages/Login/VerifyEmailPage";
 import { RegisterPage } from "./pages/Register/RegisterPage";
 import { DashboardPage } from "./pages/Dashboard/DashboardPage";
 import { MyCirclesPage } from "./pages/MyCircles/MyCirclesPage";
@@ -44,6 +47,11 @@ function ThemedApp() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            {/* Also reachable while signed in — clicking the verification link in a new tab
+                shouldn't require signing out first. */}
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/circles" element={<MyCirclesPage />} />

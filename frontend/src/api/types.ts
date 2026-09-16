@@ -146,6 +146,7 @@ export interface UserProfile {
   phone?: string | null;
   preferredLanguage: string;
   displayLabel: string;
+  emailConfirmed: boolean;
 }
 
 export interface UserSearchResult {

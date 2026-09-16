@@ -34,6 +34,18 @@ services:
       # so this origin stays stable across runs instead of a random port each time.
       Cors__AllowedOrigins__1: "http://localhost:8090"
       ASPNETCORE_ENVIRONMENT: "Production"
+      # Base URL used to build email-verification / password-reset links. Override with
+      # ${FRONTEND_BASE_URL} in .env if this ever differs (e.g. a staging domain).
+      App__FrontendBaseUrl: "${FRONTEND_BASE_URL:-https://dourak.money}"
+      # No SMTP provider configured yet (see docs/future-work.md) -> verification/reset
+      # emails are logged instead of sent (see LoggingEmailSender). Set these via .env once
+      # a provider (Zoho Mail, Resend, etc.) is set up to switch to real delivery.
+      Email__Host: "${SMTP_HOST:-}"
+      Email__Port: "${SMTP_PORT:-587}"
+      Email__User: "${SMTP_USER:-}"
+      Email__Password: "${SMTP_PASSWORD:-}"
+      Email__FromAddress: "${SMTP_FROM_ADDRESS:-no-reply@dourak.money}"
+      Email__FromName: "Dourak"
       # Phase 2: payment-claim evidence is written to disk inside the container; the named
       # volume below is what makes it survive `docker compose up -d --build`.
       Storage__EvidencePath: "/app/data/evidence"

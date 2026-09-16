@@ -39,7 +39,7 @@ public class FakeIdentityService : IIdentityService
 
     public FakeIdentityService AddUser(string userId, string? name = null, string? email = null, string? phone = null)
     {
-        _users[userId] = new UserProfileDto(userId, name, email ?? $"{userId}@example.com", phone, "ar");
+        _users[userId] = new UserProfileDto(userId, name, email ?? $"{userId}@example.com", phone, "ar", EmailConfirmed: true);
         return this;
     }
 
@@ -48,6 +48,18 @@ public class FakeIdentityService : IIdentityService
 
     public Task<AuthResult> LoginAsync(string email, string password) =>
         throw new NotSupportedException();
+
+    public Task SendEmailVerificationAsync(string userId, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
+
+    public Task<OperationResult> ConfirmEmailAsync(string userId, string token) =>
+        Task.FromResult(OperationResult.Ok);
+
+    public Task RequestPasswordResetAsync(string email, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
+
+    public Task<OperationResult> ResetPasswordAsync(string userId, string token, string newPassword) =>
+        Task.FromResult(OperationResult.Ok);
 
     public Task<UserProfileDto?> GetProfileAsync(string userId) =>
         Task.FromResult(_users.TryGetValue(userId, out var u) ? u : null);
@@ -69,7 +81,7 @@ public class FakeIdentityService : IIdentityService
             _users.Any(kv => kv.Key != userId && UserValueNormalizer.NormalizePhone(kv.Value.Phone) == normalizedPhone))
             return Task.FromResult(UpdateProfileResult.Fail("This phone number is already used by another account."));
 
-        var existing = _users.TryGetValue(userId, out var u) ? u : new UserProfileDto(userId, null, null, null, "ar");
+        var existing = _users.TryGetValue(userId, out var u) ? u : new UserProfileDto(userId, null, null, null, "ar", EmailConfirmed: true);
         _users[userId] = existing with { Name = name?.Trim(), Phone = phone?.Trim(), PreferredLanguage = preferredLanguage ?? existing.PreferredLanguage };
         return Task.FromResult(UpdateProfileResult.Ok);
     }

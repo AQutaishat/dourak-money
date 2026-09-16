@@ -9,6 +9,9 @@ namespace Dourak.Api.Controllers;
 public record RegisterRequest(string Email, string Password);
 public record LoginRequest(string Email, string Password);
 public record UpdateProfileRequest(string? Name, string? Phone, string? PreferredLanguage);
+public record ConfirmEmailRequest(string UserId, string Token);
+public record ForgotPasswordRequest(string Email);
+public record ResetPasswordRequest(string UserId, string Token, string NewPassword);
 
 [ApiController]
 [Route("api/auth")]
@@ -46,6 +49,44 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> UpdateProfile(UpdateProfileRequest request)
     {
         var result = await _mediator.Send(new UpdateMyProfileCommand(request.Name, request.Phone, request.PreferredLanguage));
+        return result.Succeeded ? NoContent() : BadRequest(result);
+    }
+
+    // ----- Email verification & password reset -----
+
+    /// <summary>"Resend verification email" action — e.g. from the unverified-email banner.</summary>
+    [Authorize]
+    [HttpPost("send-verification")]
+    public async Task<IActionResult> SendVerification()
+    {
+        await _mediator.Send(new SendVerificationEmailCommand());
+        return NoContent();
+    }
+
+    /// <summary>Public: the link inside the verification email lands here.</summary>
+    [HttpPost("verify-email")]
+    public async Task<IActionResult> VerifyEmail(ConfirmEmailRequest request)
+    {
+        var result = await _mediator.Send(new ConfirmEmailCommand(request.UserId, request.Token));
+        return result.Succeeded ? NoContent() : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Public: always 204, regardless of whether the email is registered — never reveal that
+    /// via a different response (prompt: "recovering password... emails might be not real").
+    /// </summary>
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
+    {
+        await _mediator.Send(new ForgotPasswordCommand(request.Email));
+        return NoContent();
+    }
+
+    /// <summary>Public: the link inside the reset email lands here with a new password.</summary>
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+    {
+        var result = await _mediator.Send(new ResetPasswordCommand(request.UserId, request.Token, request.NewPassword));
         return result.Succeeded ? NoContent() : BadRequest(result);
     }
 }

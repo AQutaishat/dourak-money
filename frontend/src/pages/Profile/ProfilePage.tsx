@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Box, Button, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
@@ -24,6 +24,18 @@ export function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      await authApi.sendVerification();
+      setVerificationSent(true);
+    } finally {
+      setResending(false);
+    }
+  };
 
   useEffect(() => {
     if (!profile) return;
@@ -65,6 +77,7 @@ export function ProfilePage() {
         <Stack spacing={2}>
           {error && <Alert severity="error">{error}</Alert>}
           {saved && <Alert severity="success">{t("auth.profileSaved")}</Alert>}
+          {verificationSent && <Alert severity="success">{t("auth.verificationSent")}</Alert>}
 
           <TextField
             label={t("auth.email")}
@@ -73,6 +86,22 @@ export function ProfilePage() {
             disabled
             helperText={t("auth.emailReadOnly")}
           />
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: -1 }}>
+            <Chip
+              size="small"
+              label={profile?.emailConfirmed ? t("auth.verified") : t("auth.unverified")}
+              sx={{
+                color: profile?.emailConfirmed ? "success.dark" : "warning.dark",
+                bgcolor: profile?.emailConfirmed ? "success.light" : "warning.light",
+                fontWeight: 600,
+              }}
+            />
+            {!profile?.emailConfirmed && (
+              <Button size="small" onClick={handleResendVerification} disabled={resending}>
+                {t("auth.resendVerification")}
+              </Button>
+            )}
+          </Stack>
           <TextField label={t("auth.name")} value={name} onChange={(e) => setName(e.target.value)} fullWidth />
           <TextField label={t("auth.phone")} value={phone} onChange={(e) => setPhone(e.target.value)} fullWidth />
           <TextField select label={t("auth.preferredLanguage")} value={language} onChange={(e) => setLanguage(e.target.value)} fullWidth>

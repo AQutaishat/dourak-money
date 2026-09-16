@@ -95,6 +95,91 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
         _identityService.UpdateProfileAsync(_currentUser.UserId!, request.Name, request.Phone, request.PreferredLanguage);
 }
 
+// ---------- Email verification & password reset ----------
+
+/// <summary>Resend the verification email — used by the "resend" action on the unverified-email banner.</summary>
+public record SendVerificationEmailCommand : IRequest;
+
+public class SendVerificationEmailCommandHandler : IRequestHandler<SendVerificationEmailCommand>
+{
+    private readonly IIdentityService _identityService;
+    private readonly ICurrentUserService _currentUser;
+
+    public SendVerificationEmailCommandHandler(IIdentityService identityService, ICurrentUserService currentUser)
+    {
+        _identityService = identityService;
+        _currentUser = currentUser;
+    }
+
+    public Task Handle(SendVerificationEmailCommand request, CancellationToken cancellationToken) =>
+        _identityService.SendEmailVerificationAsync(_currentUser.UserId!, cancellationToken);
+}
+
+public record ConfirmEmailCommand(string UserId, string Token) : IRequest<OperationResult>;
+
+public class ConfirmEmailCommandValidator : AbstractValidator<ConfirmEmailCommand>
+{
+    public ConfirmEmailCommandValidator()
+    {
+        RuleFor(x => x.UserId).NotEmpty();
+        RuleFor(x => x.Token).NotEmpty();
+    }
+}
+
+public class ConfirmEmailCommandHandler : IRequestHandler<ConfirmEmailCommand, OperationResult>
+{
+    private readonly IIdentityService _identityService;
+    public ConfirmEmailCommandHandler(IIdentityService identityService) => _identityService = identityService;
+
+    public Task<OperationResult> Handle(ConfirmEmailCommand request, CancellationToken cancellationToken) =>
+        _identityService.ConfirmEmailAsync(request.UserId, request.Token);
+}
+
+/// <summary>
+/// Always reports success regardless of whether the email is registered (IIdentityService's
+/// contract) — never give an attacker a way to enumerate which emails have accounts.
+/// </summary>
+public record ForgotPasswordCommand(string Email) : IRequest;
+
+public class ForgotPasswordCommandValidator : AbstractValidator<ForgotPasswordCommand>
+{
+    public ForgotPasswordCommandValidator()
+    {
+        RuleFor(x => x.Email).NotEmpty().EmailAddress();
+    }
+}
+
+public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordCommand>
+{
+    private readonly IIdentityService _identityService;
+    public ForgotPasswordCommandHandler(IIdentityService identityService) => _identityService = identityService;
+
+    public Task Handle(ForgotPasswordCommand request, CancellationToken cancellationToken) =>
+        _identityService.RequestPasswordResetAsync(request.Email, cancellationToken);
+}
+
+public record ResetPasswordCommand(string UserId, string Token, string NewPassword) : IRequest<OperationResult>;
+
+public class ResetPasswordCommandValidator : AbstractValidator<ResetPasswordCommand>
+{
+    public ResetPasswordCommandValidator()
+    {
+        RuleFor(x => x.UserId).NotEmpty();
+        RuleFor(x => x.Token).NotEmpty();
+        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(8)
+            .WithMessage(RegisterCommandValidator.PasswordRulesHint);
+    }
+}
+
+public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand, OperationResult>
+{
+    private readonly IIdentityService _identityService;
+    public ResetPasswordCommandHandler(IIdentityService identityService) => _identityService = identityService;
+
+    public Task<OperationResult> Handle(ResetPasswordCommand request, CancellationToken cancellationToken) =>
+        _identityService.ResetPasswordAsync(request.UserId, request.Token, request.NewPassword);
+}
+
 // ---------- User search for add-member autocomplete (prompt02 §2) ----------
 
 public record SearchUsersQuery(string Term) : IRequest<IReadOnlyList<UserSearchResultDto>>;

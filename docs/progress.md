@@ -254,3 +254,62 @@ a physical device to actually connect.
 
 `docs/mobile-plan.md` §6 is now marked `[DONE]` — build is verified, not
 just statically reviewed.
+
+## Email Verification & Password Reset — Progress
+
+**Backend** (`Dourak.Application`/`Dourak.Infrastructure`/`Dourak.Api`):
+- `IIdentityService` gained `SendEmailVerificationAsync`, `ConfirmEmailAsync`,
+  `RequestPasswordResetAsync`, `ResetPasswordAsync`, all built on ASP.NET
+  Core Identity's existing `EmailConfirmed` field and
+  `GenerateEmailConfirmationTokenAsync`/`ConfirmEmailAsync`/
+  `GeneratePasswordResetTokenAsync`/`ResetPasswordAsync` — no new user
+  table columns needed, no migration.
+- New `IEmailSender` abstraction (`Dourak.Application.Common.Interfaces`)
+  with two implementations: `SmtpEmailSender` (real delivery via
+  `System.Net.Mail.SmtpClient`, no new NuGet dependency) and
+  `LoggingEmailSender` (writes the email — including the actual
+  verification/reset link — to the structured log instead of sending it).
+  `DependencyInjection.AddInfrastructure` picks whichever based on whether
+  `Email:Host` is configured. **No SMTP provider is set up yet** (see
+  `docs/future-work.md`), so today every environment uses the logging
+  fallback — the link can still be copied out of the log/Seq to test the
+  flow end-to-end.
+- New `AuthController` endpoints: `POST /api/auth/send-verification`
+  (authenticated, resend), `POST /api/auth/verify-email` (public),
+  `POST /api/auth/forgot-password` (public, always 204 regardless of
+  whether the email is registered — never reveals which emails have
+  accounts), `POST /api/auth/reset-password` (public).
+- `RegisterCommandHandler` now sends the verification email automatically
+  right after account creation.
+- New config: `App:FrontendBaseUrl` (used to build the links in the
+  emails — `https://dourak.money` in production via
+  `docker-compose.yml`'s `App__FrontendBaseUrl`) and `Email:*` (SMTP
+  settings, all empty by default — see `.env.example` for the env vars
+  that wire in a real provider later).
+- All 68 backend tests pass (`FakeIdentityService` test fixture updated
+  with no-op implementations of the four new interface methods).
+
+**Web frontend**:
+- Three new pages: `/forgot-password`, `/reset-password` (reads
+  `userId`/`token` from the URL query string), `/verify-email` (same,
+  auto-runs on mount, works whether or not the user is currently signed
+  in).
+- `LoginPage.tsx` gained a "Forgot password?" link.
+- `ProfilePage.tsx` shows a **Verified** (green) / **Unverified** (orange)
+  chip next to the read-only email field, with a "Resend" action when
+  unverified.
+- New `UnverifiedEmailBanner.tsx` component: a small, fixed-position,
+  non-modal notice in the corner (mirrors correctly under RTL via
+  `insetInlineEnd`) shown on every authenticated page while
+  `profile.emailConfirmed` is false — dismissible for the session, never
+  blocks any action (per the explicit requirement: "for now, all actions
+  are allowed for unverified email"). Wired into `AppLayout.tsx`.
+
+**Not yet done** (see `docs/future-work.md` for the full breakdown):
+mobile (Flutter) equivalent of the badge/banner/three screens; real SMTP
+provider; any fallback recovery path for a user whose email is
+unreachable/fake (deliberately not building security questions or
+another weaker mechanism as a stopgap — see future-work.md's reasoning).
+
+**Verified**: `dotnet build`/`dotnet test` (68/68 passing) and
+`npm run build` both succeed with all of the above.

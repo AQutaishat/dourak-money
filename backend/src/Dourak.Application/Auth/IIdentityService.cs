@@ -3,7 +3,7 @@ namespace Dourak.Application.Auth;
 public record AuthResult(bool Succeeded, string? UserId, string? Token, DateTimeOffset? ExpiresAt, IReadOnlyList<string> Errors);
 
 /// <summary>Profile as shown on the account page (prompt02 §8). Email is read-only there.</summary>
-public record UserProfileDto(string UserId, string? Name, string? Email, string? Phone, string PreferredLanguage)
+public record UserProfileDto(string UserId, string? Name, string? Email, string? Phone, string PreferredLanguage, bool EmailConfirmed)
 {
     /// <summary>prompt02 §8: show the display name, falling back to the email when no name is set yet.</summary>
     public string DisplayLabel => string.IsNullOrWhiteSpace(Name) ? (Email ?? UserId) : Name;
@@ -19,6 +19,13 @@ public record UpdateProfileResult(bool Succeeded, IReadOnlyList<string> Errors)
 {
     public static readonly UpdateProfileResult Ok = new(true, Array.Empty<string>());
     public static UpdateProfileResult Fail(params string[] errors) => new(false, errors);
+}
+
+/// <summary>Generic success/errors result for the email-verification and password-reset flows.</summary>
+public record OperationResult(bool Succeeded, IReadOnlyList<string> Errors)
+{
+    public static readonly OperationResult Ok = new(true, Array.Empty<string>());
+    public static OperationResult Fail(params string[] errors) => new(false, errors);
 }
 
 /// <summary>
@@ -44,6 +51,25 @@ public interface IIdentityService
     Task<IReadOnlyList<UserSearchResultDto>> SearchUsersAsync(string term, string? excludeUserId, int limit = 10);
 
     Task<IReadOnlyList<UserProfileDto>> GetProfilesAsync(IReadOnlyCollection<string> userIds);
+
+    // ---------- Email verification & password reset ----------
+
+    /// <summary>
+    /// Generates a confirmation token and emails a verification link. Silent no-op if the
+    /// user doesn't exist or is already verified — callers never need to branch on that.
+    /// </summary>
+    Task SendEmailVerificationAsync(string userId, CancellationToken cancellationToken = default);
+
+    Task<OperationResult> ConfirmEmailAsync(string userId, string token);
+
+    /// <summary>
+    /// Always "succeeds" from the caller's perspective regardless of whether the email exists —
+    /// this must never reveal which emails are registered. Emails a reset link only when a
+    /// matching account is found.
+    /// </summary>
+    Task RequestPasswordResetAsync(string email, CancellationToken cancellationToken = default);
+
+    Task<OperationResult> ResetPasswordAsync(string userId, string token, string newPassword);
 }
 
 /// <summary>

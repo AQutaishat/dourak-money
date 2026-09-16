@@ -1,6 +1,9 @@
+using System.Net;
 using Dourak.Application.Auth;
+using Dourak.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Dourak.Infrastructure.Identity;
 
@@ -11,11 +14,19 @@ public class IdentityService : IIdentityService
 
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly JwtTokenGenerator _tokenGenerator;
+    private readonly IEmailSender _emailSender;
+    private readonly AppOptions _appOptions;
 
-    public IdentityService(UserManager<ApplicationUser> userManager, JwtTokenGenerator tokenGenerator)
+    public IdentityService(
+        UserManager<ApplicationUser> userManager,
+        JwtTokenGenerator tokenGenerator,
+        IEmailSender emailSender,
+        IOptions<AppOptions> appOptions)
     {
         _userManager = userManager;
         _tokenGenerator = tokenGenerator;
+        _emailSender = emailSender;
+        _appOptions = appOptions.Value;
     }
 
     public async Task<AuthResult> RegisterAsync(string email, string password)
@@ -36,6 +47,10 @@ public class IdentityService : IIdentityService
         var result = await _userManager.CreateAsync(user, password);
         if (!result.Succeeded)
             return new AuthResult(false, null, null, null, result.Errors.Select(e => e.Description).ToList());
+
+        // Fire-and-forget in spirit, but awaited so a mail outage is logged, not silently lost —
+        // SendEmailVerificationAsync itself never throws (see its try/catch in SmtpEmailSender).
+        await SendEmailVerificationAsync(user.Id);
 
         var (token, expiresAt) = _tokenGenerator.Generate(user);
         return new AuthResult(true, user.Id, token, expiresAt, Array.Empty<string>());
@@ -120,5 +135,71 @@ public class IdentityService : IIdentityService
     }
 
     private static UserProfileDto ToProfile(ApplicationUser u) =>
-        new(u.Id, u.DisplayName, u.Email, u.PhoneNumber, u.PreferredLanguage);
+        new(u.Id, u.DisplayName, u.Email, u.PhoneNumber, u.PreferredLanguage, u.EmailConfirmed);
+
+    // ---------- Email verification & password reset ----------
+
+    public async Task SendEmailVerificationAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null || user.EmailConfirmed || string.IsNullOrEmpty(user.Email)) return;
+
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var link = $"{_appOptions.FrontendBaseUrl}/verify-email?userId={WebUtility.UrlEncode(user.Id)}&token={WebUtility.UrlEncode(token)}";
+
+        await _emailSender.SendAsync(
+            user.Email,
+            "Confirm your Dourak email",
+            $"""
+            <p>Welcome to Dourak! Please confirm your email address to finish setting up your account.</p>
+            <p><a href="{link}">Verify my email</a></p>
+            <p>If you didn't create this account, you can ignore this email.</p>
+            """,
+            cancellationToken);
+    }
+
+    public async Task<OperationResult> ConfirmEmailAsync(string userId, string token)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null) return OperationResult.Fail("Invalid verification link.");
+        if (user.EmailConfirmed) return OperationResult.Ok;
+
+        var result = await _userManager.ConfirmEmailAsync(user, token);
+        return result.Succeeded
+            ? OperationResult.Ok
+            : OperationResult.Fail("This verification link is invalid or has expired.");
+    }
+
+    public async Task RequestPasswordResetAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        // Deliberately silent for a non-existent email — the caller (ForgotPasswordCommandHandler)
+        // always reports success either way, so this must never let a timing/response difference
+        // reveal whether an email is registered.
+        if (user is null || string.IsNullOrEmpty(user.Email)) return;
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var link = $"{_appOptions.FrontendBaseUrl}/reset-password?userId={WebUtility.UrlEncode(user.Id)}&token={WebUtility.UrlEncode(token)}";
+
+        await _emailSender.SendAsync(
+            user.Email,
+            "Reset your Dourak password",
+            $"""
+            <p>We received a request to reset your Dourak password.</p>
+            <p><a href="{link}">Reset my password</a></p>
+            <p>If you didn't request this, you can safely ignore this email — your password won't change.</p>
+            """,
+            cancellationToken);
+    }
+
+    public async Task<OperationResult> ResetPasswordAsync(string userId, string token, string newPassword)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null) return OperationResult.Fail("This reset link is invalid or has expired.");
+
+        var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+        return result.Succeeded
+            ? OperationResult.Ok
+            : OperationResult.Fail(result.Errors.Select(e => e.Description).ToArray());
+    }
 }

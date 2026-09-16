@@ -9,6 +9,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { Outlet, Link as RouterLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/AuthContext";
+import { UnverifiedEmailBanner } from "../components/UnverifiedEmailBanner";
 import dourakLogo from "../assets/dourak-logo.png";
 
 /**
@@ -19,7 +20,7 @@ import dourakLogo from "../assets/dourak-logo.png";
  */
 export function AppLayout() {
   const { t, i18n } = useTranslation();
-  const { logout, displayLabel } = useAuth();
+  const { logout, displayLabel, profile } = useAuth();
   const navigate = useNavigate();
   const [accountAnchor, setAccountAnchor] = useState<null | HTMLElement>(null);
 
@@ -90,6 +91,10 @@ export function AppLayout() {
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Outlet />
       </Container>
+      {/* Never gates anything — every action stays available while unverified, this is
+          purely encouragement, never blocking (prompt: "all actions are allowed for
+          unverified email"). */}
+      {profile && !profile.emailConfirmed && <UnverifiedEmailBanner />}
     </Box>
   );
 }

@@ -19,6 +19,14 @@ export const authApi = {
   profile: () => apiClient.get<UserProfile>("/auth/profile").then((r) => r.data),
   updateProfile: (data: { name?: string | null; phone?: string | null; preferredLanguage?: string | null }) =>
     apiClient.put("/auth/profile", data),
+
+  /** "Resend verification email" action, e.g. from the unverified-email banner. */
+  sendVerification: () => apiClient.post("/auth/send-verification"),
+  verifyEmail: (data: { userId: string; token: string }) => apiClient.post("/auth/verify-email", data),
+  /** Always resolves regardless of whether the email is registered — never reveals which emails exist. */
+  forgotPassword: (data: { email: string }) => apiClient.post("/auth/forgot-password", data),
+  resetPassword: (data: { userId: string; token: string; newPassword: string }) =>
+    apiClient.post("/auth/reset-password", data),
 };
 
 export const usersApi = {
