@@ -4,9 +4,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// Mirrors frontend/src/api/client.ts.
 ///
 /// Base URL: mirrors `VITE_API_BASE_URL`. Pass at build/run time with
-/// `--dart-define=API_BASE_URL=http://10.0.2.2:5210/api` (10.0.2.2 is the Android
-/// emulator's alias for the host machine running the backend). Defaults to that
-/// emulator address for debug convenience — see docs/progress.md for the release note.
+/// `--dart-define=API_BASE_URL=<url>`:
+///   - Local emulator debug: `http://10.0.2.2:5210/api` (10.0.2.2 is the Android
+///     emulator's alias for the host machine running the backend) — the default
+///     below, for debug convenience.
+///   - Real production builds: `https://dourak.money/api` (the real domain, served
+///     over HTTPS via Caddy's Let's Encrypt cert — see docker-compose.yml/Caddyfile).
+/// See docs/progress.md for the release note.
 const String _defaultBaseUrl = 'http://10.0.2.2:5210/api';
 const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: _defaultBaseUrl);
 
