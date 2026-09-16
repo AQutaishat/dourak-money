@@ -1,13 +1,11 @@
 name: Deploy to production
 
-# Runs on every push to main: tests/builds both apps first (a broken commit never
-# reaches the server), then SSHes into the Oracle box and re-deploys via the same
+# Manual-only: trigger from the Actions tab ("Deploy to production" -> Run workflow).
+# Tests/builds both apps first (a broken commit never reaches the server this way),
+# then SSHes into the Oracle box and re-deploys via the same
 # `git pull && docker compose up -d --build` flow described in README.md — just
-# automated instead of run by hand. Can also be triggered manually from the
-# Actions tab (workflow_dispatch) without needing a new commit.
+# automated instead of typed by hand each time.
 on:
-  push:
-    branches: [main]
   workflow_dispatch: {}
 
 jobs:
@@ -46,7 +44,6 @@ jobs:
   deploy:
     name: Deploy to Oracle server
     needs: [backend-tests, frontend-build]
-    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
     runs-on: ubuntu-latest
     steps:
       - name: SSH and redeploy
