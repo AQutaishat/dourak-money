@@ -21,6 +21,7 @@ import { CreateCirclePage } from "./pages/CreateCircle/CreateCirclePage";
 import { CircleOverviewPage } from "./pages/CircleOverview/CircleOverviewPage";
 import { MemberHistoryPage } from "./pages/CircleOverview/MemberHistoryPage";
 import { ProfilePage } from "./pages/Profile/ProfilePage";
+import { DeleteAccountPage } from "./pages/Legal/DeleteAccountPage";
 
 function ProtectedRoute({ children }: { children: React.ReactElement }) {
   const { isAuthenticated } = useAuth();
@@ -52,6 +53,7 @@ function ThemedApp() {
             {/* Also reachable while signed in — clicking the verification link in a new tab
                 shouldn't require signing out first. */}
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/delete-account" element={<DeleteAccountPage />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/circles" element={<MyCirclesPage />} />

@@ -54,7 +54,7 @@
     "schedule": "جدول الجمعية", "currentCycle": "الدورة الحالية", "payments": "الدفعات", "payouts": "الاستلامات",
     "history": "السجل", "memberHistory": "سجل العضو", "recipient": "صاحب الدور", "nextRecipient": "الدور القادم",
     "expectedPool": "المبلغ المتوقع", "collected": "المبلغ المحصل", "outstanding": "المبلغ المتبقي", "paid": "تم الدفع", "unpaid": "لم يدفع",
-    "partiallyPaid": "دفعة جزئية", "late": "متأخر", "payoutStatus": "حالة الاستلام", "pending": "معلق",
+    "partiallyPaid": "دفعة جزئية", "late": "متأخر", "gracePeriodHint": "يُعتبر العضو متأخرًا بعد مرور 7 أيام على تاريخ الاستحقاق إذا لم يدفع بالكامل.", "payoutStatus": "حالة الاستلام", "pending": "معلق",
     "recordPayment": "تسجيل دفعة", "confirmPayout": "تأكيد استلام صاحب الدور", "shareStatus": "مشاركة عبر واتساب",
     "draft": "مسودة", "completed": "مكتملة", "paused": "موقوفة", "cancelled": "ملغاة",
 

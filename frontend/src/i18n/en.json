@@ -54,7 +54,7 @@
     "schedule": "Schedule", "currentCycle": "Current Cycle", "payments": "Payments", "payouts": "Payouts",
     "history": "History", "memberHistory": "Member History", "recipient": "Recipient", "nextRecipient": "Next Recipient",
     "expectedPool": "Expected Pool", "collected": "Collected", "outstanding": "Outstanding", "paid": "Paid", "unpaid": "Unpaid",
-    "partiallyPaid": "Partial", "late": "Late", "payoutStatus": "Payout Status", "pending": "Pending",
+    "partiallyPaid": "Partial", "late": "Late", "gracePeriodHint": "Marked Late 7 days after the due date if still not fully paid.", "payoutStatus": "Payout Status", "pending": "Pending",
     "recordPayment": "Record Payment", "confirmPayout": "Confirm recipient's receipt", "shareStatus": "Share to WhatsApp",
     "draft": "Draft", "completed": "Completed", "paused": "Paused", "cancelled": "Cancelled",
 

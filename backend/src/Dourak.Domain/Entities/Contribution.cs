@@ -49,15 +49,21 @@ public class Contribution : AuditableEntity
         PaidAmount < ExpectedAmount ? ContributionStatus.PartiallyPaid :
         ContributionStatus.Paid;
 
+    /// <summary>
+    /// Days after the due date before an unpaid/partially-paid contribution is flagged
+    /// Late, rather than the instant the due date passes.
+    /// </summary>
+    public const int GracePeriodDays = 7;
+
     public string ComputeDisplayStatus(DateTimeOffset dueDate, DateTimeOffset now)
     {
         var fullyPaid = PaidAmount >= ExpectedAmount;
         if (fullyPaid) return "Paid";
 
-        var isOverdue = now.Date > dueDate.Date;
+        var isOverdue = now.Date > dueDate.Date.AddDays(GracePeriodDays);
         if (!isOverdue) return PaidAmount > 0 ? "PartiallyPaid" : "Unpaid";
 
-        // Overdue and not fully paid => Late (whether 0 or partially paid).
+        // Overdue past the grace period and not fully paid => Late (whether 0 or partially paid).
         return "Late";
     }
 }

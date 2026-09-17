@@ -121,6 +121,10 @@ export function CurrentCycleTab({ circle }: { circle: CircleDetail }) {
         {!canManage && myRow?.myClaimStatus && <ClaimStatusChip status={myRow.myClaimStatus} />}
       </Stack>
 
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+        {t("circle.gracePeriodHint")}
+      </Typography>
+
       <Table size="small">
         <TableHead>
           <TableRow>

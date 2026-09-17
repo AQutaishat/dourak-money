@@ -48,9 +48,19 @@ public class ContributionTests
     public void ComputeDisplayStatus_DerivesFromDueDateAndBalance(decimal paid, bool overdue, string expected)
     {
         var due = new DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero);
-        var now = overdue ? due.AddDays(5) : due.AddDays(-2);
+        var now = overdue ? due.AddDays(Contribution.GracePeriodDays + 5) : due.AddDays(-2);
         var contribution = new Contribution { ExpectedAmount = 1000m, PaidAmount = paid };
 
         contribution.ComputeDisplayStatus(due, now).Should().Be(expected);
+    }
+
+    [Fact]
+    public void ComputeDisplayStatus_WithinGracePeriod_IsNotLate()
+    {
+        var due = new DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var now = due.AddDays(Contribution.GracePeriodDays); // exactly at the edge, still not late
+        var contribution = new Contribution { ExpectedAmount = 1000m, PaidAmount = 0m };
+
+        contribution.ComputeDisplayStatus(due, now).Should().Be("Unpaid");
     }
 }
