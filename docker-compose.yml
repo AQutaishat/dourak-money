@@ -121,19 +121,18 @@ services:
   # lighter, lower-maintenance choice — and its login IS the Postgres login, so there is no
   # second set of credentials to create, rotate, or leak.
   #
-  # SECURITY TRADEOFF (deliberate, flagged rather than silently exposed):
-  # the port is published on 127.0.0.1 only, so Adminer is NOT reachable from the internet
-  # on the production host even though the service runs there. Reach it over an SSH tunnel:
+  # SECURITY TRADEOFF (deliberate, explicitly requested — flagged rather than silently
+  # exposed): also reachable publicly at https://db.dourak.money (see frontend/Caddyfile),
+  # with NO authentication in front of it beyond Adminer's own Postgres login form. Anyone
+  # who has that URL can attempt to log in with any Postgres credentials they can guess/
+  # obtain — there is no rate limiting or MFA. The 127.0.0.1 port binding below is kept as a
+  # secondary/fallback access path (SSH tunnel), not the access control it originally was:
   #
   #     ssh -L 8081:127.0.0.1:8081 <user>@<server>     # then open http://localhost:8081
   #
-  # Rationale: Adminer authenticates against Postgres, so exposing it publicly would put a
-  # form that accepts database credentials on the open internet — one weak password away
-  # from full data access, with no rate limiting or MFA in front of it. Binding to loopback
-  # means an attacker must already hold SSH access to the server before they can even see
-  # the login page, which is the same bar that protects `psql` on the box today. If public
-  # access is ever genuinely needed, put it behind the existing Caddy reverse proxy with
-  # HTTPS plus basic auth, and only then change this binding.
+  # If this should be locked back down, remove the db.dourak.money block from
+  # frontend/Caddyfile (put it back behind Caddy `basic_auth` first if public access is
+  # still wanted) — the loopback binding below is unaffected either way.
   #
   # Locally this is identical: http://localhost:8081, log in with
   #   System: PostgreSQL  ·  Server: postgres  ·  Username: dourak  ·  Database: dourak
@@ -157,22 +156,22 @@ services:
   # rolling file under the dourak-api-logs volume, so logs survive container
   # restarts and are queryable/filterable in one place instead of grepping text.
   #
-  # SECURITY: same reasoning as Adminer above — Seq's own UI has no auth enabled
-  # by default, so it is bound to 127.0.0.1 only, on both local dev and production.
-  # Reach it on the server via an SSH tunnel:
+  # SECURITY: same tradeoff as Adminer above — also reachable publicly at
+  # https://logs.dourak.money (see frontend/Caddyfile) with NO authentication at all (Seq's
+  # own login is explicitly disabled below), explicitly requested. Anyone with that URL can
+  # read every structured log event. The 127.0.0.1 binding remains as a fallback:
   #     ssh -L 5341:127.0.0.1:5341 <user>@<server>     # then open http://localhost:5341
-  # If you want it reachable without a tunnel, set Seq's ACCEPT_EULA/admin
-  # password and put it behind Caddy with HTTPS + basic auth first.
+  # To lock this back down: remove the logs.dourak.money block from frontend/Caddyfile, and/
+  # or set SEQ_FIRSTRUN_NOAUTHENTICATION back to a real admin password below.
   # ---------------------------------------------------------------------------
   seq:
     image: datalust/seq:latest
     container_name: dourak-seq
     environment:
       ACCEPT_EULA: "Y"
-      # Seq requires either an admin password or an explicit opt-out on first run.
-      # Since Seq itself is bound to 127.0.0.1 only (see the port mapping and the
-      # comment above), an SSH-tunnel is already the access control; skipping its
-      # own login is an acceptable tradeoff for that loopback-only exposure.
+      # Seq requires either an admin password or an explicit opt-out on first run — opted
+      # out here (see the SECURITY comment above; this is what actually removes Seq's own
+      # login, on top of the public logs.dourak.money exposure).
       SEQ_FIRSTRUN_NOAUTHENTICATION: "true"
     volumes:
       - dourak-seq-data:/data

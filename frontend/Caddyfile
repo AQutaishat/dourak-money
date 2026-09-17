@@ -14,6 +14,18 @@ admin.dourak.money {
 	reverse_proxy admin-web:80
 }
 
+# Seq (structured logs) and Adminer (DB GUI), publicly exposed for convenience — NO auth in
+# front of either at the request of the project owner. Adminer in particular is full
+# read/write access to the database once someone has this URL; there is nothing else standing
+# between the internet and it. Revisit adding Caddy `basic_auth` here if that ever changes.
+logs.dourak.money {
+	reverse_proxy seq:80
+}
+
+db.dourak.money {
+	reverse_proxy adminer:8080
+}
+
 dourak.money, www.dourak.money {
 	# API calls stay same-origin from the browser's point of view — Caddy
 	# forwards them to the api container, path unchanged (e.g. /api/circles
