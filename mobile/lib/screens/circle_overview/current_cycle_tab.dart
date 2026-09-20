@@ -5,10 +5,13 @@ import 'package:intl/intl.dart';
 import '../../api/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/providers.dart';
+import '../../utils/format.dart';
 import '../../utils/whatsapp.dart';
 import '../../widgets/status_chips.dart';
 import 'basic_info_tab.dart';
 import 'payment_claim_dialogs.dart';
+import 'payment_dialogs.dart';
+import 'payout_lines.dart';
 
 /// Mirrors CurrentCycleTab.tsx: dashboard stats, per-member rows, organizer
 /// "record contribution"/"confirm payout" actions, member-only self-report button
@@ -21,6 +24,10 @@ class CurrentCycleTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardAsync = ref.watch(dashboardProvider(circle.id));
     final membersAsync = ref.watch(membersProvider(circle.id));
+    // Watched (not just read on demand) so the record-payment dialog's cross-month picker has
+    // the data ready — same cache entry the Monthly Cycles tab uses. Amounts are visible to
+    // every viewer already (only claim status is privacy-masked), so members fetch it too.
+    ref.watch(monthsDetailProvider(circle.id));
 
     return dashboardAsync.when(
       loading: () => Center(child: Text(context.t('common.loading'))),
@@ -39,12 +46,14 @@ class CurrentCycleTab extends ConsumerWidget {
 
         final locale = Localizations.localeOf(context).toString();
         final monthLabel = DateFormat.yMMMM(locale).format(DateTime.parse(dashboard.dueDate));
+        final monthNameOnly = DateFormat.MMMM(locale).format(DateTime.parse(dashboard.dueDate));
         final isArabic = Localizations.localeOf(context).languageCode == 'ar';
         final canManage = circle.isOrganizer;
         final myRow = circle.myMemberId != null
             ? dashboard.members.where((m) => m.memberId == circle.myMemberId).cast<CurrentCycleMemberRow?>().firstWhere((_) => true, orElse: () => null)
             : null;
         final myOutstanding = myRow != null ? myRow.expectedAmount - myRow.paidAmount : 0.0;
+        final myClaimTargets = myRow == null ? const <PaymentTarget>[] : _alternateTargets(context, ref, dashboard.cycleId, myRow.memberId);
         final members = membersAsync.valueOrNull ?? <Member>[];
         String? phoneFor(int memberId) => members.where((m) => m.id == memberId).map((m) => m.phone).firstWhere((_) => true, orElse: () => null);
 
@@ -81,6 +90,22 @@ class CurrentCycleTab extends ConsumerWidget {
                 ),
               ],
             ),
+            // The collection/payout badges sit on their own line under "دور: {name}" — the
+            // web's final placement for them (they started next to the circle-name status chip).
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: CollectionPayoutBadges(
+                collected: dashboard.collected,
+                expected: dashboard.expected,
+                payoutStatus: dashboard.payoutStatus,
+              ),
+            ),
+            // Any payout installments already paid to this cycle's recipient — the identical
+            // block the Monthly Cycles tab renders for each month, shown here under the header.
+            if (dashboard.payoutRows.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              PayoutRowsBlock(rows: dashboard.payoutRows, recipientName: dashboard.recipientName),
+            ],
             const SizedBox(height: 8),
             GridView.count(
               crossAxisCount: 2,
@@ -90,10 +115,15 @@ class CurrentCycleTab extends ConsumerWidget {
               crossAxisSpacing: 8,
               childAspectRatio: 2.6,
               children: [
+                // The web's 4th card became the month ordinal ("الأول (أكتوبر)") instead of the
+                // next recipient; on mobile it leads the grid the same way it does on the web.
+                _StatCard(
+                  label: context.t('circle.monthLabel'),
+                  value: '${monthOrdinalWord(dashboard.sequenceNumber, isArabic)} ($monthNameOnly)',
+                ),
                 _StatCard(label: context.t('circle.paid'), value: '${dashboard.membersPaid}/${dashboard.membersTotal}'),
                 _StatCard(label: context.t('circle.collected'), value: '${dashboard.collected} ${circle.currency}'),
                 _StatCard(label: context.t('circle.outstanding'), value: '${dashboard.outstanding} ${circle.currency}'),
-                _StatCard(label: context.t('circle.nextRecipient'), value: dashboard.nextRecipientName ?? '—'),
               ],
             ),
             const SizedBox(height: 12),
@@ -108,7 +138,9 @@ class CurrentCycleTab extends ConsumerWidget {
                   ),
                 ),
               // prompt03 §5: member self-report only, never shown to the organizer.
-              if (!canManage && myRow != null && myOutstanding > 0 && !myRow.hasPendingClaim)
+              // It stays available when the *current* cycle is fully paid as long as any other
+              // month still owes something — the dialog then defaults straight to that month.
+              if (!canManage && myRow != null && !myRow.hasPendingClaim && (myOutstanding > 0 || myClaimTargets.isNotEmpty))
                 OutlinedButton(
                   onPressed: () => showDialog(
                     context: context,
@@ -117,12 +149,16 @@ class CurrentCycleTab extends ConsumerWidget {
                       cycleId: dashboard.cycleId,
                       outstanding: myOutstanding,
                       currency: circle.currency,
+                      alternateTargets: myClaimTargets,
+                      initialTargetCycleId: myOutstanding > 0 ? null : myClaimTargets.first.cycleId,
                     ),
                   ),
                   child: Text(context.t('circle.iPaid')),
                 ),
               if (!canManage && myRow?.myClaimStatus != null) ClaimStatusChip(status: myRow!.myClaimStatus!),
             ]),
+            const SizedBox(height: 8),
+            Text(context.t('circle.gracePeriodHint'), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
             const SizedBox(height: 12),
             ...dashboard.members.map((m) {
               final isUnpaid = m.status != 'Paid';
@@ -132,7 +168,20 @@ class CurrentCycleTab extends ConsumerWidget {
                   padding: const EdgeInsets.all(10),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Expanded(child: Text(m.memberName, style: const TextStyle(fontWeight: FontWeight.w600))),
+                      Expanded(
+                        child: Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                          Text(m.memberName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          // Paid this cycle's contribution while an earlier cycle was still the
+                          // current one — i.e. ahead of schedule.
+                          if (m.paidInAdvance)
+                            Chip(
+                              label: Text(context.t('circle.paidInAdvance'), style: const TextStyle(color: Colors.white, fontSize: 11)),
+                              backgroundColor: Colors.blue,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                            ),
+                        ]),
+                      ),
                       Text('${m.paidAmount} / ${m.expectedAmount} ${circle.currency}'),
                     ]),
                     const SizedBox(height: 4),
@@ -185,52 +234,76 @@ class CurrentCycleTab extends ConsumerWidget {
     );
   }
 
-  Future<void> _recordPaymentDialog(BuildContext context, WidgetRef ref, int cycleId, CurrentCycleMemberRow row) async {
-    final controller = TextEditingController(text: row.expectedAmount.toString());
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${context.t('circle.recordPayment')} — ${row.memberName}'),
-        content: TextField(
-          controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(labelText: context.t('circle.contributionAmount')),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(context.t('common.cancel'))),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(context.t('common.save'))),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      final amount = double.tryParse(controller.text) ?? row.expectedAmount;
-      await ref.read(cyclesApiProvider).recordContribution(cycleId, memberId: row.memberId, paidAmount: amount);
-      ref.read(refreshTickProvider.notifier).state++;
+  /// Every *other* month this member still owes something for (past or future), built off the
+  /// Monthly Cycles tab's own `monthsDetail` cache rather than a second fetch. Shared by the
+  /// organizer's record-payment dialog and a member's own submit-claim dialog, which both let
+  /// the payment/report be redirected to one of these months.
+  List<PaymentTarget> _alternateTargets(BuildContext context, WidgetRef ref, int cycleId, int memberId) {
+    final locale = Localizations.localeOf(context).toString();
+    final months = ref.read(monthsDetailProvider(circle.id)).valueOrNull ?? const <CircleMonth>[];
+    final targets = <PaymentTarget>[];
+    for (final month in months) {
+      if (month.cycleId == cycleId) continue;
+      final memberRow = month.members.where((m) => m.memberId == memberId);
+      if (memberRow.isEmpty || memberRow.first.outstanding <= 0) continue;
+      targets.add(PaymentTarget(
+        cycleId: month.cycleId,
+        label: DateFormat.yMMMM(locale).format(DateTime.parse(month.dueDate)),
+        outstanding: memberRow.first.outstanding,
+      ));
     }
+    return targets;
   }
 
-  Future<void> _confirmPayoutDialog(BuildContext context, WidgetRef ref, CurrentCycleDashboard dashboard) async {
-    final controller = TextEditingController(text: dashboard.collected.toString());
-    final unpaidCount = dashboard.membersUnpaid + dashboard.membersLate;
-    final confirmed = await showDialog<bool>(
+  /// `POST /cycles/{id}/contributions` is additive (adds on top of what's already
+  /// paid, capped server-side at the outstanding balance) — mirrors the web app's
+  /// dialog defaulting/capping to the member's remaining outstanding amount, not the
+  /// full contribution amount, and surfacing an error instead of failing silently.
+  ///
+  /// The dialog additionally offers every *other* month this same member hasn't fully paid yet
+  /// (past or future) as an alternate target — the mobile form of the web's "تسجيل المبلغ على"
+  /// picker — reusing the Monthly Cycles tab's own `monthsDetail` cache rather than a second
+  /// fetch. Picking one re-caps the amount to that month's outstanding and records against it.
+  Future<void> _recordPaymentDialog(BuildContext context, WidgetRef ref, int cycleId, CurrentCycleMemberRow row) async {
+    final targets = _alternateTargets(context, ref, cycleId, row.memberId);
+    if (!context.mounted) return;
+    await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${context.t('circle.confirmPayout')} — ${dashboard.recipientName}'),
-        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (unpaidCount > 0) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text('${context.t('circle.unpaid')}: $unpaidCount', style: const TextStyle(color: Colors.orange))),
-          TextField(controller: controller, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: context.t('circle.expectedPool'))),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(context.t('common.cancel'))),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(context.t('common.confirm'))),
-        ],
+      builder: (dialogContext) => RecordPaymentDialog(
+        title: '${dialogContext.t('circle.recordPayment')} — ${row.memberName}',
+        outstanding: row.outstanding,
+        alternateTargets: targets,
+        onSave: (amount, targetCycleId) => ref
+            .read(cyclesApiProvider)
+            .recordContribution(targetCycleId ?? cycleId, memberId: row.memberId, paidAmount: amount),
+        onDone: () => ref.read(refreshTickProvider.notifier).state++,
       ),
     );
-    if (confirmed == true) {
-      final amount = double.tryParse(controller.text) ?? dashboard.collected;
-      await ref.read(cyclesApiProvider).recordPayout(dashboard.cycleId, actualAmount: amount);
-      ref.read(refreshTickProvider.notifier).state++;
-    }
+  }
+
+  /// `POST /cycles/{id}/payout` is now multipart/form-data and additive (adds to what's
+  /// already paid, capped at outstanding) instead of the old single-shot JSON call.
+  Future<void> _confirmPayoutDialog(BuildContext context, WidgetRef ref, CurrentCycleDashboard dashboard) async {
+    // `PayoutExpectedAmount`/`PayoutActualAmount` are now on the dashboard DTO too, so this
+    // caps at what's genuinely left rather than re-offering the whole collected pool after a
+    // first installment. Falls back to the collected pool for a cycle with no payout row yet.
+    final outstanding = dashboard.payoutExpectedAmount > 0 ? dashboard.payoutOutstanding : dashboard.collected;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => ConfirmPayoutDialog(
+        title: '${dialogContext.t('circle.confirmPayout')} — ${dashboard.recipientName}',
+        outstanding: outstanding,
+        unpaidCount: dashboard.membersUnpaid + dashboard.membersLate,
+        onSave: (amount, method, notes, evidence) => ref.read(cyclesApiProvider).recordPayout(
+          dashboard.cycleId,
+          actualAmount: amount,
+          paymentMethod: method,
+          notes: notes,
+          evidence: evidence,
+        ),
+        onDone: () => ref.read(refreshTickProvider.notifier).state++,
+      ),
+    );
   }
 }
 

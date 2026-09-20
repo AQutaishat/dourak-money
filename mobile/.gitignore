@@ -16,3 +16,5 @@ android/app/.cxx/
 android/key.properties
 android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 .idea/
+# Widget Preview related
+.widget_preview/

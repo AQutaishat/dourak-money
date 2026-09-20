@@ -39,11 +39,12 @@ class CirclesApi {
 
   Future<void> remove(int id) => _client.dio.delete('/circles/$id');
 
-  Future<void> updateBasicInfo(int id, {required String name, String? description, required String startDate}) {
+  Future<void> updateBasicInfo(int id, {required String name, String? description, required String startDate, required double contributionAmount}) {
     return _client.dio.put('/circles/$id/basic-info', data: {
       'name': name,
       'description': description,
       'startDate': startDate,
+      'contributionAmount': contributionAmount,
     });
   }
 
@@ -70,6 +71,13 @@ class CirclesApi {
   Future<int> addUserMember(int id, String userId) async {
     final res = await _client.dio.post('/circles/$id/members/by-user', data: {'userId': userId});
     return res.data as int;
+  }
+
+  /// Mirrors `circlesApi.inviteUnregisteredMember` — creates a Pending, name-only member row
+  /// carrying a one-time invite token, which the WhatsApp message then links to.
+  Future<InviteUnregisteredResult> inviteUnregistered(int id, String name) async {
+    final res = await _client.dio.post('/circles/$id/members/invite-unregistered', data: {'name': name});
+    return InviteUnregisteredResult.fromJson(res.data as Map<String, dynamic>);
   }
 
   Future<int> addSelfAsMember(int id) async {
@@ -112,6 +120,13 @@ class CirclesApi {
   Future<void> runDraw(int id) => _client.dio.post('/circles/$id/payout-order/draw');
   Future<void> resetOrder(int id) => _client.dio.post('/circles/$id/payout-order/reset');
 
+  /// Persists a single up/down move immediately — mirrors the new
+  /// `POST /circles/{id}/payout-order/{memberId}/move?direction=-1|1` endpoint that
+  /// replaced the old "reorder locally then Save the whole list" flow.
+  Future<void> movePayoutPosition(int id, int memberId, {required int direction}) {
+    return _client.dio.post('/circles/$id/payout-order/$memberId/move', queryParameters: {'direction': direction});
+  }
+
   Future<List<ScheduleCycle>> schedule(int id) async {
     final res = await _client.dio.get('/circles/$id/schedule');
     return (res.data as List<dynamic>).map((e) => ScheduleCycle.fromJson(e as Map<String, dynamic>)).toList();
@@ -133,6 +148,13 @@ class CirclesApi {
     return MemberHistory.fromJson(res.data as Map<String, dynamic>);
   }
 
+  /// `GET /circles/{id}/months-detail` — every cycle with its full per-member payment
+  /// breakdown, backing the Monthly Cycles tab.
+  Future<List<CircleMonth>> monthsDetail(int id) async {
+    final res = await _client.dio.get('/circles/$id/months-detail');
+    return (res.data as List<dynamic>).map((e) => CircleMonth.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   Future<List<PaymentClaim>> paymentClaims(int id, {bool pendingOnly = false}) async {
     final res = await _client.dio.get('/circles/$id/payment-claims', queryParameters: {'pendingOnly': pendingOnly});
     return (res.data as List<dynamic>).map((e) => PaymentClaim.fromJson(e as Map<String, dynamic>)).toList();
@@ -151,11 +173,56 @@ class CyclesApi {
     });
   }
 
-  Future<void> recordPayout(int cycleId, {required double actualAmount}) {
-    return _client.dio.post('/cycles/$cycleId/payout', data: {'actualAmount': actualAmount});
+  /// `POST /cycles/{id}/payout` is now multipart/form-data and additive (adds to
+  /// whatever's already been paid, capped server-side at what's still outstanding)
+  /// instead of the old single-shot JSON all-or-nothing call.
+  Future<void> recordPayout(
+    int cycleId, {
+    required double actualAmount,
+    DateTime? paidAt,
+    String? paymentMethod,
+    String? notes,
+    File? evidence,
+  }) async {
+    final form = FormData.fromMap({
+      'actualAmount': actualAmount.toString(),
+      'paidAt': (paidAt ?? DateTime.now()).toIso8601String(),
+      if (paymentMethod != null && paymentMethod.isNotEmpty) 'paymentMethod': paymentMethod,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+      if (evidence != null) 'evidence': await MultipartFile.fromFile(evidence.path),
+    });
+    await _client.dio.post('/cycles/$cycleId/payout', data: form);
   }
 
   Future<void> reopenPayout(int cycleId) => _client.dio.post('/cycles/$cycleId/payout/reopen');
+
+  /// Fetched as bytes because the endpoint requires the bearer token — mirrors the web app's
+  /// `payoutEvidenceUrl()` building a blob URL instead of a plain link.
+  Future<EvidenceDownload> payoutEvidence(int payoutPaymentId) =>
+      downloadEvidence(_client, '/cycles/payout-payments/$payoutPaymentId/evidence');
+}
+
+/// A token-authenticated evidence file pulled down as bytes, with the content type/file name
+/// the server reported so the viewer knows whether it can render it inline.
+class EvidenceDownload {
+  const EvidenceDownload({required this.bytes, required this.contentType, this.fileName});
+  final List<int> bytes;
+  final String contentType;
+  final String? fileName;
+
+  bool get isImage => contentType.startsWith('image/');
+}
+
+Future<EvidenceDownload> downloadEvidence(ApiClient client, String path) async {
+  final res = await client.dio.get<List<int>>(path, options: Options(responseType: ResponseType.bytes));
+  final contentType = res.headers.value('content-type') ?? 'application/octet-stream';
+  final disposition = res.headers.value('content-disposition');
+  String? fileName;
+  if (disposition != null) {
+    final match = RegExp(r'filename="?([^";]+)"?').firstMatch(disposition);
+    fileName = match?.group(1);
+  }
+  return EvidenceDownload(bytes: res.data ?? const [], contentType: contentType.split(';').first.trim(), fileName: fileName);
 }
 
 /// Mirrors `invitationsApi` — Phase 2 §4.
@@ -170,6 +237,10 @@ class InvitationsApi {
 
   Future<void> accept(int memberId) => _client.dio.post('/invitations/$memberId/accept');
   Future<void> decline(int memberId) => _client.dio.post('/invitations/$memberId/decline');
+
+  /// Attaches the signed-in user's account to the Pending member row created by an
+  /// unregistered-invite token (the `/invite/{token}` deep link they just opened).
+  Future<void> linkToken(String token) => _client.dio.post('/invitations/link/$token');
 }
 
 /// Mirrors `paymentClaimsApi` — Phase 2 §6.
@@ -199,13 +270,27 @@ class PaymentClaimsApi {
     });
   }
 
+  /// The submitting member can still correct amount/note/evidence while the claim is Pending.
+  Future<void> update(
+    int claimId, {
+    required double claimedAmount,
+    String? note,
+    bool removeEvidence = false,
+    File? evidence,
+  }) async {
+    final form = FormData.fromMap({
+      'claimedAmount': claimedAmount.toString(),
+      if (note != null && note.isNotEmpty) 'note': note,
+      'removeEvidence': removeEvidence.toString(),
+      if (evidence != null) 'evidence': await MultipartFile.fromFile(evidence.path),
+    });
+    await _client.dio.put('/payment-claims/$claimId', data: form);
+  }
+
+  /// "Unsend" a still-Pending claim.
+  Future<void> withdraw(int claimId) => _client.dio.delete('/payment-claims/$claimId');
+
   /// Fetched as bytes because the endpoint requires the bearer token (privacy rule, §6) —
   /// mirrors evidenceUrl() creating a blob URL in the web app.
-  Future<List<int>> evidenceBytes(int claimId) async {
-    final res = await _client.dio.get<List<int>>(
-      '/payment-claims/$claimId/evidence',
-      options: Options(responseType: ResponseType.bytes),
-    );
-    return res.data ?? [];
-  }
+  Future<EvidenceDownload> evidence(int claimId) => downloadEvidence(_client, '/payment-claims/$claimId/evidence');
 }

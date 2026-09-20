@@ -64,6 +64,12 @@ final dashboardProvider = FutureProvider.autoDispose.family<CurrentCycleDashboar
   return ref.watch(circlesApiProvider).dashboard(circleId);
 });
 
+/// Backs the Monthly Cycles tab — every month with its full per-member payment breakdown.
+final monthsDetailProvider = FutureProvider.autoDispose.family<List<CircleMonth>, int>((ref, circleId) {
+  ref.watch(refreshTickProvider);
+  return ref.watch(circlesApiProvider).monthsDetail(circleId);
+});
+
 final historyProvider = FutureProvider.autoDispose.family<List<CircleHistoryCycle>, int>((ref, circleId) {
   ref.watch(refreshTickProvider);
   return ref.watch(circlesApiProvider).history(circleId);

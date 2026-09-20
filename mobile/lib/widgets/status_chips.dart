@@ -65,9 +65,14 @@ class InvitationStatusChip extends StatelessWidget {
   }
 }
 
+/// The single, canonical claim-status badge — same color and wording everywhere a payment
+/// claim's status is shown (Current Cycle tab, for both the organizer's and a member's own
+/// row, and the Monthly Cycles tab). Mirrors the web's unified `ClaimStatusChip`, including
+/// the "دفعة معلقة"/"دفعة مقبولة" wording it settled on for Pending/Approved.
 class ClaimStatusChip extends StatelessWidget {
-  const ClaimStatusChip({super.key, required this.status});
+  const ClaimStatusChip({super.key, required this.status, this.onTap});
   final String status;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -82,12 +87,65 @@ class ClaimStatusChip extends StatelessWidget {
       default:
         color = Colors.orange;
     }
-    return Chip(
-      label: Text(context.t('circle.claim$status'), style: const TextStyle(color: Colors.white, fontSize: 11)),
+    final label = status == 'Pending'
+        ? context.t('circle.pendingPaymentBadge')
+        : status == 'Approved'
+            ? context.t('circle.approvedPaymentBadge')
+            : context.t('circle.claim$status');
+    final chip = Chip(
+      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
       backgroundColor: color,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
     );
+    if (onTap == null) return chip;
+    return InkWell(borderRadius: BorderRadius.circular(16), onTap: onTap, child: chip);
+  }
+}
+
+/// A plain filled badge — the shared building block behind the month/collection/payout badges
+/// the Monthly Cycles tab, the Current Cycle tab and the home-screen card all show.
+class SimpleBadge extends StatelessWidget {
+  const SimpleBadge({super.key, required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
+      backgroundColor: color,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+    );
+  }
+}
+
+/// The collection ("تحت التحصيل"/"تم التحصيل") and payout ("بانتظار الدفع لصاحب الدور"/"تم
+/// الدفع لصاحب الدور") badges, rendered exactly as the web does: collection always, and the
+/// payout badge once collection is done *or* the payout has already been paid (the organizer
+/// may pay the recipient ahead of finishing collection, and hiding that would be misleading).
+class CollectionPayoutBadges extends StatelessWidget {
+  const CollectionPayoutBadges({super.key, required this.collected, required this.expected, required this.payoutStatus});
+  final double collected;
+  final double expected;
+  final String payoutStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = expected > 0 && collected >= expected;
+    final paidOut = payoutStatus == 'Paid';
+    return Wrap(spacing: 6, runSpacing: 4, children: [
+      SimpleBadge(
+        label: context.t(done ? 'circle.collectionDone' : 'circle.collectionUnderway'),
+        color: done ? Colors.green : Colors.orange,
+      ),
+      if (done || paidOut)
+        SimpleBadge(
+          label: context.t(paidOut ? 'circle.payoutPaidBadge' : 'circle.payoutPendingBadge'),
+          color: paidOut ? Colors.green : Colors.blue,
+        ),
+    ]);
   }
 }
 

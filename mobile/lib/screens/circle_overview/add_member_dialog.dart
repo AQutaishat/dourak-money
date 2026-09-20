@@ -9,8 +9,10 @@ import '../../l10n/app_localizations.dart';
 import '../../state/providers.dart';
 import '../../utils/whatsapp.dart';
 
-/// Mirrors AddMemberDialog.tsx: user-search autocomplete + add, plus prompt03 §2's
-/// pure-share WhatsApp invite button (no name/phone fields, no backend call at all).
+/// Mirrors AddMemberDialog.tsx: user-search autocomplete + add, plus the token-based
+/// WhatsApp invite for someone who isn't on Dourak yet — asks for their name, creates a
+/// real Pending member row via `POST /circles/{id}/members/invite-unregistered`, and
+/// sends a WhatsApp message linking to `{app}/invite/{token}`.
 class AddMemberDialog extends ConsumerStatefulWidget {
   const AddMemberDialog({super.key, required this.circleId, required this.circleName, required this.organizerName});
 
@@ -77,15 +79,35 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
     }
   }
 
-  /// prompt03 §2: pure share action — no member/invitation record is ever created.
-  void _inviteByWhatsApp() {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    shareToWhatsApp(buildInviteToRegisterText(
-      circleName: widget.circleName,
-      organizerName: widget.organizerName,
-      appUrl: dourakAppUrl,
-      isArabic: isArabic,
-    ));
+  /// Asks for the invitee's display name first (it's what shows in the members table until
+  /// they respond), then creates the token-carrying Pending row and shares the link.
+  Future<void> _inviteByWhatsApp() async {
+    final name = await showDialog<String>(context: context, builder: (_) => const _InviteNameDialog());
+    if (name == null || !mounted) return;
+
+    setState(() {
+      adding = true;
+      error = null;
+    });
+    try {
+      final result = await ref.read(circlesApiProvider).inviteUnregistered(widget.circleId, name);
+      if (!mounted) return;
+      final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+      await shareToWhatsApp(buildInviteToRegisterText(
+        personName: name,
+        circleName: widget.circleName,
+        organizerName: widget.organizerName,
+        appUrl: inviteLinkUrl(result.token),
+        isArabic: isArabic,
+      ));
+      ref.read(refreshTickProvider.notifier).state++;
+      // The web closes the whole Add Member dialog once the invite is sent.
+      if (mounted) Navigator.of(context).pop();
+    } catch (err) {
+      if (mounted) setState(() => error = extractErrorMessage(err, context.t('common.error')));
+    } finally {
+      if (mounted) setState(() => adding = false);
+    }
   }
 
   @override
@@ -103,7 +125,19 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
                 Text(error!, style: const TextStyle(color: Colors.red)),
                 const SizedBox(height: 8),
               ],
-              Text(context.t('circle.addExistingUser'), style: Theme.of(context).textTheme.labelLarge),
+              // Mirrors the web: the WhatsApp invite sits on the same line as the
+              // "add a registered user" heading, pushed to the opposite end.
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(child: Text(context.t('circle.addExistingUser'), style: Theme.of(context).textTheme.labelLarge)),
+                  OutlinedButton.icon(
+                    onPressed: adding ? null : _inviteByWhatsApp,
+                    icon: const Icon(Icons.chat, size: 18),
+                    label: Text(context.t('circle.inviteByWhatsApp')),
+                  ),
+                ],
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: term,
@@ -132,25 +166,62 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
                   child: Text(context.t('common.add')),
                 ),
               ),
-              const Divider(height: 32),
-              Text(context.t('circle.inviteUnregistered'), style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 4),
-              Text(context.t('circle.inviteSentNote'), style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _inviteByWhatsApp,
-                  icon: const Icon(Icons.chat),
-                  label: Text(context.t('circle.inviteByWhatsApp')),
-                ),
-              ),
             ],
           ),
         ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(context.t('common.close'))),
+      ],
+    );
+  }
+}
+
+/// The small "who are you inviting?" prompt the web shows before sending the WhatsApp
+/// message — the name becomes the member row's temporary display name.
+class _InviteNameDialog extends StatefulWidget {
+  const _InviteNameDialog();
+
+  @override
+  State<_InviteNameDialog> createState() => _InviteNameDialogState();
+}
+
+class _InviteNameDialogState extends State<_InviteNameDialog> {
+  final name = TextEditingController();
+
+  @override
+  void dispose() {
+    name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = name.text.trim();
+    return AlertDialog(
+      title: Text(context.t('circle.inviteByWhatsApp')),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(context.t('circle.inviteUnregisteredNameHint'), style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 12),
+          TextField(
+            controller: name,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (v) => v.trim().isEmpty ? null : Navigator.of(context).pop(v.trim()),
+            decoration: InputDecoration(labelText: context.t('circle.memberName')),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(context.t('common.cancel'))),
+        FilledButton(
+          onPressed: trimmed.isEmpty ? null : () => Navigator.of(context).pop(trimmed),
+          child: Text(context.t('circle.inviteByWhatsApp')),
+        ),
       ],
     );
   }

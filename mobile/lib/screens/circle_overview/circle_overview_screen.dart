@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+// `TextDirection` is hidden because intl exports its own, which would shadow the Flutter one
+// used by this screen's left/right-locked bottom action row.
+import 'package:intl/intl.dart' hide TextDirection;
 
+import '../../api/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/providers.dart';
+import '../../utils/format.dart';
 import '../../widgets/status_chips.dart';
 import 'activate_circle_button.dart';
 import 'basic_info_tab.dart';
+import 'circle_timeline.dart';
 import 'current_cycle_tab.dart';
 import 'history_tab.dart';
 import 'members_tab.dart';
@@ -88,6 +94,13 @@ class _CircleOverviewScreenState extends ConsumerState<CircleOverviewScreen> {
             body: SafeArea(
               child: Column(
                 children: [
+                  // The web renders this line directly under the circle name; on mobile the name
+                  // lives in the AppBar, so it sits at the very top of the body instead.
+                  _CircleHeaderLine(circle: circle),
+                  // The mobile equivalent of the web's "timeline under the circle name": it sits
+                  // directly below the header/tab bar, shared by every tab, and only once the
+                  // circle has an actual schedule (a Draft one has no cycles yet).
+                  if (!circle.isDraft) CircleTimeline(circleId: circle.id),
                   Expanded(
                     child: TabBarView(
                       children: circle.isDraft
@@ -98,37 +111,37 @@ class _CircleOverviewScreenState extends ConsumerState<CircleOverviewScreen> {
                             ]
                           : [
                               CurrentCycleTab(circle: circle),
-                              ScheduleTab(circleId: circle.id, currency: circle.currency),
+                              ScheduleTab(circle: circle),
                               MembersTab(circle: circle),
                               HistoryTab(circleId: circle.id, currency: circle.currency),
                             ],
                     ),
                   ),
-                  if (circle.isDraft && circle.isOrganizer)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 4, offset: const Offset(0, -1))],
+                  if (circle.isDraft)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      // Physical order is locked left-to-right so each button's visual side
+                      // stays consistent between English and Arabic, independent of the app's
+                      // current text direction: Arabic -> Close left, Activate right.
+                      // English -> Close right, Activate left.
+                      child: Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: Directionality.of(context) == TextDirection.rtl
+                              ? [_closeButton(context), if (circle.isOrganizer) ActivateCircleButton(circleId: circle.id)]
+                              : [if (circle.isOrganizer) ActivateCircleButton(circleId: circle.id), _closeButton(context)],
+                        ),
                       ),
+                    ),
+                  if (!circle.isDraft)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
-                        children: [ActivateCircleButton(circleId: circle.id)],
+                        children: [_closeButton(context)],
                       ),
                     ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        OutlinedButton.icon(
-                          icon: const Icon(Icons.close),
-                          label: Text(context.t('common.close')),
-                          onPressed: () => context.go('/circles'),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -137,6 +150,12 @@ class _CircleOverviewScreenState extends ConsumerState<CircleOverviewScreen> {
       },
     );
   }
+
+  Widget _closeButton(BuildContext context) => OutlinedButton.icon(
+        icon: const Icon(Icons.close),
+        label: Text(context.t('common.close')),
+        onPressed: () => context.go('/circles'),
+      );
 
   Future<void> _runAction(WidgetRef ref, String action) async {
     final api = ref.read(circlesApiProvider);
@@ -180,5 +199,53 @@ class _CircleOverviewScreenState extends ConsumerState<CircleOverviewScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('circle.deleteCircleBlocked'))));
       }
     }
+  }
+}
+
+/// The line the web shows directly under the circle name:
+/// "{organizer} : {name} . {members}: {count} . {installment}: {amount} . {دور}: {recipient}",
+/// with the creation date (month + year only) at the far end. Tapping/long-pressing the date
+/// reveals the full dd/mm/yyyy in a tooltip, bidi-isolated so the day/month/year sequence can't
+/// be visually reordered inside the surrounding Arabic text.
+class _CircleHeaderLine extends ConsumerWidget {
+  const _CircleHeaderLine({required this.circle});
+  final CircleDetail circle;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = Localizations.localeOf(context).toString();
+    final dashboard = circle.isDraft ? null : ref.watch(dashboardProvider(circle.id)).valueOrNull;
+    final created = DateTime.parse(circle.createdAt).toLocal();
+    final createdMonth = DateFormat.yMMMM(locale).format(created);
+    final createdFull = ltrIsolate(DateFormat('dd/MM/yyyy').format(created));
+
+    final buffer = StringBuffer()
+      ..write('${context.t('circle.organizer')} : ${circle.organizerName}')
+      ..write(' . ${context.t('circle.members')}: ${circle.memberCount}');
+    if (dashboard != null) {
+      buffer
+        ..write(' . ${context.t('circle.installmentLabel')}: ${formatAmount(circle.contributionAmount)} ${circle.currency}')
+        ..write(' . ${context.t('circle.currentRecipientLabel')}: ${dashboard.recipientName}');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: Text(buffer.toString(), style: Theme.of(context).textTheme.bodySmall)),
+          const SizedBox(width: 8),
+          Tooltip(
+            triggerMode: TooltipTriggerMode.tap,
+            message: '${context.t('circle.createdAt')} $createdFull',
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(createdMonth, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+              const SizedBox(width: 2),
+              Icon(Icons.info_outline, size: 14, color: Colors.grey.shade500),
+            ]),
+          ),
+        ],
+      ),
+    );
   }
 }

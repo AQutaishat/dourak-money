@@ -170,6 +170,11 @@ class ScheduleCycle {
   final int recipientMemberId;
   final String recipientName;
   final double expectedPoolAmount;
+
+  /// Sum of everything contributed toward this cycle so far — added to `ScheduleCycleDto`
+  /// specifically so the month-by-month timeline can tell "fully collected" apart from
+  /// "still collecting" without pulling the much heavier months-detail payload.
+  final double collectedAmount;
   final String status;
   final String payoutStatus;
 
@@ -180,6 +185,7 @@ class ScheduleCycle {
     required this.recipientMemberId,
     required this.recipientName,
     required this.expectedPoolAmount,
+    required this.collectedAmount,
     required this.status,
     required this.payoutStatus,
   });
@@ -191,9 +197,153 @@ class ScheduleCycle {
         recipientMemberId: j['recipientMemberId'] as int,
         recipientName: j['recipientName'] as String,
         expectedPoolAmount: (j['expectedPoolAmount'] as num).toDouble(),
+        collectedAmount: (j['collectedAmount'] as num?)?.toDouble() ?? 0,
         status: j['status'] as String,
         payoutStatus: j['payoutStatus'] as String,
       );
+
+  bool get fullyCollected => collectedAmount >= expectedPoolAmount;
+}
+
+/// One installment on a member's contribution for a month — either an organizer-recorded
+/// payment, or a self-reported claim at any status. `claimStatus`/`claimId` are null both
+/// for a plain organizer-recorded payment and (privacy rule) for any row the current viewer
+/// isn't allowed to know came from a claim.
+class PaymentRow {
+  final double amount;
+  final String date;
+  final String? claimStatus; // Pending/Approved/Rejected
+  final int? claimId;
+
+  PaymentRow({required this.amount, required this.date, this.claimStatus, this.claimId});
+
+  factory PaymentRow.fromJson(Map<String, dynamic> j) => PaymentRow(
+        amount: (j['amount'] as num).toDouble(),
+        date: j['date'] as String,
+        claimStatus: j['claimStatus'] as String?,
+        claimId: j['claimId'] as int?,
+      );
+}
+
+/// One payout installment to a month's recipient — the recipient-side mirror of [PaymentRow].
+class PayoutRow {
+  final int payoutPaymentId;
+  final double amount;
+  final String date;
+  final bool hasEvidence;
+
+  PayoutRow({required this.payoutPaymentId, required this.amount, required this.date, required this.hasEvidence});
+
+  factory PayoutRow.fromJson(Map<String, dynamic> j) => PayoutRow(
+        payoutPaymentId: j['payoutPaymentId'] as int,
+        amount: (j['amount'] as num).toDouble(),
+        date: j['date'] as String,
+        hasEvidence: j['hasEvidence'] as bool? ?? false,
+      );
+}
+
+class CircleMonthMember {
+  final int memberId;
+  final String memberName;
+  final String? email;
+  final double expectedAmount;
+  final double paidAmount;
+
+  /// Null for a contribution paid before per-installment tracking existed — the UI falls back
+  /// to showing this single paidAt/paidAmount pair when [paymentRows] is empty.
+  final String? paidAt;
+  final List<PaymentRow> paymentRows;
+
+  CircleMonthMember({
+    required this.memberId,
+    required this.memberName,
+    this.email,
+    required this.expectedAmount,
+    required this.paidAmount,
+    this.paidAt,
+    required this.paymentRows,
+  });
+
+  factory CircleMonthMember.fromJson(Map<String, dynamic> j) => CircleMonthMember(
+        memberId: j['memberId'] as int,
+        memberName: j['memberName'] as String,
+        email: j['email'] as String?,
+        expectedAmount: (j['expectedAmount'] as num).toDouble(),
+        paidAmount: (j['paidAmount'] as num).toDouble(),
+        paidAt: j['paidAt'] as String?,
+        paymentRows: (j['paymentRows'] as List<dynamic>? ?? [])
+            .map((e) => PaymentRow.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  double get outstanding => expectedAmount - paidAmount;
+
+  /// Mirrors ScheduleTab.tsx's fallback: a contribution recorded before the per-installment
+  /// history table existed has no rows at all, only the running total.
+  List<PaymentRow> get effectiveRows {
+    if (paymentRows.isNotEmpty) return paymentRows;
+    if (paidAmount > 0 && paidAt != null) return [PaymentRow(amount: paidAmount, date: paidAt!)];
+    return const [];
+  }
+}
+
+/// Full per-member breakdown for one month — `GET /circles/{id}/months-detail`.
+class CircleMonth {
+  final int cycleId;
+  final int sequenceNumber;
+  final String dueDate;
+  final int recipientMemberId;
+  final String recipientName;
+  final double expectedPoolAmount;
+  final double collectedAmount;
+  final String cycleStatus;
+  final String payoutStatus;
+  final double payoutExpectedAmount;
+  final double payoutActualAmount;
+  final String? payoutPaidAt;
+  final List<PayoutRow> payoutRows;
+  final List<CircleMonthMember> members;
+
+  CircleMonth({
+    required this.cycleId,
+    required this.sequenceNumber,
+    required this.dueDate,
+    required this.recipientMemberId,
+    required this.recipientName,
+    required this.expectedPoolAmount,
+    required this.collectedAmount,
+    required this.cycleStatus,
+    required this.payoutStatus,
+    required this.payoutExpectedAmount,
+    required this.payoutActualAmount,
+    this.payoutPaidAt,
+    required this.payoutRows,
+    required this.members,
+  });
+
+  factory CircleMonth.fromJson(Map<String, dynamic> j) => CircleMonth(
+        cycleId: j['cycleId'] as int,
+        sequenceNumber: j['sequenceNumber'] as int,
+        dueDate: j['dueDate'] as String,
+        recipientMemberId: j['recipientMemberId'] as int,
+        recipientName: j['recipientName'] as String,
+        expectedPoolAmount: (j['expectedPoolAmount'] as num).toDouble(),
+        collectedAmount: (j['collectedAmount'] as num?)?.toDouble() ?? 0,
+        cycleStatus: j['cycleStatus'] as String? ?? 'Pending',
+        payoutStatus: j['payoutStatus'] as String? ?? 'Pending',
+        payoutExpectedAmount: (j['payoutExpectedAmount'] as num?)?.toDouble() ?? 0,
+        payoutActualAmount: (j['payoutActualAmount'] as num?)?.toDouble() ?? 0,
+        payoutPaidAt: j['payoutPaidAt'] as String?,
+        payoutRows: (j['payoutRows'] as List<dynamic>? ?? [])
+            .map((e) => PayoutRow.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        members: (j['members'] as List<dynamic>? ?? [])
+            .map((e) => CircleMonthMember.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  bool get fullyCollected => collectedAmount >= expectedPoolAmount;
+  double get payoutOutstanding => payoutExpectedAmount - payoutActualAmount;
 }
 
 class CurrentCycleMemberRow {
@@ -206,6 +356,11 @@ class CurrentCycleMemberRow {
   final String? myClaimStatus;
   final bool hasPendingClaim;
 
+  /// True when this member finished paying *this* cycle's contribution while an earlier cycle
+  /// was still the current one — i.e. they paid ahead of schedule (from the Monthly Cycles tab
+  /// or the record-payment dialog's cross-month picker). Drives the "دافع مسبقاً" chip.
+  final bool paidInAdvance;
+
   CurrentCycleMemberRow({
     required this.memberId,
     required this.memberName,
@@ -215,6 +370,7 @@ class CurrentCycleMemberRow {
     this.paidAt,
     this.myClaimStatus,
     required this.hasPendingClaim,
+    required this.paidInAdvance,
   });
 
   factory CurrentCycleMemberRow.fromJson(Map<String, dynamic> j) => CurrentCycleMemberRow(
@@ -226,7 +382,10 @@ class CurrentCycleMemberRow {
         paidAt: j['paidAt'] as String?,
         myClaimStatus: j['myClaimStatus'] as String?,
         hasPendingClaim: j['hasPendingClaim'] as bool? ?? false,
+        paidInAdvance: j['paidInAdvance'] as bool? ?? false,
       );
+
+  double get outstanding => expectedAmount - paidAmount;
 }
 
 class CurrentCycleDashboard {
@@ -248,6 +407,16 @@ class CurrentCycleDashboard {
   final List<CurrentCycleMemberRow> members;
   final int pendingClaimCount;
 
+  /// The payout's own expected/paid-so-far totals — like a member's contribution it can be paid
+  /// in more than one installment, so "confirm receipt" stays available (capped at what's still
+  /// outstanding) until [payoutActualAmount] reaches [payoutExpectedAmount].
+  final double payoutExpectedAmount;
+  final double payoutActualAmount;
+
+  /// Every installment already paid to this cycle's recipient — same shape as the Monthly
+  /// Cycles tab's payout lines, so both tabs render the identical breakdown.
+  final List<PayoutRow> payoutRows;
+
   CurrentCycleDashboard({
     required this.cycleId,
     required this.sequenceNumber,
@@ -266,6 +435,9 @@ class CurrentCycleDashboard {
     this.nextRecipientName,
     required this.members,
     required this.pendingClaimCount,
+    required this.payoutExpectedAmount,
+    required this.payoutActualAmount,
+    required this.payoutRows,
   });
 
   factory CurrentCycleDashboard.fromJson(Map<String, dynamic> j) => CurrentCycleDashboard(
@@ -288,7 +460,14 @@ class CurrentCycleDashboard {
             .map((e) => CurrentCycleMemberRow.fromJson(e as Map<String, dynamic>))
             .toList(),
         pendingClaimCount: j['pendingClaimCount'] as int? ?? 0,
+        payoutExpectedAmount: (j['payoutExpectedAmount'] as num?)?.toDouble() ?? 0,
+        payoutActualAmount: (j['payoutActualAmount'] as num?)?.toDouble() ?? 0,
+        payoutRows: (j['payoutRows'] as List<dynamic>? ?? [])
+            .map((e) => PayoutRow.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
+
+  double get payoutOutstanding => payoutExpectedAmount - payoutActualAmount;
 }
 
 class MemberHistoryEntry {
@@ -437,6 +616,20 @@ class UserSearchResult {
         email: j['email'] as String?,
         phone: j['phone'] as String?,
         displayLabel: j['displayLabel'] as String? ?? '',
+      );
+}
+
+/// `InviteUnregisteredMemberResult` — the new Pending member row plus its one-time
+/// invite token, which goes into the `/invite/{token}` WhatsApp link.
+class InviteUnregisteredResult {
+  final int memberId;
+  final String token;
+
+  InviteUnregisteredResult({required this.memberId, required this.token});
+
+  factory InviteUnregisteredResult.fromJson(Map<String, dynamic> json) => InviteUnregisteredResult(
+        memberId: json['memberId'] as int,
+        token: json['token'] as String,
       );
 }
 

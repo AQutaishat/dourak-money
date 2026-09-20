@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../auth/auth_state.dart';
 import '../../l10n/app_localizations.dart';
+import '../../state/locale_provider.dart';
 import '../../state/providers.dart';
 import '../../widgets/validated_text_field.dart';
 
@@ -20,6 +21,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   late final password = ValidatedController(['required']);
   String? error;
   bool loading = false;
+  bool showPassword = false;
 
   @override
   void dispose() {
@@ -95,7 +97,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ],
                     ValidatedTextField(controller: email, label: context.t('auth.email'), keyboardType: TextInputType.emailAddress),
                     const SizedBox(height: 16),
-                    ValidatedTextField(controller: password, label: context.t('auth.password'), obscureText: true),
+                    ValidatedTextField(
+                      controller: password,
+                      label: context.t('auth.password'),
+                      obscureText: !showPassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(showPassword ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => showPassword = !showPassword),
+                      ),
+                    ),
                     const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
@@ -108,11 +118,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    // "No account? Create one" on one side and the language picker on the other
+                    // — the web's final placement for the selector (it used to float alone above
+                    // the logo). space-between puts the sign-up text first in reading order.
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(context.t('auth.noAccount')),
-                        TextButton(onPressed: () => context.go('/register'), child: Text(context.t('auth.register'))),
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(child: Text(context.t('auth.noAccount'), overflow: TextOverflow.ellipsis)),
+                              TextButton(onPressed: () => context.go('/register'), child: Text(context.t('auth.register'))),
+                            ],
+                          ),
+                        ),
+                        DropdownButton<String>(
+                          value: ref.watch(localeProvider).languageCode,
+                          underline: const SizedBox.shrink(),
+                          icon: const Icon(Icons.translate, size: 18),
+                          onChanged: (code) {
+                            if (code != null) ref.read(localeProvider.notifier).state = Locale(code);
+                          },
+                          items: const [
+                            DropdownMenuItem(value: 'ar', child: Text('العربية')),
+                            DropdownMenuItem(value: 'en', child: Text('English')),
+                          ],
+                        ),
                       ],
                     ),
                   ],

@@ -31,13 +31,18 @@ class _PayoutOrderTabState extends ConsumerState<PayoutOrderTab> {
     _initialized = true;
   }
 
-  void _move(int index, int direction) {
+  /// Persists immediately via `POST /payout-order/{memberId}/move` — mirrors the web
+  /// app's move-up/down which no longer needs a separate "Save" step.
+  Future<void> _move(int circleId, int index, int direction) async {
     final target = index + direction;
     if (target < 0 || target >= localOrder.length) return;
+    final memberId = localOrder[index].memberId;
     setState(() {
       final item = localOrder.removeAt(index);
       localOrder.insert(target, item);
     });
+    await ref.read(circlesApiProvider).movePayoutPosition(circleId, memberId, direction: direction);
+    ref.read(refreshTickProvider.notifier).state++;
   }
 
   @override
@@ -118,28 +123,18 @@ class _PayoutOrderTabState extends ConsumerState<PayoutOrderTab> {
                               IconButton(
                                 tooltip: context.t('circle.moveUp'),
                                 icon: const Icon(Icons.arrow_upward, size: 18),
-                                onPressed: index == 0 ? null : () => _move(index, -1),
+                                onPressed: index == 0 ? null : () => _move(circle.id, index, -1),
                               ),
                               IconButton(
                                 tooltip: context.t('circle.moveDown'),
                                 icon: const Icon(Icons.arrow_downward, size: 18),
-                                onPressed: index == localOrder.length - 1 ? null : () => _move(index, 1),
+                                onPressed: index == localOrder.length - 1 ? null : () => _move(circle.id, index, 1),
                               ),
                             ])
                           : null,
                     ),
                   );
                 }),
-                if (canManage) ...[
-                  const SizedBox(height: 8),
-                  FilledButton(
-                    onPressed: () async {
-                      await ref.read(circlesApiProvider).setManualOrder(circle.id, localOrder.map((e) => e.memberId).toList());
-                      ref.read(refreshTickProvider.notifier).state++;
-                    },
-                    child: Text(context.t('common.save')),
-                  ),
-                ],
               ],
             );
           },

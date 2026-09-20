@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../api/api_client.dart';
 import '../../api/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/providers.dart';
+import '../../utils/format.dart';
+import '../../utils/invite_token.dart';
 import '../../utils/whatsapp.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/status_chips.dart';
+import '../circle_overview/circle_timeline.dart';
 
 /// Mirrors DashboardPage.tsx: pending invitations, active-circle progress cards,
 /// then the full circle list.
@@ -71,11 +75,41 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _PendingInvitationsSection extends ConsumerWidget {
+class _PendingInvitationsSection extends ConsumerStatefulWidget {
   const _PendingInvitationsSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PendingInvitationsSection> createState() => _PendingInvitationsSectionState();
+}
+
+class _PendingInvitationsSectionState extends ConsumerState<_PendingInvitationsSection> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _linkStashedInviteToken());
+  }
+
+  /// Mirrors PendingInvitationsSection.tsx's mount effect: a WhatsApp invite opened by
+  /// someone who wasn't signed in yet stashed its token (InviteScreen) — now that they're
+  /// here and authenticated, attach it to their account so the invitation shows up below.
+  /// Deliberately best-effort: an already-used/expired token just leaves the list as-is.
+  Future<void> _linkStashedInviteToken() async {
+    final token = await consumeStashedInviteToken();
+    if (token == null || token.isEmpty) return;
+    try {
+      await ref.read(invitationsApiProvider).linkToken(token);
+      if (!mounted) return;
+      ref.read(refreshTickProvider.notifier).state++;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('circle.inviteLinked'))));
+    } catch (err) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(extractErrorMessage(err, context.t('common.error')))));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final invitesAsync = ref.watch(pendingInvitationsProvider);
     return invitesAsync.when(
       loading: () => const SizedBox.shrink(),
@@ -151,12 +185,15 @@ class _InvitationCard extends ConsumerWidget {
   }
 }
 
-class _CircleInfoCard extends StatelessWidget {
+class _CircleInfoCard extends ConsumerWidget {
   const _CircleInfoCard({required this.circle});
   final CircleSummary circle;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Only an Active circle has a cycle to report collection/payout progress for, so the
+    // dashboard is only fetched (and the badges only shown) in that case.
+    final dashboard = circle.status == 'Active' ? ref.watch(dashboardProvider(circle.id)).valueOrNull : null;
     final created = DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(DateTime.parse(circle.createdAt));
     return Card(
       child: InkWell(
@@ -178,6 +215,14 @@ class _CircleInfoCard extends StatelessWidget {
                   ),
                 ],
               ),
+              if (dashboard != null) ...[
+                const SizedBox(height: 4),
+                CollectionPayoutBadges(
+                  collected: dashboard.collected,
+                  expected: dashboard.expected,
+                  payoutStatus: dashboard.payoutStatus,
+                ),
+              ],
               const SizedBox(height: 4),
               Text(
                 '${context.t('circle.memberCount')}: ${circle.memberCount} · ${context.t('circle.perMemberAmount')}: ${circle.contributionAmount} ${circle.currency}',
@@ -216,6 +261,8 @@ class _CurrentCycleSummaryCard extends ConsumerWidget {
         final progress = dashboard.expected > 0 ? (dashboard.collected / dashboard.expected).clamp(0, 1).toDouble() : 0.0;
         final monthLabel = DateFormat.yMMMM(Localizations.localeOf(context).toString()).format(DateTime.parse(dashboard.dueDate));
         final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+        // The circle's total month count — the same `schedule` query the timeline below reads.
+        final totalMonths = (ref.watch(scheduleProvider(circle.id)).valueOrNull ?? const <ScheduleCycle>[]).length;
 
         return Card(
           child: InkWell(
@@ -230,14 +277,52 @@ class _CurrentCycleSummaryCard extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(child: Text(circle.name, style: const TextStyle(fontWeight: FontWeight.bold))),
-                      Text(monthLabel, style: Theme.of(context).textTheme.bodySmall),
+                      // The corner used to show the cycle's month; it now shows the circle's
+                      // creation date (month + year), with the full dd/mm/yyyy behind a tooltip,
+                      // bidi-isolated so the sequence can't be reordered inside Arabic text.
+                      Tooltip(
+                        triggerMode: TooltipTriggerMode.tap,
+                        message: '${context.t('circle.createdAt')} ${ltrIsolate(DateFormat('dd/MM/yyyy').format(DateTime.parse(circle.createdAt).toLocal()))}',
+                        child: Text(
+                          DateFormat.yMMMM(Localizations.localeOf(context).toString()).format(DateTime.parse(circle.createdAt).toLocal()),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
                     ],
                   ),
                   Text(
-                    '${context.t('circle.organizer')}: ${circle.organizerName} · ${circle.memberCount} ${context.t('circle.members')}',
+                    '${context.t('circle.organizer')}: ${circle.organizerName}. '
+                    '${context.t('circle.members')}: ${circle.memberCount}. '
+                    '${context.t('circle.installmentLabel')}: ${formatAmount(circle.contributionAmount)} ${circle.currency}.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  const SizedBox(height: 8),
+                  // The same month-by-month timeline the circle-details page shows, reusing the
+                  // identical widget and the same `schedule` provider entry.
+                  CircleTimeline(circleId: circle.id),
+                  const SizedBox(height: 4),
+                  Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                    Text(context.t('circle.currentCycle'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      context.t('circle.monthOrdinalDetail', {
+                        'month': DateFormat.MMMM(Localizations.localeOf(context).toString()).format(DateTime.parse(dashboard.dueDate)),
+                        'ordinal': monthOrdinalWord(dashboard.sequenceNumber, isArabic),
+                        'total': '$totalMonths',
+                      }),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ]),
+                  const SizedBox(height: 4),
+                  Text.rich(TextSpan(children: [
+                    TextSpan(text: '${context.t('circle.recipient')}: '),
+                    TextSpan(text: dashboard.recipientName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ])),
+                  const SizedBox(height: 6),
+                  CollectionPayoutBadges(
+                    collected: dashboard.collected,
+                    expected: dashboard.expected,
+                    payoutStatus: dashboard.payoutStatus,
+                  ),
+                  const SizedBox(height: 6),
                   Wrap(spacing: 8, children: [
                     Chip(
                       label: Text('${context.t('circle.paid')}: ${dashboard.membersPaid}/${dashboard.membersTotal}',
@@ -263,14 +348,9 @@ class _CurrentCycleSummaryCard extends ConsumerWidget {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text.rich(TextSpan(children: [
-                        TextSpan(text: '${context.t('circle.recipient')}: '),
-                        TextSpan(text: dashboard.recipientName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      ])),
-                      TextButton.icon(
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: TextButton.icon(
                         onPressed: () => shareToWhatsApp(buildCurrentCycleShareText(
                           circleName: circle.name,
                           monthLabel: monthLabel,
@@ -285,7 +365,6 @@ class _CurrentCycleSummaryCard extends ConsumerWidget {
                         icon: const Icon(Icons.chat, size: 18),
                         label: Text(context.t('circle.shareStatus')),
                       ),
-                    ],
                   ),
                 ],
               ),

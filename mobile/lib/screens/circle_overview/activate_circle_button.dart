@@ -26,7 +26,13 @@ class _ActivateCircleButtonState extends ConsumerState<ActivateCircleButton> {
       ref.read(refreshTickProvider.notifier).state++;
       if (mounted) Navigator.of(context).pop();
     } catch (err) {
-      if (mounted) error = extractErrorMessage(err, context.t('common.error'));
+      if (mounted) {
+        final raw = extractErrorMessage(err, context.t('common.error'));
+        // Mirrors ActivateCircleButton.tsx's specific mapping of the "still has a
+        // Pending invitee" domain error to a proper localized message instead of
+        // showing the raw backend text.
+        error = raw.toLowerCase().contains('responded') ? context.t('circle.activateBlockedPendingInvites') : raw;
+      }
     } finally {
       if (mounted) setState(() => activating = false);
       if (error != null && mounted) {
@@ -37,9 +43,7 @@ class _ActivateCircleButtonState extends ConsumerState<ActivateCircleButton> {
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton.icon(
-      icon: const Icon(Icons.play_arrow),
-      label: Text(context.t('circle.activate')),
+    return FilledButton(
       onPressed: () => showDialog(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -54,6 +58,7 @@ class _ActivateCircleButtonState extends ConsumerState<ActivateCircleButton> {
           ],
         ),
       ),
+      child: Text(context.t('circle.activate')),
     );
   }
 }

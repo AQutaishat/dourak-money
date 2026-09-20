@@ -59,6 +59,7 @@ class ValidatedTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType,
     this.helperText,
+    this.suffixIcon,
   });
 
   final ValidatedController controller;
@@ -66,6 +67,9 @@ class ValidatedTextField extends StatelessWidget {
   final bool obscureText;
   final TextInputType? keyboardType;
   final String? helperText;
+
+  /// Optional trailing control — used for the login screen's password-visibility toggle.
+  final Widget? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +84,7 @@ class ValidatedTextField extends StatelessWidget {
             labelText: label,
             errorText: error,
             helperText: error == null ? helperText : null,
+            suffixIcon: suffixIcon,
           ),
           onTapOutside: (_) => controller.validateNow(context),
           onEditingComplete: () => controller.validateNow(context),

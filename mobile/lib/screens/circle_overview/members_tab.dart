@@ -81,25 +81,40 @@ class _MemberRow extends ConsumerWidget {
     final canManage = circle.isOrganizer;
     final isDraft = circle.isDraft;
     final excluded = !member.isParticipating;
-    final contact = [member.phone, member.email].where((s) => s != null && s.isNotEmpty).join(' · ');
+    final hasEmail = member.email != null && member.email!.isNotEmpty;
+    final displayName = member.name.isNotEmpty ? member.name : (member.email ?? '');
+    final textStyle = TextStyle(
+      decoration: excluded ? TextDecoration.lineThrough : null,
+      color: excluded ? Colors.grey : null,
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        title: Text(
-          member.name,
-          style: TextStyle(
-            decoration: excluded ? TextDecoration.lineThrough : null,
-            color: excluded ? Colors.grey : null,
-          ),
+        // Name and email are shown as two separate fields/columns (not "Name (email)"
+        // combined), and phone is never displayed — mirrors MembersTab.tsx.
+        title: Row(
+          children: [
+            Expanded(flex: 3, child: Text(displayName, style: textStyle)),
+            if (hasEmail && member.name.isNotEmpty)
+              Expanded(
+                flex: 2,
+                child: Text(
+                  member.email!,
+                  style: textStyle.copyWith(color: excluded ? Colors.grey : Colors.grey.shade600, fontSize: 13),
+                  textAlign: TextAlign.start,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
         ),
-        subtitle: contact.isNotEmpty ? Text(contact, style: TextStyle(color: excluded ? Colors.grey : null)) : null,
         trailing: Wrap(
           spacing: 2,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             if (member.payoutPosition != null) Chip(label: Text('#${member.payoutPosition}'), visualDensity: VisualDensity.compact),
-            InvitationStatusChip(status: member.invitationStatus),
+            // No badge once accepted — the invitation is a non-event at that point.
+            if (member.invitationStatus != 'Accepted') InvitationStatusChip(status: member.invitationStatus),
             IconButton(
               tooltip: context.t('circle.viewHistory'),
               icon: const Icon(Icons.history, size: 20),

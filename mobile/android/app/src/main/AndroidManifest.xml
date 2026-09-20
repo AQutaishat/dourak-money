@@ -21,6 +21,28 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Android App Link for the WhatsApp invite link sent by an organizer:
+                 https://dourak.money/invite/{token}. autoVerify requires
+                 https://dourak.money/.well-known/assetlinks.json to list this app's
+                 package + signing-cert fingerprint (see docs/mobile-gap.md). Until that
+                 file is live, Android still offers this app in the app chooser for the
+                 link; the web page handles it for anyone without the app either way. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="dourak.money" android:pathPrefix="/invite/" />
+            </intent-filter>
+
+            <!-- Fallback custom scheme: dourak://invite/{token}. Never needs domain
+                 verification, so an invite link always has a working in-app path. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dourak" android:host="invite" />
+            </intent-filter>
         </activity>
         <meta-data
             android:name="flutterEmbedding"

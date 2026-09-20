@@ -59,6 +59,15 @@ class _CreateCircleScreenState extends ConsumerState<CreateCircleScreen> {
             contributionAmount: contribution,
             startDate: startDate.toIso8601String().substring(0, 10),
           );
+      // Mirrors CreateCirclePage.tsx: the organizer is auto-added as a member of
+      // their own circle right after creation, instead of requiring the separate
+      // "أضفني كعضو" button afterward.
+      try {
+        await ref.read(circlesApiProvider).addSelfAsMember(id);
+      } catch (_) {
+        // Non-fatal — the circle was already created; the organizer can still use
+        // the "أضفني كعضو" button from the Members tab if this call fails.
+      }
       ref.read(refreshTickProvider.notifier).state++;
       if (mounted) context.pushReplacement('/circles/$id');
     } catch (err) {

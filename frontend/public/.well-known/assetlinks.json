@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.dourak.mobile",
+      "sha256_cert_fingerprints": [
+        "05:73:40:1D:04:10:BA:C2:59:E5:F2:32:1E:BA:89:25:70:F9:26:B3:4D:C8:24:DF:0C:31:CB:0C:9E:22:20:5A"
+      ]
+    }
+  }
+]

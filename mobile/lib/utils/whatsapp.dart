@@ -39,7 +39,8 @@ String buildPaymentReminderText({
       : 'Hi $memberName,\nA reminder about your contribution to "$circleName" for $monthLabel.\nAmount due: $outstanding $currency\nThank you.';
 }
 
-/// prompt03 §2: a pure share action, no backend record created either side.
+/// Mirrors `buildInviteToRegisterText` — `appUrl` now carries the one-time invite
+/// token (see [inviteLinkUrl]) instead of the bare app address.
 String buildInviteToRegisterText({
   String? personName,
   required String circleName,
@@ -57,4 +58,13 @@ String buildInviteToRegisterText({
 
 /// The web app used `window.location.origin`; the mobile app has no such origin, so it
 /// links to the production web app instead (kept as a constant — see docs/progress.md).
-const String dourakAppUrl = 'https://dourak.app';
+/// This is the real deployed domain (same host the production API is served from — see
+/// `api_client.dart`), which matters now that invite links are deep-linked: the Android
+/// App Link filter in AndroidManifest.xml must match this exact host.
+const String dourakAppUrl = 'https://dourak.money';
+
+/// The invite landing URL, deliberately the *web* address rather than a custom scheme:
+/// an invitee who doesn't have the app falls through to the web `/invite/:token` page and
+/// can register there, while an invitee who does have it gets the link captured by the
+/// Android App Link filter and handled in-app.
+String inviteLinkUrl(String token) => '$dourakAppUrl/invite/$token';
