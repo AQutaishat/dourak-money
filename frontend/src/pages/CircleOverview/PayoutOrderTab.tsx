@@ -19,6 +19,13 @@ export function PayoutOrderTab({ circle }: { circle: CircleDetail }) {
   // Declined and not-yet-accepted members are excluded from the order (prompt02 §5).
   const participatingMembers = members?.filter((m) => m.isParticipating) ?? [];
   const [localOrder, setLocalOrder] = useState<{ memberId: number; memberName: string }[]>([]);
+  // The "reset to original order" button only makes sense once the organizer has actually
+  // touched the order (arrows or a draw) — not for the default order members get automatically
+  // as they're added.
+  const [reordered, setReordered] = useState(false);
+  // Snapshot of the order right before the first arrow move / draw, so "Reset to original
+  // order" can restore exactly that — not just wipe the order back to empty.
+  const [originalOrder, setOriginalOrder] = useState<{ memberId: number; memberName: string }[] | null>(null);
 
   useEffect(() => {
     if (order && order.length > 0) {
@@ -35,8 +42,9 @@ export function PayoutOrderTab({ circle }: { circle: CircleDetail }) {
     queryClient.invalidateQueries({ queryKey: ["circle", circle.id] });
   };
 
-  const saveManualMutation = useMutation({
-    mutationFn: () => circlesApi.setManualOrder(circle.id, localOrder.map((o) => o.memberId)),
+  const moveMutation = useMutation({
+    mutationFn: ({ memberId, direction }: { memberId: number; direction: -1 | 1 }) =>
+      circlesApi.movePayoutPosition(circle.id, memberId, direction),
     onSuccess: invalidate,
   });
 
@@ -46,16 +54,25 @@ export function PayoutOrderTab({ circle }: { circle: CircleDetail }) {
   });
 
   const resetMutation = useMutation({
-    mutationFn: () => circlesApi.resetOrder(circle.id),
-    onSuccess: invalidate,
+    mutationFn: () => circlesApi.setManualOrder(circle.id, (originalOrder ?? []).map((o) => o.memberId)),
+    onSuccess: () => { invalidate(); setReordered(false); setOriginalOrder(null); },
   });
+
+  const captureOriginalOrderIfNeeded = () => {
+    if (!reordered) setOriginalOrder(localOrder);
+  };
 
   const move = (index: number, direction: -1 | 1) => {
     const next = [...localOrder];
     const target = index + direction;
     if (target < 0 || target >= next.length) return;
+    captureOriginalOrderIfNeeded();
     [next[index], next[target]] = [next[target], next[index]];
+    // Optimistic local reorder for instant feedback, persisted immediately server-side —
+    // there is no separate Save step while the circle is still a Draft.
     setLocalOrder(next);
+    setReordered(true);
+    moveMutation.mutate({ memberId: next[target].memberId, direction });
   };
 
   if (circle.status !== "Draft") {
@@ -75,7 +92,6 @@ export function PayoutOrderTab({ circle }: { circle: CircleDetail }) {
     return <Alert severity="info">{t("circle.addMember")}</Alert>;
   }
 
-  const hasOrder = (order?.length ?? 0) > 0;
   const canManage = circle.isOrganizer;
 
   return (
@@ -84,8 +100,14 @@ export function PayoutOrderTab({ circle }: { circle: CircleDetail }) {
 
       {canManage && (
         <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-          <Button startIcon={<ShuffleIcon />} variant="outlined" onClick={() => drawMutation.mutate()}>{t("circle.runDraw")}</Button>
-          {hasOrder && <Button color="warning" onClick={() => resetMutation.mutate()}>{t("circle.resetOrder")}</Button>}
+          <Button
+            startIcon={<ShuffleIcon />}
+            variant="outlined"
+            onClick={() => { captureOriginalOrderIfNeeded(); setReordered(true); drawMutation.mutate(); }}
+          >
+            {t("circle.runDraw")}
+          </Button>
+          {reordered && <Button color="warning" onClick={() => resetMutation.mutate()}>{t("circle.resetOrder")}</Button>}
         </Stack>
       )}
 
@@ -116,14 +138,6 @@ export function PayoutOrderTab({ circle }: { circle: CircleDetail }) {
           </ListItem>
         ))}
       </List>
-
-      {canManage && (
-        <Stack direction="row" spacing={1} sx={{ mt: 2 }} alignItems="center">
-          <Button variant="outlined" onClick={() => saveManualMutation.mutate()}>{t("common.save")}</Button>
-          {/* prompt03 §1: Activate is no longer duplicated here — it exists only as the
-              persistent/sticky action beneath all tabs on the draft circle details page. */}
-        </Stack>
-      )}
     </Box>
   );
 }

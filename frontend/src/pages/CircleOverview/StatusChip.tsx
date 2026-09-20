@@ -39,7 +39,22 @@ const CLAIM_COLOR: Record<string, "default" | "success" | "warning" | "error"> =
   Rejected: "error",
 };
 
-export function ClaimStatusChip({ status }: { status: string }) {
+/**
+ * The single, canonical claim-status badge — same color, same wording, same component, used
+ * everywhere a payment claim's status is shown (the Current Cycle tab, for both the organizer's
+ * and a member's own row, and the Monthly Cycles tab). Previously there were two near-duplicate
+ * components with slightly different wording ("دفعة مقبولة" vs "تمت الموافقة" for the same
+ * Approved state) that had drifted apart across screens — keeping exactly one avoids that.
+ */
+export function ClaimStatusChip({ status, onClick }: { status: string; onClick?: () => void }) {
   const { t } = useTranslation();
-  return <Chip size="small" color={CLAIM_COLOR[status] ?? "default"} label={t(`circle.claim${status}`)} />;
+  const label = status === "Pending" ? t("circle.pendingPaymentBadge")
+    : status === "Approved" ? t("circle.approvedPaymentBadge")
+    : t(`circle.claim${status}`);
+  return (
+    <Chip
+      size="small" color={CLAIM_COLOR[status] ?? "default"} label={label}
+      clickable={!!onClick} onClick={onClick}
+    />
+  );
 }

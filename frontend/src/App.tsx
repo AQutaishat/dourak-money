@@ -22,6 +22,7 @@ import { CircleOverviewPage } from "./pages/CircleOverview/CircleOverviewPage";
 import { MemberHistoryPage } from "./pages/CircleOverview/MemberHistoryPage";
 import { ProfilePage } from "./pages/Profile/ProfilePage";
 import { DeleteAccountPage } from "./pages/Legal/DeleteAccountPage";
+import { InvitePage } from "./pages/Invite/InvitePage";
 
 function ProtectedRoute({ children }: { children: React.ReactElement }) {
   const { isAuthenticated } = useAuth();
@@ -54,6 +55,7 @@ function ThemedApp() {
                 shouldn't require signing out first. */}
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/delete-account" element={<DeleteAccountPage />} />
+            <Route path="/invite/:token" element={<InvitePage />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/circles" element={<MyCirclesPage />} />

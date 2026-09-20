@@ -36,6 +36,15 @@ public class CircleMember : AuditableEntity
     public DateTimeOffset? RespondedAt { get; set; }
 
     /// <summary>
+    /// Set when this member row was created via a WhatsApp invite to someone not yet on Dourak
+    /// (no <see cref="UserId"/> yet). Whoever opens the invite link and links their account
+    /// (see <c>LinkInvitationTokenCommand</c>) is matched to this exact row via this token —
+    /// so if the organizer invites several people, each invite is unambiguous. Cleared once
+    /// a user has linked to this row (single-use).
+    /// </summary>
+    public string? InviteToken { get; set; }
+
+    /// <summary>
     /// Deactivation, not deletion. A member with financial history must never be
     /// hard-deleted (BRD §6.4, rule #6). Deactivated members are excluded from
     /// future payout-order/draw operations but their history remains intact.
@@ -71,6 +80,39 @@ public class CircleMember : AuditableEntity
         InvitedAt = now;
         RespondedAt = null;
         IsActive = true;
+    }
+
+    /// <summary>
+    /// Invites someone who isn't a registered Dourak user yet, by name only, over a WhatsApp
+    /// link carrying <paramref name="token"/>. The row has no <see cref="UserId"/> until that
+    /// person registers/logs in and opens the link, at which point their account is linked to
+    /// this exact row via the token (see <c>LinkInvitationTokenCommand</c>).
+    /// </summary>
+    public void InviteUnregistered(string name, string token, DateTimeOffset now)
+    {
+        Name = name;
+        UserId = null;
+        InviteToken = token;
+        InvitationStatus = InvitationStatus.Pending;
+        InvitedAt = now;
+        RespondedAt = null;
+        IsActive = true;
+    }
+
+    /// <summary>
+    /// The invited person has registered/logged in and opened their WhatsApp invite link —
+    /// link their account to this row so it shows up as a pending invitation for them, exactly
+    /// like a member added by searching an existing user.
+    /// </summary>
+    public void LinkToUser(string userId, string? email, string? phone)
+    {
+        if (InvitationStatus != InvitationStatus.Pending || !string.IsNullOrEmpty(UserId))
+            throw new DomainException("This invitation link is no longer valid.");
+
+        UserId = userId;
+        Email = email ?? Email;
+        Phone = phone ?? Phone;
+        InviteToken = null;
     }
 
     public void AcceptInvitation(DateTimeOffset now)

@@ -2,14 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Chip, Button, Stack } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CloseIcon from "@mui/icons-material/Close";
 import { useTranslation } from "react-i18next";
 import { circlesApi } from "../../api/circles";
+import { isRtl } from "../../i18n";
 import { ContributionStatusChip } from "./StatusChip";
 
 export function MemberHistoryPage() {
   const { circleId, memberId } = useParams();
   const { t, i18n } = useTranslation();
+  const rtl = isRtl(i18n.language);
   const navigate = useNavigate();
   const cId = Number(circleId);
   const mId = Number(memberId);
@@ -24,7 +27,7 @@ export function MemberHistoryPage() {
 
   return (
     <Box>
-      <Button onClick={backToMembers} startIcon={<ArrowBackIcon />} sx={{ mb: 2 }}>{t("common.back")}</Button>
+      <Button onClick={backToMembers} startIcon={rtl ? <ArrowForwardIcon /> : <ArrowBackIcon />} sx={{ mb: 2 }}>{t("common.back")}</Button>
 
       {/* Heading says what this page is, not just the bare member name. */}
       <Typography variant="h5" fontWeight={700} gutterBottom>

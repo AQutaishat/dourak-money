@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
 } from "@mui/material";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { useTranslation } from "react-i18next";
 import { circlesApi } from "../../api/circles";
 
@@ -35,7 +34,7 @@ export function ActivateCircleButton({
     },
     onError: (err: unknown) => {
       const title = (err as { response?: { data?: { title?: string } } })?.response?.data?.title;
-      setError(title ?? t("common.error"));
+      setError(title?.includes("have not yet responded") ? t("circle.activateBlockedPendingInvites") : (title ?? t("common.error")));
     },
   });
 
@@ -45,7 +44,6 @@ export function ActivateCircleButton({
         variant="contained"
         size="large"
         fullWidth={fullWidth}
-        startIcon={<PlayArrowIcon />}
         disabled={disabled}
         onClick={() => { setError(null); setOpen(true); }}
       >

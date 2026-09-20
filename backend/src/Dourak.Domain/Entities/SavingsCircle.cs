@@ -42,14 +42,17 @@ public class SavingsCircle : AuditableEntity
     /// activation). Once activated these fields are locked, same as everything else the
     /// aggregate freezes on Activate().
     /// </summary>
-    public void UpdateBasicInfo(string name, string? description, DateOnly startDate)
+    public void UpdateBasicInfo(string name, string? description, DateOnly startDate, decimal contributionAmount)
     {
         EnsureDraft("edit the circle's basic info");
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("Circle name is required.");
+        if (contributionAmount <= 0)
+            throw new DomainException("Contribution amount must be greater than zero.");
         Name = name;
         Description = description;
         StartDate = startDate;
+        ContributionAmount = contributionAmount;
     }
 
     /// <summary>
@@ -71,6 +74,46 @@ public class SavingsCircle : AuditableEntity
             PayoutPositions.Remove(position);
 
         Members.Remove(member);
+    }
+
+    /// <summary>
+    /// A member that just became eligible to participate (a plain add, the organizer adding
+    /// themselves, or an invitation being accepted) is immediately given the next payout
+    /// position — last in line — rather than waiting for the organizer to press Save. A no-op
+    /// if this member already has a position (e.g. re-accepting isn't possible, but this keeps
+    /// the method safe to call defensively).
+    /// </summary>
+    public void AppendMemberToPayoutOrder(int memberId)
+    {
+        if (PayoutPositions.Any(p => p.MemberId == memberId)) return;
+
+        var nextPosition = PayoutPositions.Count == 0 ? 1 : PayoutPositions.Max(p => p.Position) + 1;
+        PayoutPositions.Add(new PayoutPosition { CircleId = Id, MemberId = memberId, Position = nextPosition, IsLocked = false });
+        PayoutOrderMethod ??= Enums.PayoutOrderMethod.Manual;
+    }
+
+    /// <summary>
+    /// Moves one member's position up or down by one slot in the Payout Order tab, renumbering
+    /// immediately — there is no separate "Save" step once the circle is still a Draft.
+    /// </summary>
+    public void MovePayoutPosition(int memberId, int direction)
+    {
+        EnsureDraft("reorder the payout order");
+        var orderedIds = PayoutPositions.OrderBy(p => p.Position).Select(p => p.MemberId).ToList();
+        var index = orderedIds.FindIndex(id => id == memberId);
+        if (index < 0) throw new DomainException("This member has no payout position yet.");
+
+        var target = index + direction;
+        if (target < 0 || target >= orderedIds.Count) return;
+
+        (orderedIds[index], orderedIds[target]) = (orderedIds[target], orderedIds[index]);
+
+        // Re-uses SetManualPayoutOrder's clear-and-recreate approach rather than mutating the
+        // two swapped rows' Position values in place — with a unique (CircleId, Position) index,
+        // an in-place swap makes EF try to UPDATE both rows into each other's still-occupied
+        // value in the same batch, which it can't order without violating the constraint
+        // (a "circular dependency" save error). Delete-then-insert has no such ordering problem.
+        SetManualPayoutOrder(orderedIds);
     }
 
     /// <summary>
@@ -171,11 +214,24 @@ public class SavingsCircle : AuditableEntity
     {
         EnsureDraft("activate the circle");
 
+        // Every invited member must have actually agreed to join before the circle locks in —
+        // activating around a still-Pending invitee would silently exclude them from the order
+        // and schedule with no chance to reconsider once accepted.
+        if (Members.Any(m => m.IsActive && m.InvitationStatus == InvitationStatus.Pending))
+            throw new DomainException("Cannot activate: some invited members have not yet responded to their invitation.");
+
+        var activeMemberCount = Members.Count(m => m.IsParticipating);
+        if (activeMemberCount < 2)
+            throw new DomainException("Cannot activate: at least two members are required.");
+
+        // The organizer no longer has to save the payout order beforehand — if none was set
+        // (no manual save, no draw), default to the members' current order on activation.
+        if (PayoutPositions.Count == 0)
+            SetManualPayoutOrder(Members.Where(m => m.IsParticipating).OrderBy(m => m.Id).Select(m => m.Id).ToList());
+
         // prompt02 §Payout Order tab: the separate "Confirm Order" step is gone — activation IS
         // the confirmation (the organizer confirms the member order in the activation dialog),
         // so the order is validated and confirmed here instead of requiring a prior action.
-        if (PayoutPositions.Count == 0)
-            throw new DomainException("Cannot activate: no payout order has been set.");
         ConfirmPayoutOrder();
 
         if (ContributionAmount <= 0)

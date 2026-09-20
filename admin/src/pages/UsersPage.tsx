@@ -17,6 +17,8 @@ function UserRow({ user, onChanged }: { user: AdminUser; onChanged: (msg: string
   const [expanded, setExpanded] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteCirclesOpen, setDeleteCirclesOpen] = useState(false);
+  const [createCirclesOpen, setCreateCirclesOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -56,6 +58,34 @@ function UserRow({ user, onChanged }: { user: AdminUser; onChanged: (msg: string
       onChanged(`${user.displayLabel} deleted.`);
     } catch (err) {
       setError(axios.isAxiosError(err) ? err.response?.data?.errors?.join(" ") ?? "Failed to delete user." : "Failed to delete user.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteCircles = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await adminApi.deleteUserCircles(user.userId);
+      setDeleteCirclesOpen(false);
+      onChanged(`All circles for ${user.displayLabel} were wiped.`);
+    } catch (err) {
+      setError(axios.isAxiosError(err) ? err.response?.data?.errors?.join(" ") ?? "Failed to wipe circles." : "Failed to wipe circles.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreateTestCircles = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await adminApi.createTestCircles(user.userId);
+      setCreateCirclesOpen(false);
+      onChanged(`Test circles created for ${user.displayLabel}.`);
+    } catch (err) {
+      setError(axios.isAxiosError(err) ? err.response?.data?.errors?.join(" ") ?? "Failed to create test circles." : "Failed to create test circles.");
     } finally {
       setBusy(false);
     }
@@ -101,6 +131,17 @@ function UserRow({ user, onChanged }: { user: AdminUser; onChanged: (msg: string
               {user.isActive ? "Deactivate" : "Activate"}
             </Button>
             <Button size="small" color="error" onClick={() => setDeleteOpen(true)} disabled={busy}>Delete</Button>
+            {/* Dev-only test-data helpers — never shown in a production build (also 404 server-side). */}
+            {import.meta.env.DEV && (
+              <>
+                <Button size="small" color="error" variant="outlined" onClick={() => setDeleteCirclesOpen(true)} disabled={busy}>
+                  Wipe circles
+                </Button>
+                <Button size="small" variant="outlined" onClick={() => setCreateCirclesOpen(true)} disabled={busy}>
+                  Create test circles
+                </Button>
+              </>
+            )}
           </Stack>
         </TableCell>
       </TableRow>
@@ -174,6 +215,39 @@ function UserRow({ user, onChanged }: { user: AdminUser; onChanged: (msg: string
         <DialogActions>
           <Button onClick={() => setDeleteOpen(false)}>Cancel</Button>
           <Button variant="contained" color="error" onClick={handleDelete} disabled={busy}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleteCirclesOpen} onClose={() => setDeleteCirclesOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Wipe all circles for {user.displayLabel}?</DialogTitle>
+        <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          <Typography variant="body2">
+            Every circle this user organizes is deleted outright, regardless of payment history.
+            Circles where they're only a member get their membership removed instead — the circle
+            itself is left intact for everyone else. Dev-only, cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteCirclesOpen(false)}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleDeleteCircles} disabled={busy}>Wipe circles</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={createCirclesOpen} onClose={() => setCreateCirclesOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Create test circles for {user.displayLabel}?</DialogTitle>
+        <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          <Typography variant="body2">
+            Creates 3 circles ("اختبار 01"/"02"/"03") organized by this user, with their first
+            month 1/2/3 months in the past respectively. Every beta test account and
+            anass.shaddad@gmail.com is added as an already-accepted member, and each circle is
+            activated. Dev-only.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateCirclesOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleCreateTestCircles} disabled={busy}>Create</Button>
         </DialogActions>
       </Dialog>
     </>

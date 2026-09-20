@@ -31,7 +31,40 @@ public record PayoutOrderEntryDto(int Position, int MemberId, string MemberName)
 
 public record ScheduleCycleDto(
     int CycleId, int SequenceNumber, DateOnly DueDate, int RecipientMemberId, string RecipientName,
-    decimal ExpectedPoolAmount, string Status, string PayoutStatus);
+    decimal ExpectedPoolAmount, decimal CollectedAmount, string Status, string PayoutStatus);
+
+/// <summary>
+/// One row in a member's payment history for a month — either a plain organizer-recorded
+/// installment (ClaimStatus/ClaimId null), or a claim at any stage: Pending/Rejected claims never
+/// produced a payment (so they don't count toward PaidAmount) but still get their own row;
+/// Approved claims are merged with the payment they produced into a single row instead of
+/// appearing twice. ClaimStatus/ClaimId are only populated for the organizer or the member's own
+/// row (prompt02 §6 privacy rule) — masked to null for anyone else, same as elsewhere.
+/// </summary>
+public record PaymentRowDto(decimal Amount, DateTimeOffset Date, string? ClaimStatus, int? ClaimId);
+
+public record CircleMonthMemberDto(
+    int MemberId, string MemberName, string? Email, decimal ExpectedAmount, decimal PaidAmount,
+    // <summary>Null for a contribution paid before per-installment tracking existed — the
+    // frontend falls back to showing this single PaidAt/PaidAmount pair in that case.</summary>
+    DateTimeOffset? PaidAt,
+    IReadOnlyList<PaymentRowDto> PaymentRows);
+
+/// <summary>One payout installment to the recipient — mirrors <see cref="PaymentRowDto"/> but for
+/// the recipient's side, with an evidence file reference instead of a claim.</summary>
+public record PayoutRowDto(int PayoutPaymentId, decimal Amount, DateTimeOffset Date, bool HasEvidence);
+
+/// <summary>Full per-member breakdown for one month of the circle's schedule (prompt: Schedule tab redesign).</summary>
+public record CircleMonthDto(
+    int CycleId, int SequenceNumber, DateOnly DueDate, int RecipientMemberId, string RecipientName,
+    decimal ExpectedPoolAmount, decimal CollectedAmount, string CycleStatus, string PayoutStatus,
+    // <summary>The payout's own running total and expected amount — like a member's contribution,
+    // paid in one or more installments (<see cref="PayoutRows"/>), capped at ExpectedAmount.</summary>
+    decimal PayoutExpectedAmount, decimal PayoutActualAmount,
+    // <summary>Null until at least one installment has been recorded.</summary>
+    DateTimeOffset? PayoutPaidAt,
+    IReadOnlyList<PayoutRowDto> PayoutRows,
+    IReadOnlyList<CircleMonthMemberDto> Members);
 
 public record CurrentCycleMemberRowDto(
     int MemberId, string MemberName, decimal ExpectedAmount, decimal PaidAmount, string Status, DateTimeOffset? PaidAt,
@@ -40,7 +73,10 @@ public record CurrentCycleMemberRowDto(
     // other members never learn that a claim exists, only the payment status.
     // </summary>
     string? MyClaimStatus,
-    bool HasPendingClaim);
+    bool HasPendingClaim,
+    // <summary>True when this member finished paying this cycle's contribution while an earlier
+    // cycle was still current — i.e. they paid ahead of schedule from the Monthly Cycles tab.</summary>
+    bool PaidInAdvance);
 
 public record CurrentCycleDashboardDto(
     int CycleId, int SequenceNumber, DateOnly DueDate,
@@ -50,7 +86,14 @@ public record CurrentCycleDashboardDto(
     int? NextRecipientMemberId, string? NextRecipientName,
     IReadOnlyList<CurrentCycleMemberRowDto> Members,
     // <summary>Number of payment claims waiting for the organizer's review (organizer only; 0 for members).</summary>
-    int PendingClaimCount);
+    int PendingClaimCount,
+    // <summary>The payout's own expected/paid-so-far totals — like a member's contribution, it can
+    // be paid in more than one installment, so "Confirm recipient's receipt" stays available and
+    // capped at what's still outstanding until PayoutActualAmount reaches PayoutExpectedAmount.</summary>
+    decimal PayoutExpectedAmount, decimal PayoutActualAmount,
+    // <summary>Every installment paid to this cycle's recipient so far, same shape as the Monthly
+    // Cycles tab's payout line — so the Current Cycle tab can show the identical breakdown.</summary>
+    IReadOnlyList<PayoutRowDto> PayoutRows);
 
 public record MemberHistoryEntryDto(
     int CycleId, int SequenceNumber, DateOnly DueDate, decimal ExpectedAmount, decimal PaidAmount,

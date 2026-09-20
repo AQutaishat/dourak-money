@@ -50,6 +50,8 @@ export function DashboardPage() {
               currency={circle.currency}
               memberCount={circle.memberCount}
               organizerName={circle.organizerName}
+              contributionAmount={circle.contributionAmount}
+              createdAt={circle.createdAt}
             />
           </Grid>
         ))}

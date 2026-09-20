@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Button, Card, CardContent, Stack, Typography } from "@mui/material";
 import MailIcon from "@mui/icons-material/MarkEmailUnread";
 import { useTranslation } from "react-i18next";
 import { invitationsApi } from "../../api/circles";
+import { consumeStashedInviteToken } from "../../utils/inviteToken";
 
 /**
  * prompt02 §4: where an invitee sees and acts on circle invitations. The notification bell with
@@ -18,6 +20,18 @@ export function PendingInvitationsSection() {
     // Accepting adds the circle to "My Circles" straight away.
     queryClient.invalidateQueries({ queryKey: ["circles"] });
   };
+
+  // A WhatsApp invite to someone not yet on Dourak stashes its token (InvitePage) until they've
+  // signed in — once they land here, link it to their now-known account so it shows up below.
+  const linkToken = useMutation({
+    mutationFn: (token: string) => invitationsApi.linkToken(token),
+    onSuccess: invalidate,
+  });
+  useEffect(() => {
+    const token = consumeStashedInviteToken();
+    if (token) linkToken.mutate(token);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const respond = useMutation({
     mutationFn: ({ memberId, accept }: { memberId: number; accept: boolean }) =>

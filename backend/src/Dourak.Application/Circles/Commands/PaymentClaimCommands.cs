@@ -110,6 +110,106 @@ public class SubmitPaymentClaimCommandHandler : IRequestHandler<SubmitPaymentCla
     }
 }
 
+// ---------- Member edits or withdraws their own still-Pending claim ----------
+
+public record UpdatePaymentClaimCommand(
+    int ClaimId,
+    decimal ClaimedAmount,
+    string? Note,
+    bool RemoveEvidence,
+    EvidenceUpload? Evidence) : IRequest;
+
+public class UpdatePaymentClaimCommandValidator : AbstractValidator<UpdatePaymentClaimCommand>
+{
+    public UpdatePaymentClaimCommandValidator()
+    {
+        RuleFor(x => x.ClaimedAmount).GreaterThan(0);
+        RuleFor(x => x.Note).MaximumLength(1000);
+    }
+}
+
+public class UpdatePaymentClaimCommandHandler : IRequestHandler<UpdatePaymentClaimCommand>
+{
+    private readonly IAppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IEvidenceFileStorage _storage;
+
+    public UpdatePaymentClaimCommandHandler(IAppDbContext db, ICurrentUserService currentUser, IEvidenceFileStorage storage)
+    {
+        _db = db;
+        _currentUser = currentUser;
+        _storage = storage;
+    }
+
+    public async Task Handle(UpdatePaymentClaimCommand request, CancellationToken cancellationToken)
+    {
+        var claim = await _db.PaymentClaims
+            .Include(pc => pc.Contribution)
+            .FirstOrDefaultAsync(pc => pc.Id == request.ClaimId, cancellationToken)
+            ?? throw new NotFoundException(nameof(PaymentClaim), request.ClaimId);
+
+        if (claim.SubmittedByUserId != _currentUser.UserId)
+            throw new ForbiddenAccessException("You can only edit your own payment claim.");
+
+        if (request.ClaimedAmount > claim.Contribution!.ExpectedAmount - claim.Contribution.PaidAmount)
+            throw new DomainException("The claimed amount exceeds the outstanding contribution amount.");
+
+        claim.UpdateDetails(request.ClaimedAmount, request.Note);
+
+        if (request.Evidence is not null)
+        {
+            SubmitPaymentClaimCommandHandler.ValidateEvidence(request.Evidence);
+            var oldFileName = claim.EvidenceStoredFileName;
+            var stored = await _storage.SaveAsync(request.Evidence, cancellationToken);
+            claim.AttachEvidence(stored.StoredFileName, request.Evidence.FileName, stored.ContentType, stored.SizeBytes);
+            if (oldFileName is not null)
+                await _storage.DeleteAsync(oldFileName, cancellationToken);
+        }
+        else if (request.RemoveEvidence && claim.EvidenceStoredFileName is not null)
+        {
+            var oldFileName = claim.EvidenceStoredFileName;
+            claim.ClearEvidence();
+            await _storage.DeleteAsync(oldFileName, cancellationToken);
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+public record WithdrawPaymentClaimCommand(int ClaimId) : IRequest;
+
+public class WithdrawPaymentClaimCommandHandler : IRequestHandler<WithdrawPaymentClaimCommand>
+{
+    private readonly IAppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IEvidenceFileStorage _storage;
+
+    public WithdrawPaymentClaimCommandHandler(IAppDbContext db, ICurrentUserService currentUser, IEvidenceFileStorage storage)
+    {
+        _db = db;
+        _currentUser = currentUser;
+        _storage = storage;
+    }
+
+    public async Task Handle(WithdrawPaymentClaimCommand request, CancellationToken cancellationToken)
+    {
+        var claim = await _db.PaymentClaims.FirstOrDefaultAsync(pc => pc.Id == request.ClaimId, cancellationToken)
+            ?? throw new NotFoundException(nameof(PaymentClaim), request.ClaimId);
+
+        if (claim.SubmittedByUserId != _currentUser.UserId)
+            throw new ForbiddenAccessException("You can only withdraw your own payment claim.");
+
+        claim.EnsureWithdrawable();
+
+        var evidenceFileName = claim.EvidenceStoredFileName;
+        _db.PaymentClaims.Remove(claim);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        if (evidenceFileName is not null)
+            await _storage.DeleteAsync(evidenceFileName, cancellationToken);
+    }
+}
+
 // ---------- Organizer reviews a claim (prompt02 §6b) ----------
 
 public record ReviewPaymentClaimCommand(int ClaimId, bool Approve, string? RejectionReason) : IRequest;
@@ -149,14 +249,16 @@ public class ReviewPaymentClaimCommandHandler : IRequestHandler<ReviewPaymentCla
         {
             claim.Approve(_currentUser.UserId!, now);
 
-            // Approved => same end state as an organizer-recorded payment. Existing partial
-            // payments are added to, and Contribution.RecordPayment re-enforces the
-            // "paid cannot exceed expected" rule (Phase 1 rule #6).
+            // Approved => same end state as an organizer-recorded payment: the claimed amount is
+            // added on top of whatever's already been paid. RecordPayment itself re-enforces the
+            // "cannot exceed the outstanding balance" rule (Phase 1 rule #6) — it must NOT be
+            // pre-added here too, since RecordPayment already treats its argument as an addition,
+            // not a replacement total (doing both double-counts the amount and spuriously trips
+            // that validation).
             var contribution = claim.Contribution!;
-            var newTotal = contribution.PaidAmount + claim.ClaimedAmount;
             contribution.RecordPayment(
-                Math.Min(newTotal, contribution.ExpectedAmount),
-                now, contribution.PaymentMethod, contribution.Notes, _currentUser.UserId);
+                claim.ClaimedAmount,
+                now, contribution.PaymentMethod, contribution.Notes, _currentUser.UserId, claim.Id);
         }
         else
         {

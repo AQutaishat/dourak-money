@@ -38,7 +38,7 @@ public class Phase3WorkflowTests
         var circleId = await CreateDraftAsync(db, organizer);
 
         await new UpdateCircleBasicInfoCommandHandler(db)
-            .Handle(new UpdateCircleBasicInfoCommand(circleId, "Renamed Circle", "Updated description", new DateOnly(2027, 3, 1)), default);
+            .Handle(new UpdateCircleBasicInfoCommand(circleId, "Renamed Circle", "Updated description", new DateOnly(2027, 3, 1), 200m), default);
 
         var circle = await db.Circles.SingleAsync(c => c.Id == circleId);
         circle.Name.Should().Be("Renamed Circle");
@@ -52,12 +52,13 @@ public class Phase3WorkflowTests
         await using var db = TestDb.Create();
         var organizer = new FakeCurrentUser(Organizer);
         var circleId = await CreateDraftAsync(db, organizer);
-        var memberId = await new AddMemberCommandHandler(db).Handle(new AddMemberCommand(circleId, "A", null, null, null), default);
-        await new SetManualPayoutOrderCommandHandler(db).Handle(new SetManualPayoutOrderCommand(circleId, new List<int> { memberId }), default);
+        var memberId1 = await new AddMemberCommandHandler(db).Handle(new AddMemberCommand(circleId, "A", null, null, null), default);
+        var memberId2 = await new AddMemberCommandHandler(db).Handle(new AddMemberCommand(circleId, "B", null, null, null), default);
+        await new SetManualPayoutOrderCommandHandler(db).Handle(new SetManualPayoutOrderCommand(circleId, new List<int> { memberId1, memberId2 }), default);
         await new ActivateCircleCommandHandler(db).Handle(new ActivateCircleCommand(circleId), default);
 
         var act = () => new UpdateCircleBasicInfoCommandHandler(db)
-            .Handle(new UpdateCircleBasicInfoCommand(circleId, "Renamed", null, new DateOnly(2027, 1, 1)), default);
+            .Handle(new UpdateCircleBasicInfoCommand(circleId, "Renamed", null, new DateOnly(2027, 1, 1), 100m), default);
 
         await act.Should().ThrowAsync<DomainException>();
     }
@@ -97,7 +98,8 @@ public class Phase3WorkflowTests
         var organizer = new FakeCurrentUser(Organizer);
         var circleId = await CreateDraftAsync(db, organizer);
         var memberId = await new AddMemberCommandHandler(db).Handle(new AddMemberCommand(circleId, "A", null, null, null), default);
-        await new SetManualPayoutOrderCommandHandler(db).Handle(new SetManualPayoutOrderCommand(circleId, new List<int> { memberId }), default);
+        var otherMemberId = await new AddMemberCommandHandler(db).Handle(new AddMemberCommand(circleId, "B", null, null, null), default);
+        await new SetManualPayoutOrderCommandHandler(db).Handle(new SetManualPayoutOrderCommand(circleId, new List<int> { memberId, otherMemberId }), default);
         await new ActivateCircleCommandHandler(db).Handle(new ActivateCircleCommand(circleId), default);
 
         var act = () => new RemoveMemberCommandHandler(db).Handle(new RemoveMemberCommand(circleId, memberId), default);

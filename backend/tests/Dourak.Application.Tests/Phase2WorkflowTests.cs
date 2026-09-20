@@ -109,6 +109,10 @@ public class Phase2WorkflowTests
             .Handle(new AddUserMemberCommand(circleId, "member-1"), default);
         var omarId = await new AddUserMemberCommandHandler(db, identity)
             .Handle(new AddUserMemberCommand(circleId, "member-2"), default);
+        // A second participating member so the circle still meets the two-member activation
+        // minimum once Omar declines below — this test is about declined-member exclusion,
+        // not about the minimum-members rule.
+        var guestId = await new AddMemberCommandHandler(db).Handle(new AddMemberCommand(circleId, "Guest", null, null, null), default);
 
         await new RespondToInvitationCommandHandler(db, new FakeCurrentUser("member-1"))
             .Handle(new RespondToInvitationCommand(ahmadId, Accept: true), default);
@@ -116,22 +120,22 @@ public class Phase2WorkflowTests
             .Handle(new RespondToInvitationCommand(omarId, Accept: false), default);
 
         // The declined member is excluded from the payout order exactly like an inactive one:
-        // an order that includes them is rejected, and the valid order is the accepted member only.
+        // an order that includes them is rejected, and the valid order is the accepted members only.
         var setOrder = new SetManualPayoutOrderCommandHandler(db);
         var withDeclined = () => setOrder.Handle(new SetManualPayoutOrderCommand(circleId, new List<int> { ahmadId, omarId }), default);
         await withDeclined.Should().ThrowAsync<DomainException>();
 
-        await setOrder.Handle(new SetManualPayoutOrderCommand(circleId, new List<int> { ahmadId }), default);
+        await setOrder.Handle(new SetManualPayoutOrderCommand(circleId, new List<int> { ahmadId, guestId }), default);
         await new ActivateCircleCommandHandler(db).Handle(new ActivateCircleCommand(circleId), default);
 
         var schedule = await new GetScheduleQueryHandler(db).Handle(new GetScheduleQuery(circleId), default);
-        schedule.Should().ContainSingle();
-        schedule[0].ExpectedPoolAmount.Should().Be(100m);
+        schedule.Should().HaveCount(2);
+        schedule[0].ExpectedPoolAmount.Should().Be(200m);
 
-        // The circle detail's member count only counts participants.
+        // The circle detail's member count only counts participants (declined Omar excluded).
         var detail = await new GetCircleDetailQueryHandler(db, organizer, identity)
             .Handle(new GetCircleDetailQuery(circleId), default);
-        detail.MemberCount.Should().Be(1);
+        detail.MemberCount.Should().Be(2);
 
         // Re-invite puts the declined member back into Pending (prompt02 §5).
         await new ReinviteMemberCommandHandler(db).Handle(new ReinviteMemberCommand(circleId, omarId), default);
@@ -187,6 +191,38 @@ public class Phase2WorkflowTests
         contribution = await db.Contributions.SingleAsync(c => c.Id == contribution.Id);
         contribution.PaidAmount.Should().Be(100m);
         contribution.StoredStatus.Should().Be(ContributionStatus.Paid);
+    }
+
+    /// <summary>
+    /// Regression test: approving a claim on top of an *already partially paid* contribution must
+    /// add the claimed amount to what's already there, not double-count it. A prior bug computed
+    /// the intended new total itself and then handed that total to RecordPayment — which itself
+    /// also adds its argument on top of the existing balance — so the claimed amount effectively
+    /// got added twice and spuriously tripped the "cannot exceed outstanding" validation whenever
+    /// anything had already been paid.
+    /// </summary>
+    [Fact]
+    public async Task ApprovingAClaim_OnAnAlreadyPartiallyPaidContribution_AddsOnTopInsteadOfDoubleCounting()
+    {
+        await using var db = TestDb.Create();
+        var identity = Directory();
+        var (circleId, cycleId, ahmadMemberId) = await ActiveCircleWithTwoMembersAsync(db, identity);
+
+        // Organizer records two manual payments first (contribution amount is 100).
+        await new RecordContributionCommandHandler(db, new FakeCurrentUser(Organizer))
+            .Handle(new RecordContributionCommand(cycleId, ahmadMemberId, 50m, null, null, null), default);
+        await new RecordContributionCommandHandler(db, new FakeCurrentUser(Organizer))
+            .Handle(new RecordContributionCommand(cycleId, ahmadMemberId, 20m, null, null, null), default);
+
+        var ahmad = new FakeCurrentUser("member-1", "Ahmad");
+        var claimId = await new SubmitPaymentClaimCommandHandler(db, ahmad, new FakeEvidenceStorage())
+            .Handle(new SubmitPaymentClaimCommand(cycleId, 20m, null, null), default);
+
+        await new ReviewPaymentClaimCommandHandler(db, new FakeCurrentUser(Organizer))
+            .Handle(new ReviewPaymentClaimCommand(claimId, Approve: true, null), default);
+
+        var contribution = await db.Contributions.SingleAsync(c => c.CycleId == cycleId && c.MemberId == ahmadMemberId);
+        contribution.PaidAmount.Should().Be(90m);
     }
 
     [Fact]

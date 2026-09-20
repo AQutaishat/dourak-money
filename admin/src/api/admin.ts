@@ -14,4 +14,7 @@ export const adminApi = {
   deactivate: (userId: string) => apiClient.post(`/admin/users/${userId}/deactivate`),
   activate: (userId: string) => apiClient.post(`/admin/users/${userId}/activate`),
   deleteUser: (userId: string) => apiClient.delete(`/admin/users/${userId}`),
+  /** Dev-only (also 404s server-side outside Development). */
+  createTestCircles: (userId: string) => apiClient.post(`/admin/users/${userId}/test-circles`),
+  deleteUserCircles: (userId: string) => apiClient.delete(`/admin/users/${userId}/circles`),
 };

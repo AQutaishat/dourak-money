@@ -11,10 +11,11 @@ public record CreateCircleRequest(
     string Name, string? Description, string Currency, decimal ContributionAmount,
     DateOnly StartDate);
 
-public record UpdateCircleBasicInfoRequest(string Name, string? Description, DateOnly StartDate);
+public record UpdateCircleBasicInfoRequest(string Name, string? Description, DateOnly StartDate, decimal ContributionAmount);
 public record SetManualOrderRequest(IReadOnlyList<int> MemberIdsInOrder);
 public record ReplaceMemberRequest(int OldMemberId, int NewMemberId);
 public record AddUserMemberRequest(string UserId);
+public record InviteUnregisteredMemberRequest(string Name);
 
 [ApiController]
 [Authorize]
@@ -41,11 +42,11 @@ public class CirclesController : ControllerBase
         return CreatedAtAction(nameof(GetDetail), new { circleId = id }, id);
     }
 
-    /// <summary>prompt03 §1: edit name/description/start date while still a draft.</summary>
+    /// <summary>prompt03 §1: edit name/description/start date/contribution amount while still a draft.</summary>
     [HttpPut("{circleId:int}/basic-info")]
     public async Task<IActionResult> UpdateBasicInfo(int circleId, UpdateCircleBasicInfoRequest request)
     {
-        await _mediator.Send(new UpdateCircleBasicInfoCommand(circleId, request.Name, request.Description, request.StartDate));
+        await _mediator.Send(new UpdateCircleBasicInfoCommand(circleId, request.Name, request.Description, request.StartDate, request.ContributionAmount));
         return NoContent();
     }
 
@@ -123,6 +124,11 @@ public class CirclesController : ControllerBase
     public async Task<ActionResult<int>> AddSelfAsMember(int circleId) =>
         Ok(await _mediator.Send(new AddSelfAsMemberCommand(circleId)));
 
+    /// <summary>Invite someone not yet registered on Dourak, by name, via a WhatsApp link carrying a token.</summary>
+    [HttpPost("{circleId:int}/members/invite-unregistered")]
+    public async Task<ActionResult<InviteUnregisteredMemberResult>> InviteUnregistered(int circleId, InviteUnregisteredMemberRequest request) =>
+        Ok(await _mediator.Send(new InviteUnregisteredMemberCommand(circleId, request.Name)));
+
     /// <summary>prompt02 §5: send a fresh invitation to a member who declined.</summary>
     [HttpPost("{circleId:int}/members/{memberId:int}/reinvite")]
     public async Task<IActionResult> ReinviteMember(int circleId, int memberId)
@@ -151,6 +157,14 @@ public class CirclesController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Moves one member up (-1) or down (+1) one slot, persisted immediately — no separate Save step.</summary>
+    [HttpPost("{circleId:int}/payout-order/{memberId:int}/move")]
+    public async Task<IActionResult> MovePayoutPosition(int circleId, int memberId, [FromQuery] int direction)
+    {
+        await _mediator.Send(new MovePayoutPositionCommand(circleId, memberId, direction));
+        return NoContent();
+    }
+
     [HttpPost("{circleId:int}/payout-order/draw")]
     public async Task<IActionResult> RunDraw(int circleId) =>
         Ok(await _mediator.Send(new RunRandomDrawCommand(circleId)));
@@ -174,6 +188,11 @@ public class CirclesController : ControllerBase
     [HttpGet("{circleId:int}/schedule")]
     public async Task<ActionResult<IReadOnlyList<ScheduleCycleDto>>> GetSchedule(int circleId) =>
         Ok(await _mediator.Send(new GetScheduleQuery(circleId)));
+
+    /// <summary>Full per-member payment breakdown for every month, for the Schedule tab.</summary>
+    [HttpGet("{circleId:int}/months-detail")]
+    public async Task<ActionResult<IReadOnlyList<CircleMonthDto>>> GetMonthsDetail(int circleId) =>
+        Ok(await _mediator.Send(new GetCircleMonthsDetailQuery(circleId)));
 
     [HttpGet("{circleId:int}/dashboard")]
     public async Task<ActionResult<CurrentCycleDashboardDto?>> GetDashboard(int circleId) =>

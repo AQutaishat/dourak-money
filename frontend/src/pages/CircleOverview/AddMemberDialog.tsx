@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Alert, Autocomplete, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, Divider, Stack, TextField, Typography,
+  DialogTitle, Stack, TextField, Typography,
 } from "@mui/material";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { useTranslation } from "react-i18next";
@@ -12,11 +12,13 @@ import type { UserSearchResult } from "../../api/types";
 import { buildInviteToRegisterText, currentAppUrl, shareToWhatsApp } from "../../utils/whatsapp";
 
 /**
- * prompt02 §2 + prompt03 §2 in one flow:
+ * prompt02 §2 + the WhatsApp-invite-with-token flow, in one dialog:
  *  - one textbox with autocomplete-style live search over registered users (name/email/phone),
- *  - plus a single "invite via WhatsApp" button for someone who isn't on Dourak yet. Per
- *    prompt03 §2 this is a pure share action — no name/phone fields, no member record created.
- *    Once that person registers, the organizer adds them the normal way, above.
+ *  - plus an "invite via WhatsApp" button, right next to Add, for someone who isn't on Dourak
+ *    yet. This one DOES create a member row (Pending, no UserId yet, carrying a one-time
+ *    invite token) so they show up in the members table right away as "لم يقبل بعد" — once the
+ *    invitee registers/logs in and opens the link, their account is linked to that exact row
+ *    (`InvitePage` + `PendingInvitationsSection`) and they see the invitation to accept/decline.
  */
 export function AddMemberDialog({
   open, onClose, circleId, circleName, organizerName,
@@ -37,6 +39,8 @@ export function AddMemberDialog({
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<UserSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [whatsAppNameOpen, setWhatsAppNameOpen] = useState(false);
+  const [whatsAppName, setWhatsAppName] = useState("");
 
   // Debounced so every keystroke doesn't hit the API while the organizer is still typing.
   useEffect(() => {
@@ -73,24 +77,27 @@ export function AddMemberDialog({
     onError: (err: unknown) => setError(extractMessage(err, t("common.error"))),
   });
 
-  /**
-   * prompt03 §2: sending the WhatsApp invite is a pure share action — it must not create any
-   * member/invitation record at all. No name/phone fields, no backend call whatsoever. Once
-   * the invited person registers on their own, the organizer adds them the normal way, above,
-   * via the user-search flow; there is no link tracked between this button and that later signup.
-   */
-  const inviteByWhatsApp = () => {
-    shareToWhatsApp(
-      buildInviteToRegisterText({
-        personName: null,
-        circleName,
-        organizerName,
-        appUrl: currentAppUrl(),
-        isArabic,
-      }),
-      null,
-    );
-  };
+  const inviteUnregistered = useMutation({
+    mutationFn: (name: string) => circlesApi.inviteUnregisteredMember(circleId, name),
+    onSuccess: ({ token }) => {
+      shareToWhatsApp(
+        buildInviteToRegisterText({
+          personName: whatsAppName.trim(),
+          circleName,
+          organizerName,
+          appUrl: `${currentAppUrl()}/invite/${token}`,
+          isArabic,
+        }),
+        null,
+      );
+      invalidate();
+      setWhatsAppNameOpen(false);
+      setWhatsAppName("");
+      reset();
+      onClose();
+    },
+    onError: (err: unknown) => setError(extractMessage(err, t("common.error"))),
+  });
 
   return (
     <Dialog open={open} onClose={() => { reset(); onClose(); }} fullWidth maxWidth="sm">
@@ -100,7 +107,12 @@ export function AddMemberDialog({
           {error && <Alert severity="error">{error}</Alert>}
 
           <Box>
-            <Typography variant="subtitle2" gutterBottom>{t("circle.addExistingUser")}</Typography>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+              <Typography variant="subtitle2">{t("circle.addExistingUser")}</Typography>
+              <Button variant="outlined" size="small" startIcon={<WhatsAppIcon />} onClick={() => setWhatsAppNameOpen(true)}>
+                {t("circle.inviteByWhatsApp")}
+              </Button>
+            </Stack>
             <Autocomplete
               options={options}
               value={selected}
@@ -151,23 +163,37 @@ export function AddMemberDialog({
               {t("common.add")}
             </Button>
           </Box>
-
-          <Divider />
-
-          <Box>
-            <Typography variant="subtitle2" gutterBottom>{t("circle.inviteUnregistered")}</Typography>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-              {t("circle.inviteSentNote")}
-            </Typography>
-            <Button variant="outlined" startIcon={<WhatsAppIcon />} onClick={inviteByWhatsApp}>
-              {t("circle.inviteByWhatsApp")}
-            </Button>
-          </Box>
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={() => { reset(); onClose(); }}>{t("common.close")}</Button>
       </DialogActions>
+
+      <Dialog open={whatsAppNameOpen} onClose={() => setWhatsAppNameOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>{t("circle.inviteByWhatsApp")}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {t("circle.inviteUnregisteredNameHint")}
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            label={t("circle.memberName")}
+            value={whatsAppName}
+            onChange={(e) => setWhatsAppName(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setWhatsAppNameOpen(false)}>{t("common.cancel")}</Button>
+          <Button
+            variant="contained"
+            disabled={!whatsAppName.trim() || inviteUnregistered.isPending}
+            onClick={() => inviteUnregistered.mutate(whatsAppName.trim())}
+          >
+            {t("circle.inviteByWhatsApp")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 }

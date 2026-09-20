@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { Box, Button, Paper, TextField, Typography, Alert, Stack, Link as MuiLink } from "@mui/material";
+import {
+  Box, Button, Paper, TextField, Typography, Alert, Stack, Link as MuiLink,
+  Select, MenuItem, IconButton,
+} from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AuthError, useAuth } from "../../auth/AuthContext";
@@ -7,7 +12,7 @@ import { useValidatedField } from "../../components/ValidatedTextField";
 import dourakLogo from "../../assets/dourak-logo.png";
 
 export function LoginPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -17,6 +22,7 @@ export function LoginPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,14 +61,39 @@ export function LoginPage() {
             {/* Non-dismissing: it stays until the next submit attempt. */}
             {error && <Alert severity="error">{error}</Alert>}
             <TextField label={t("auth.email")} type="email" fullWidth autoComplete="email" {...email.fieldProps} />
-            <TextField label={t("auth.password")} type="password" fullWidth autoComplete="current-password" {...password.fieldProps} />
+            <TextField
+              label={t("auth.password")}
+              type={showPassword ? "text" : "password"}
+              fullWidth
+              autoComplete="current-password"
+              {...password.fieldProps}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <IconButton size="small" onClick={() => setShowPassword((v) => !v)} edge="end" tabIndex={-1}>
+                      {showPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                    </IconButton>
+                  ),
+                },
+              }}
+            />
             <MuiLink component={RouterLink} to="/forgot-password" variant="body2" sx={{ alignSelf: "flex-end" }}>
               {t("auth.forgotPassword")}
             </MuiLink>
             <Button type="submit" variant="contained" size="large" disabled={loading}>{t("auth.loginCta")}</Button>
-            <Typography variant="body2">
-              {t("auth.noAccount")} <MuiLink component={RouterLink} to="/register">{t("auth.register")}</MuiLink>
-            </Typography>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="body2">
+                {t("auth.noAccount")} <MuiLink component={RouterLink} to="/register">{t("auth.register")}</MuiLink>
+              </Typography>
+              <Select
+                size="small"
+                value={i18n.language.startsWith("ar") ? "ar" : "en"}
+                onChange={(e) => i18n.changeLanguage(e.target.value)}
+              >
+                <MenuItem value="ar">العربية</MenuItem>
+                <MenuItem value="en">English</MenuItem>
+              </Select>
+            </Stack>
           </Stack>
         </Box>
       </Paper>

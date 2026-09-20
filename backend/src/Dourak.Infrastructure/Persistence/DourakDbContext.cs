@@ -15,7 +15,9 @@ public class DourakDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<PayoutPosition> PayoutPositions => Set<PayoutPosition>();
     public DbSet<Cycle> Cycles => Set<Cycle>();
     public DbSet<Contribution> Contributions => Set<Contribution>();
+    public DbSet<ContributionPayment> ContributionPayments => Set<ContributionPayment>();
     public DbSet<Payout> Payouts => Set<Payout>();
+    public DbSet<PayoutPayment> PayoutPayments => Set<PayoutPayment>();
     public DbSet<PaymentClaim> PaymentClaims => Set<PaymentClaim>();
 
     public void RemoveCircle(SavingsCircle circle) => Circles.Remove(circle);

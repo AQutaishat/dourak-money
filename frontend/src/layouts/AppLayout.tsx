@@ -88,7 +88,7 @@ export function AppLayout() {
           </Stack>
         </Toolbar>
       </AppBar>
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Outlet />
       </Container>
       {/* Never gates anything — every action stays available while unverified, this is

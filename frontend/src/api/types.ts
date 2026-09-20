@@ -62,6 +62,50 @@ export interface PayoutOrderEntry {
   memberName: string;
 }
 
+export interface PaymentRow {
+  amount: number;
+  date: string;
+  // Only populated for the organizer or the member's own row (privacy rule); null otherwise,
+  // including for a plain organizer-recorded payment with no claim behind it at all.
+  claimStatus?: string | null;
+  claimId?: number | null;
+}
+
+export interface CircleMonthMember {
+  memberId: number;
+  memberName: string;
+  email?: string | null;
+  expectedAmount: number;
+  paidAmount: number;
+  // Null for a contribution paid before per-installment tracking existed.
+  paidAt?: string | null;
+  paymentRows: PaymentRow[];
+}
+
+export interface PayoutRow {
+  payoutPaymentId: number;
+  amount: number;
+  date: string;
+  hasEvidence: boolean;
+}
+
+export interface CircleMonth {
+  cycleId: number;
+  sequenceNumber: number;
+  dueDate: string;
+  recipientMemberId: number;
+  recipientName: string;
+  expectedPoolAmount: number;
+  collectedAmount: number;
+  cycleStatus: "Pending" | "Completed";
+  payoutStatus: "Pending" | "Paid";
+  payoutExpectedAmount: number;
+  payoutActualAmount: number;
+  payoutPaidAt?: string | null;
+  payoutRows: PayoutRow[];
+  members: CircleMonthMember[];
+}
+
 export interface ScheduleCycle {
   cycleId: number;
   sequenceNumber: number;
@@ -69,6 +113,7 @@ export interface ScheduleCycle {
   recipientMemberId: number;
   recipientName: string;
   expectedPoolAmount: number;
+  collectedAmount: number;
   status: "Pending" | "Completed";
   payoutStatus: "Pending" | "Paid";
 }
@@ -83,6 +128,8 @@ export interface CurrentCycleMemberRow {
   /** Only ever populated for the organizer and for the member's own row (privacy rule, §6). */
   myClaimStatus?: PaymentClaimStatus | null;
   hasPendingClaim: boolean;
+  /** Fully paid this cycle while an earlier cycle was still current — paid ahead of schedule. */
+  paidInAdvance: boolean;
 }
 
 export interface CurrentCycleDashboard {
@@ -103,6 +150,9 @@ export interface CurrentCycleDashboard {
   nextRecipientName?: string | null;
   members: CurrentCycleMemberRow[];
   pendingClaimCount: number;
+  payoutExpectedAmount: number;
+  payoutActualAmount: number;
+  payoutRows: PayoutRow[];
 }
 
 export interface MemberHistoryEntry {

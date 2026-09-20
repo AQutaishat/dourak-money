@@ -55,9 +55,15 @@ public class RecordContributionCommandHandler : IRequestHandler<RecordContributi
 
 // ---------- Record Payout ----------
 
+/// <summary>
+/// Records an additional payout installment on top of whatever's already been paid to this
+/// cycle's recipient — additive, same as <see cref="RecordContributionCommand"/>, and may be
+/// called against any cycle (past, current, or a future one not due yet), not only the current
+/// one. Only once the payout is fully paid does the cycle move to Completed.
+/// </summary>
 public record RecordPayoutCommand(
     int CycleId, decimal ActualAmount, DateTimeOffset? PaidAt,
-    Domain.Enums.PaymentMethod? PaymentMethod, string? Notes) : IRequest;
+    Domain.Enums.PaymentMethod? PaymentMethod, string? Notes, EvidenceUpload? Evidence) : IRequest;
 
 public class RecordPayoutCommandValidator : AbstractValidator<RecordPayoutCommand>
 {
@@ -71,11 +77,13 @@ public class RecordPayoutCommandHandler : IRequestHandler<RecordPayoutCommand>
 {
     private readonly IAppDbContext _db;
     private readonly ICurrentUserService _currentUser;
+    private readonly IEvidenceFileStorage _storage;
 
-    public RecordPayoutCommandHandler(IAppDbContext db, ICurrentUserService currentUser)
+    public RecordPayoutCommandHandler(IAppDbContext db, ICurrentUserService currentUser, IEvidenceFileStorage storage)
     {
         _db = db;
         _currentUser = currentUser;
+        _storage = storage;
     }
 
     public async Task Handle(RecordPayoutCommand request, CancellationToken cancellationToken)
@@ -88,9 +96,28 @@ public class RecordPayoutCommandHandler : IRequestHandler<RecordPayoutCommand>
         if (payout.Cycle!.Circle!.OrganizerUserId != _currentUser.UserId)
             throw new ForbiddenAccessException("You do not have access to this Savings Circle.");
 
-        payout.MarkPaid(request.ActualAmount, request.PaidAt ?? DateTimeOffset.UtcNow, request.PaymentMethod, request.Notes, _currentUser.UserId);
-        payout.Cycle!.Status = Domain.Enums.CycleStatus.Completed;
-        payout.Cycle.Circle!.CompleteIfAllCyclesDone();
+        string? storedFileName = null, contentType = null;
+        long? sizeBytes = null;
+        if (request.Evidence is not null)
+        {
+            SubmitPaymentClaimCommandHandler.ValidateEvidence(request.Evidence);
+            var stored = await _storage.SaveAsync(request.Evidence, cancellationToken);
+            storedFileName = stored.StoredFileName;
+            contentType = stored.ContentType;
+            sizeBytes = stored.SizeBytes;
+        }
+
+        payout.RecordPayment(
+            request.ActualAmount, request.PaidAt ?? DateTimeOffset.UtcNow, request.PaymentMethod, request.Notes, _currentUser.UserId,
+            storedFileName, request.Evidence?.FileName, contentType, sizeBytes);
+
+        // Only once fully paid does this cycle move into history — a partial installment leaves
+        // it exactly as it was, so the "Confirm recipient's receipt" action stays available.
+        if (payout.Status == Domain.Enums.PayoutStatus.Paid)
+        {
+            payout.Cycle!.Status = Domain.Enums.CycleStatus.Completed;
+            payout.Cycle.Circle!.CompleteIfAllCyclesDone();
+        }
 
         await _db.SaveChangesAsync(cancellationToken);
     }

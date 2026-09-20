@@ -127,6 +127,13 @@ public class InvitationTests
 
         // ...and the valid order is exactly the participating members.
         circle.SetManualPayoutOrder(new List<int> { 1, 4 });
+
+        // A still-Pending invitee blocks activation outright — the organizer must remove them
+        // or wait for their response, not just have them silently skipped.
+        var withPendingInvitee = () => circle.Activate();
+        withPendingInvitee.Should().Throw<DomainException>();
+
+        pending.DeclineInvitation(DateTimeOffset.UtcNow);
         circle.Activate();
 
         circle.Cycles.Should().HaveCount(2);

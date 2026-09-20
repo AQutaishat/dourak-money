@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { circlesApi } from "../../api/circles";
 import { SelectOnFocusTextField, useValidatedField } from "../../components/ValidatedTextField";
+import { buildDateFromMonthAndDay } from "../../utils/date";
 
 // prompt02 §Create Circle: JOD added to the supported currencies.
 const CURRENCIES = ["SAR", "JOD", "USD", "EGP", "AED", "KWD", "QAR", "MAD"];
@@ -16,7 +17,10 @@ export function CreateCirclePage() {
   const [description, setDescription] = useState("");
   const [currency, setCurrency] = useState("JOD");
   const [contributionAmount, setContributionAmount] = useState("0");
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  // The organizer picks a month+year and a collection day separately (not a single date field);
+  // they're combined into the one `startDate` the backend still expects.
+  const [startMonth, setStartMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [collectionDay, setCollectionDay] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -33,8 +37,10 @@ export function CreateCirclePage() {
         currency,
         // Frequency is fixed to Monthly server-side; no selector is shown (prompt02 §Create Circle).
         contributionAmount: Number(contributionAmount),
-        startDate,
+        startDate: buildDateFromMonthAndDay(startMonth, collectionDay),
       });
+      // The organizer is added as a member of their own circle by default.
+      await circlesApi.addSelfAsMember(id);
       navigate(`/circles/${id}`);
     } catch {
       setError("Could not create the circle. Please check the fields and try again.");
@@ -61,7 +67,18 @@ export function CreateCirclePage() {
               inputProps={{ min: 0.01, step: 0.01 }}
             />
           </Stack>
-          <TextField label={t("circle.startDate")} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required fullWidth InputLabelProps={{ shrink: true }} />
+          <Stack direction="row" spacing={2}>
+            <TextField
+              label={t("circle.startDate")} type="month" value={startMonth}
+              onChange={(e) => setStartMonth(e.target.value)} required fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label={t("circle.collectionDay")} type="number" value={collectionDay}
+              onChange={(e) => setCollectionDay(Number(e.target.value))} required fullWidth
+              inputProps={{ min: 1, max: 31, step: 1 }}
+            />
+          </Stack>
 
           <Stack direction="row" spacing={1} justifyContent="flex-end">
             <Button onClick={() => navigate(-1)}>{t("common.cancel")}</Button>

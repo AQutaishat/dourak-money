@@ -121,10 +121,26 @@ public class SavingsCircleTests
         circle.Status.Should().Be(CircleStatus.Active);
     }
 
+    /// <summary>
+    /// The organizer no longer has to save a payout order before activating — if none was set,
+    /// Activate() defaults to the members' current order automatically.
+    /// </summary>
     [Fact]
-    public void Activate_WithNoOrderAtAll_Throws()
+    public void Activate_WithNoOrderSet_DefaultsToMemberOrderAndActivates()
     {
         var circle = CreateCircleWithMembers(3);
+
+        circle.Activate();
+
+        circle.Status.Should().Be(CircleStatus.Active);
+        circle.PayoutOrderConfirmed.Should().BeTrue();
+        circle.PayoutPositions.OrderBy(p => p.Position).Select(p => p.MemberId).Should().Equal(1, 2, 3);
+    }
+
+    [Fact]
+    public void Activate_WithFewerThanTwoMembers_Throws()
+    {
+        var circle = CreateCircleWithMembers(1);
 
         var act = () => circle.Activate();
 
@@ -217,15 +233,16 @@ public class SavingsCircleTests
     // ---------- prompt03 §1: editable basic info + hard-delete member, draft-only ----------
 
     [Fact]
-    public void UpdateBasicInfo_WhileDraft_ChangesNameDescriptionAndStartDate()
+    public void UpdateBasicInfo_WhileDraft_ChangesNameDescriptionStartDateAndAmount()
     {
         var circle = CreateCircleWithMembers(2);
 
-        circle.UpdateBasicInfo("New Name", "New description", new DateOnly(2027, 6, 1));
+        circle.UpdateBasicInfo("New Name", "New description", new DateOnly(2027, 6, 1), 500m);
 
         circle.Name.Should().Be("New Name");
         circle.Description.Should().Be("New description");
         circle.StartDate.Should().Be(new DateOnly(2027, 6, 1));
+        circle.ContributionAmount.Should().Be(500m);
     }
 
     [Fact]
@@ -233,7 +250,17 @@ public class SavingsCircleTests
     {
         var circle = CreateCircleWithMembers(2);
 
-        var act = () => circle.UpdateBasicInfo("  ", null, circle.StartDate);
+        var act = () => circle.UpdateBasicInfo("  ", null, circle.StartDate, circle.ContributionAmount);
+
+        act.Should().Throw<DomainException>();
+    }
+
+    [Fact]
+    public void UpdateBasicInfo_RequiresPositiveContributionAmount()
+    {
+        var circle = CreateCircleWithMembers(2);
+
+        var act = () => circle.UpdateBasicInfo(circle.Name, null, circle.StartDate, 0m);
 
         act.Should().Throw<DomainException>();
     }
@@ -245,7 +272,7 @@ public class SavingsCircleTests
         circle.SetManualPayoutOrder(new List<int> { 1, 2 });
         circle.Activate();
 
-        var act = () => circle.UpdateBasicInfo("Renamed", null, circle.StartDate);
+        var act = () => circle.UpdateBasicInfo("Renamed", null, circle.StartDate, circle.ContributionAmount);
 
         act.Should().Throw<DomainException>();
     }

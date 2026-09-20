@@ -21,19 +21,33 @@ public class Contribution : AuditableEntity
     public PaymentMethod? PaymentMethod { get; set; }
     public string? Notes { get; set; }
 
+    /// <summary>Each individual installment, so the UI can show them one by one rather than only
+    /// ever showing the running total in <see cref="PaidAmount"/>.</summary>
+    public ICollection<ContributionPayment> Payments { get; set; } = new List<ContributionPayment>();
+
     /// <summary>
-    /// Records a payment (full or partial). Business rule: paid amount cannot
-    /// exceed expected amount, and cannot go negative (BRD §6.14).
+    /// Records an additional payment on top of whatever's already been paid — each call is a new
+    /// installment, not a replacement of the total (BRD §6.14). Business rule: the amount being
+    /// added cannot exceed what's still outstanding, and cannot go negative.
     /// </summary>
-    public void RecordPayment(decimal amount, DateTimeOffset paidAt, Enums.PaymentMethod? method, string? notes, string? actor)
+    public void RecordPayment(decimal amount, DateTimeOffset paidAt, Enums.PaymentMethod? method, string? notes, string? actor, int? paymentClaimId = null)
     {
         if (amount < 0)
             throw new Domain.Exceptions.DomainException("Paid amount cannot be negative.");
-        if (amount > ExpectedAmount)
-            throw new Domain.Exceptions.DomainException("Paid amount cannot exceed the expected contribution amount.");
+        var outstanding = ExpectedAmount - PaidAmount;
+        if (amount > outstanding)
+            throw new Domain.Exceptions.DomainException("Paid amount cannot exceed the remaining outstanding balance.");
 
-        PaidAmount = amount;
-        PaidAt = amount > 0 ? paidAt : null;
+        PaidAmount += amount;
+        if (amount > 0)
+        {
+            PaidAt = paidAt;
+            Payments.Add(new ContributionPayment
+            {
+                Amount = amount, PaidAt = paidAt, PaymentMethod = method, Notes = notes, CreatedBy = actor,
+                PaymentClaimId = paymentClaimId,
+            });
+        }
         PaymentMethod = method;
         Notes = notes;
         UpdatedAt = DateTimeOffset.UtcNow;

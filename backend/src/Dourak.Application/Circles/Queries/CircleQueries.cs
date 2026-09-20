@@ -152,13 +152,16 @@ public class GetMembersQueryHandler : IRequestHandler<GetMembersQuery, IReadOnly
 
         var members = await _db.CircleMembers
             .Where(m => m.CircleId == request.CircleId)
-            .OrderBy(m => m.Id)
             .Select(m => new
             {
                 m.Id, m.Name, m.Phone, m.Email, m.Notes, m.IsActive, m.UserId, m.InvitationStatus,
                 Position = _db.PayoutPositions.Where(p => p.MemberId == m.Id).Select(p => (int?)p.Position).FirstOrDefault()
             })
+            // Every member-facing table shows members in their circle payout order, not join
+            // order — a member without an assigned position yet (Draft, before the order is set)
+            // falls back to join order at the end.
             .ToListAsync(cancellationToken);
+        members = members.OrderBy(m => m.Position ?? int.MaxValue).ThenBy(m => m.Id).ToList();
 
         // prompt02 privacy decision: members may see names, status, schedule and the membership
         // list — but NOT other members' phone/email. The organizer still sees everything, and a
@@ -210,8 +213,94 @@ public class GetScheduleQueryHandler : IRequestHandler<GetScheduleQuery, IReadOn
             .OrderBy(c => c.SequenceNumber)
             .Select(c => new ScheduleCycleDto(
                 c.Id, c.SequenceNumber, c.DueDate, c.RecipientMemberId, c.Recipient!.Name,
-                c.ExpectedPoolAmount, c.Status.ToString(), c.Payout!.Status.ToString()))
+                c.ExpectedPoolAmount, c.Contributions.Sum(co => co.PaidAmount), c.Status.ToString(), c.Payout!.Status.ToString()))
             .ToListAsync(cancellationToken);
+}
+
+// ---------- Full per-month schedule detail ----------
+
+/// <summary>Every cycle's full per-member payment breakdown, for the redesigned Schedule tab.</summary>
+public record GetCircleMonthsDetailQuery(int CircleId) : IRequest<IReadOnlyList<CircleMonthDto>>, ICircleReadRequest;
+
+public class GetCircleMonthsDetailQueryHandler : IRequestHandler<GetCircleMonthsDetailQuery, IReadOnlyList<CircleMonthDto>>
+{
+    private readonly IAppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
+
+    public GetCircleMonthsDetailQueryHandler(IAppDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
+
+    public async Task<IReadOnlyList<CircleMonthDto>> Handle(GetCircleMonthsDetailQuery request, CancellationToken cancellationToken)
+    {
+        var cycles = await _db.Cycles
+            .Where(c => c.CircleId == request.CircleId)
+            .Include(c => c.Recipient)
+            .Include(c => c.Payout).ThenInclude(p => p!.Payments)
+            .Include(c => c.Contributions).ThenInclude(co => co.Member)
+            .Include(c => c.Contributions).ThenInclude(co => co.Payments)
+            .OrderBy(c => c.SequenceNumber)
+            .ToListAsync(cancellationToken);
+
+        var isOrganizer = await _db.Circles
+            .AnyAsync(c => c.Id == request.CircleId && c.OrganizerUserId == _currentUser.UserId, cancellationToken);
+
+        var claimsByContribution = await _db.PaymentClaims
+            .Where(pc => pc.CircleId == request.CircleId)
+            .ToListAsync(cancellationToken);
+        var claimsLookup = claimsByContribution.ToLookup(c => c.ContributionId);
+
+        // Every member-facing table shows members in their circle payout order, not whatever
+        // order the contributions happen to be stored in.
+        var positions = await _db.PayoutPositions
+            .Where(p => p.CircleId == request.CircleId)
+            .ToDictionaryAsync(p => p.MemberId, p => p.Position, cancellationToken);
+
+        return cycles.Select(c => new CircleMonthDto(
+            c.Id, c.SequenceNumber, c.DueDate, c.RecipientMemberId, c.Recipient!.Name,
+            c.ExpectedPoolAmount, c.Contributions.Sum(co => co.PaidAmount), c.Status.ToString(), c.Payout!.Status.ToString(),
+            c.Payout!.ExpectedAmount, c.Payout!.ActualAmount ?? 0m, c.Payout!.PaidAt,
+            c.Payout!.Payments.OrderBy(p => p.PaidAt)
+                .Select(p => new PayoutRowDto(p.Id, p.Amount, p.PaidAt, p.HasEvidence)).ToList(),
+            c.Contributions
+                .OrderBy(co => positions.TryGetValue(co.MemberId, out var pos) ? pos : int.MaxValue)
+                .ThenBy(co => co.MemberId)
+                .Select(co => BuildMemberRow(co, claimsLookup[co.Id].ToList(), isOrganizer)).ToList()
+        )).ToList();
+    }
+
+    private CircleMonthMemberDto BuildMemberRow(Contribution co, List<PaymentClaim> claims, bool isOrganizer)
+    {
+        // prompt02 §6 privacy rule: a claim (its status, and its very existence) is visible only
+        // to the organizer and to the member who submitted it — everyone else sees only the
+        // plain paid amount, with no indication it came from a claim.
+        var maySeeClaim = isOrganizer || (co.Member!.UserId != null && co.Member.UserId == _currentUser.UserId);
+
+        var rows = new List<PaymentRowDto>();
+        foreach (var payment in co.Payments.OrderBy(p => p.PaidAt))
+        {
+            var linkedClaim = payment.PaymentClaimId is int claimId ? claims.FirstOrDefault(c => c.Id == claimId) : null;
+            rows.Add(maySeeClaim && linkedClaim is not null
+                ? new PaymentRowDto(payment.Amount, payment.PaidAt, linkedClaim.Status.ToString(), linkedClaim.Id)
+                : new PaymentRowDto(payment.Amount, payment.PaidAt, null, null));
+        }
+
+        if (maySeeClaim)
+        {
+            // Claims that never (yet) produced a payment — still Pending, or Rejected — get their
+            // own row so the member/organizer can see them, but they don't count toward PaidAmount
+            // since no ContributionPayment exists for them.
+            var linkedClaimIds = co.Payments.Where(p => p.PaymentClaimId.HasValue).Select(p => p.PaymentClaimId!.Value).ToHashSet();
+            foreach (var claim in claims.Where(c => !linkedClaimIds.Contains(c.Id)))
+                rows.Add(new PaymentRowDto(claim.ClaimedAmount, claim.SubmittedAt, claim.Status.ToString(), claim.Id));
+        }
+
+        rows = rows.OrderBy(r => r.Date).ToList();
+
+        return new CircleMonthMemberDto(co.MemberId, co.Member!.Name, co.Member!.Email, co.ExpectedAmount, co.PaidAmount, co.PaidAt, rows);
+    }
 }
 
 // ---------- Current Cycle Dashboard ----------
@@ -234,13 +323,27 @@ public class GetCurrentCycleDashboardQueryHandler : IRequestHandler<GetCurrentCy
         var cycles = await _db.Cycles
             .Where(c => c.CircleId == request.CircleId)
             .Include(c => c.Recipient)
-            .Include(c => c.Payout)
+            .Include(c => c.Payout).ThenInclude(p => p!.Payments)
             .Include(c => c.Contributions).ThenInclude(co => co.Member)
+            .Include(c => c.Contributions).ThenInclude(co => co.Payments)
             .OrderBy(c => c.SequenceNumber)
             .ToListAsync(cancellationToken);
 
-        var current = cycles.FirstOrDefault(c => c.Status == CycleStatus.Pending);
-        if (current is null) return null;
+        if (cycles.Count == 0) return null;
+
+        // The "current" cycle is date-driven, not tied to whether its payout was confirmed: the
+        // most recent cycle whose collection date has already arrived, defaulting to the first
+        // cycle before anything is due yet, and staying on the last cycle forever after its own
+        // due date has passed (there is nothing further to advance to).
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var current = cycles.Where(c => c.DueDate <= today).OrderByDescending(c => c.SequenceNumber).FirstOrDefault()
+            ?? cycles[0];
+
+        // A member can record a payment against any future cycle's contribution, ahead of
+        // schedule (Monthly Cycles tab) — if that's how this now-current cycle got fully paid,
+        // flag it so the UI can say so instead of looking like an ordinary just-in-time payment.
+        var previousCycle = cycles.FirstOrDefault(c => c.SequenceNumber == current.SequenceNumber - 1);
+        var previousDueDate = previousCycle?.DueDate.ToDateTime(TimeOnly.MinValue);
 
         var isOrganizer = await _db.Circles
             .AnyAsync(c => c.Id == request.CircleId && c.OrganizerUserId == _currentUser.UserId, cancellationToken);
@@ -250,10 +353,19 @@ public class GetCurrentCycleDashboardQueryHandler : IRequestHandler<GetCurrentCy
             .Select(pc => new { pc.MemberId, pc.Status, pc.SubmittedAt })
             .ToListAsync(cancellationToken);
 
+        // Every member-facing table shows members in their circle payout order, not whatever
+        // order the contributions happen to be stored in.
+        var positions = await _db.PayoutPositions
+            .Where(p => p.CircleId == request.CircleId)
+            .ToDictionaryAsync(p => p.MemberId, p => p.Position, cancellationToken);
+
         var now = DateTimeOffset.UtcNow;
         var dueDate = current.DueDate.ToDateTime(TimeOnly.MinValue);
 
-        var rows = current.Contributions.Select(co =>
+        var rows = current.Contributions
+            .OrderBy(co => positions.TryGetValue(co.MemberId, out var pos) ? pos : int.MaxValue)
+            .ThenBy(co => co.MemberId)
+            .Select(co =>
         {
             // prompt02 §6 privacy rule: claim state travels only to the organizer and to the
             // member who submitted it. Everyone else sees payment status and nothing more.
@@ -262,11 +374,19 @@ public class GetCurrentCycleDashboardQueryHandler : IRequestHandler<GetCurrentCy
                 ? claims.Where(c => c.MemberId == co.MemberId).OrderByDescending(c => c.SubmittedAt).FirstOrDefault()
                 : null;
 
+            var paidInAdvance = false;
+            if (previousDueDate.HasValue && co.PaidAmount >= co.ExpectedAmount)
+            {
+                var lastPaymentAt = co.Payments.Count > 0 ? co.Payments.Max(p => p.PaidAt) : co.PaidAt;
+                paidInAdvance = lastPaymentAt.HasValue && lastPaymentAt.Value < previousDueDate.Value;
+            }
+
             return new CurrentCycleMemberRowDto(
                 co.MemberId, co.Member!.Name, co.ExpectedAmount, co.PaidAmount,
                 co.ComputeDisplayStatus(dueDate, now), co.PaidAt,
                 latest?.Status.ToString(),
-                latest is not null && latest.Status == PaymentClaimStatus.Pending);
+                latest is not null && latest.Status == PaymentClaimStatus.Pending,
+                paidInAdvance);
         }).ToList();
 
         var next = cycles.FirstOrDefault(c => c.SequenceNumber == current.SequenceNumber + 1);
@@ -286,7 +406,11 @@ public class GetCurrentCycleDashboardQueryHandler : IRequestHandler<GetCurrentCy
             NextRecipientMemberId: next?.RecipientMemberId,
             NextRecipientName: next?.Recipient?.Name,
             Members: rows,
-            PendingClaimCount: isOrganizer ? claims.Count(c => c.Status == PaymentClaimStatus.Pending) : 0);
+            PendingClaimCount: isOrganizer ? claims.Count(c => c.Status == PaymentClaimStatus.Pending) : 0,
+            PayoutExpectedAmount: current.Payout!.ExpectedAmount,
+            PayoutActualAmount: current.Payout.ActualAmount ?? 0m,
+            PayoutRows: current.Payout.Payments.OrderBy(p => p.PaidAt)
+                .Select(p => new PayoutRowDto(p.Id, p.Amount, p.PaidAt, p.HasEvidence)).ToList());
     }
 }
 

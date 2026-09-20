@@ -81,6 +81,26 @@ public class PaymentClaim : AuditableEntity
         EvidenceSizeBytes = sizeBytes;
     }
 
+    public void ClearEvidence()
+    {
+        EvidenceStoredFileName = null;
+        EvidenceOriginalFileName = null;
+        EvidenceContentType = null;
+        EvidenceSizeBytes = null;
+    }
+
+    /// <summary>The submitting member can still correct the amount/note while nobody has
+    /// reviewed it yet — same "still Pending" gate as approving/rejecting.</summary>
+    public void UpdateDetails(decimal claimedAmount, string? note)
+    {
+        EnsurePending("edited");
+        ClaimedAmount = claimedAmount;
+        Note = note;
+    }
+
+    /// <summary>The submitting member can also withdraw ("unsend") a claim before it's reviewed.</summary>
+    public void EnsureWithdrawable() => EnsurePending("withdrawn");
+
     private void EnsurePending(string action)
     {
         if (Status != PaymentClaimStatus.Pending)

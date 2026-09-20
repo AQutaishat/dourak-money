@@ -63,7 +63,7 @@ public class CreateCircleCommandHandler : IRequestHandler<CreateCircleCommand, i
 
 // ---------- Update basic info (prompt03 §1: editable pre-activation) ----------
 
-public record UpdateCircleBasicInfoCommand(int CircleId, string Name, string? Description, DateOnly StartDate)
+public record UpdateCircleBasicInfoCommand(int CircleId, string Name, string? Description, DateOnly StartDate, decimal ContributionAmount)
     : IRequest, Common.Behaviors.ICircleOwnedRequest;
 
 public class UpdateCircleBasicInfoCommandValidator : AbstractValidator<UpdateCircleBasicInfoCommand>
@@ -71,6 +71,7 @@ public class UpdateCircleBasicInfoCommandValidator : AbstractValidator<UpdateCir
     public UpdateCircleBasicInfoCommandValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.ContributionAmount).GreaterThan(0);
     }
 }
 
@@ -84,7 +85,7 @@ public class UpdateCircleBasicInfoCommandHandler : IRequestHandler<UpdateCircleB
         var circle = await _db.Circles.FirstOrDefaultAsync(c => c.Id == request.CircleId, cancellationToken)
             ?? throw new NotFoundException(nameof(SavingsCircle), request.CircleId);
 
-        circle.UpdateBasicInfo(request.Name, request.Description, request.StartDate);
+        circle.UpdateBasicInfo(request.Name, request.Description, request.StartDate, request.ContributionAmount);
         circle.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
     }
@@ -133,7 +134,8 @@ public class AddMemberCommandHandler : IRequestHandler<AddMemberCommand, int>
 
     public async Task<int> Handle(AddMemberCommand request, CancellationToken cancellationToken)
     {
-        var circle = await _db.Circles.FirstOrDefaultAsync(c => c.Id == request.CircleId, cancellationToken)
+        var circle = await _db.Circles.Include(c => c.PayoutPositions)
+            .FirstOrDefaultAsync(c => c.Id == request.CircleId, cancellationToken)
             ?? throw new NotFoundException(nameof(SavingsCircle), request.CircleId);
 
         if (circle.Status != CircleStatus.Draft)
@@ -149,6 +151,11 @@ public class AddMemberCommandHandler : IRequestHandler<AddMemberCommand, int>
             IsActive = true
         };
         _db.CircleMembers.Add(member);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        // A plain (Phase 1) member is participating from the moment they're added — give them
+        // the next payout position immediately instead of waiting for a manual Save.
+        circle.AppendMemberToPayoutOrder(member.Id);
         await _db.SaveChangesAsync(cancellationToken);
         return member.Id;
     }
@@ -229,6 +236,23 @@ public class SetManualPayoutOrderCommandHandler : IRequestHandler<SetManualPayou
             .Include(c => c.Cycles).ThenInclude(cy => cy.Payout)
             .FirstOrDefaultAsync(c => c.Id == circleId, ct)
             ?? throw new NotFoundException(nameof(SavingsCircle), circleId);
+}
+
+// ---------- Payout order: move one member up/down, persisted immediately ----------
+
+public record MovePayoutPositionCommand(int CircleId, int MemberId, int Direction) : IRequest, Common.Behaviors.ICircleOwnedRequest;
+
+public class MovePayoutPositionCommandHandler : IRequestHandler<MovePayoutPositionCommand>
+{
+    private readonly IAppDbContext _db;
+    public MovePayoutPositionCommandHandler(IAppDbContext db) => _db = db;
+
+    public async Task Handle(MovePayoutPositionCommand request, CancellationToken cancellationToken)
+    {
+        var circle = await SetManualPayoutOrderCommandHandler.LoadAggregateAsync(_db, request.CircleId, cancellationToken);
+        circle.MovePayoutPosition(request.MemberId, request.Direction);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
 }
 
 // ---------- Payout order: random draw ----------

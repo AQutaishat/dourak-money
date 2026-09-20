@@ -2,6 +2,7 @@ using Dourak.Application.Admin;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 
 namespace Dourak.Api.Controllers;
 
@@ -18,7 +19,12 @@ public record AdminSetPasswordRequest(string NewPassword);
 public class AdminController : ControllerBase
 {
     private readonly IMediator _mediator;
-    public AdminController(IMediator mediator) => _mediator = mediator;
+    private readonly IHostEnvironment _env;
+    public AdminController(IMediator mediator, IHostEnvironment env)
+    {
+        _mediator = mediator;
+        _env = env;
+    }
 
     [HttpGet("stats")]
     public async Task<IActionResult> GetStats() => Ok(await _mediator.Send(new GetAdminStatsQuery()));
@@ -52,5 +58,23 @@ public class AdminController : ControllerBase
     {
         var result = await _mediator.Send(new AdminDeleteUserCommand(userId));
         return result.Succeeded ? NoContent() : BadRequest(result);
+    }
+
+    // ---------- Dev-only test-data helpers — hidden (404, not 403) outside Development ----------
+
+    [HttpPost("users/{userId}/test-circles")]
+    public async Task<IActionResult> CreateTestCircles(string userId)
+    {
+        if (!_env.IsDevelopment()) return NotFound();
+        await _mediator.Send(new AdminCreateTestCirclesCommand(userId));
+        return NoContent();
+    }
+
+    [HttpDelete("users/{userId}/circles")]
+    public async Task<IActionResult> DeleteUserCircles(string userId)
+    {
+        if (!_env.IsDevelopment()) return NotFound();
+        await _mediator.Send(new AdminDeleteUserCirclesCommand(userId));
+        return NoContent();
     }
 }

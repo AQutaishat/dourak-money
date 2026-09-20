@@ -3,6 +3,7 @@ using System;
 using Dourak.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dourak.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DourakDbContext))]
-    partial class DourakDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260920103116_AddCircleMemberInviteToken")]
+    partial class AddCircleMemberInviteToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -382,60 +385,6 @@ namespace Dourak.Infrastructure.Persistence.Migrations
                     b.HasIndex("RecipientMemberId");
 
                     b.ToTable("Payouts");
-                });
-
-            modelBuilder.Entity("Dourak.Domain.Entities.PayoutPayment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("EvidenceContentType")
-                        .HasColumnType("text");
-
-                    b.Property<string>("EvidenceOriginalFileName")
-                        .HasColumnType("text");
-
-                    b.Property<long?>("EvidenceSizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("EvidenceStoredFileName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("PaidAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("PaymentMethod")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PayoutId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PayoutId");
-
-                    b.ToTable("PayoutPayments");
                 });
 
             modelBuilder.Entity("Dourak.Domain.Entities.PayoutPosition", b =>
@@ -872,17 +821,6 @@ namespace Dourak.Infrastructure.Persistence.Migrations
                     b.Navigation("Recipient");
                 });
 
-            modelBuilder.Entity("Dourak.Domain.Entities.PayoutPayment", b =>
-                {
-                    b.HasOne("Dourak.Domain.Entities.Payout", "Payout")
-                        .WithMany("Payments")
-                        .HasForeignKey("PayoutId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Payout");
-                });
-
             modelBuilder.Entity("Dourak.Domain.Entities.PayoutPosition", b =>
                 {
                     b.HasOne("Dourak.Domain.Entities.SavingsCircle", "Circle")
@@ -970,11 +908,6 @@ namespace Dourak.Infrastructure.Persistence.Migrations
                     b.Navigation("Contributions");
 
                     b.Navigation("Payout");
-                });
-
-            modelBuilder.Entity("Dourak.Domain.Entities.Payout", b =>
-                {
-                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("Dourak.Domain.Entities.SavingsCircle", b =>

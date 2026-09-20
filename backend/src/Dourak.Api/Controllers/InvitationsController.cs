@@ -37,6 +37,18 @@ public class InvitationsController : ControllerBase
         await _mediator.Send(new RespondToInvitationCommand(memberId, Accept: false));
         return NoContent();
     }
+
+    /// <summary>
+    /// The signed-in user just opened a WhatsApp invite link (an unregistered-invite token,
+    /// see <c>InviteUnregisteredMemberCommand</c>) — link their account to that invite so it
+    /// shows up as a normal pending invitation for them.
+    /// </summary>
+    [HttpPost("link/{token}")]
+    public async Task<IActionResult> Link(string token)
+    {
+        await _mediator.Send(new LinkInvitationTokenCommand(token));
+        return NoContent();
+    }
 }
 
 public record ReviewPaymentClaimRequest(bool Approve, string? RejectionReason);
@@ -94,6 +106,43 @@ public class PaymentClaimsController : ControllerBase
     public async Task<IActionResult> Review(int claimId, ReviewPaymentClaimRequest request)
     {
         await _mediator.Send(new ReviewPaymentClaimCommand(claimId, request.Approve, request.RejectionReason));
+        return NoContent();
+    }
+
+    /// <summary>The submitting member can still correct amount/note/evidence while Pending.</summary>
+    [HttpPut("{claimId:int}")]
+    [RequestSizeLimit(IEvidenceFileStorage.MaxSizeBytes + 512 * 1024)]
+    public async Task<IActionResult> Update(
+        int claimId,
+        [FromForm] decimal claimedAmount,
+        [FromForm] string? note,
+        [FromForm] bool removeEvidence,
+        IFormFile? evidence)
+    {
+        EvidenceUpload? upload = null;
+        Stream? stream = null;
+        try
+        {
+            if (evidence is not null && evidence.Length > 0)
+            {
+                stream = evidence.OpenReadStream();
+                upload = new EvidenceUpload(evidence.FileName, evidence.ContentType ?? "application/octet-stream", evidence.Length, stream);
+            }
+
+            await _mediator.Send(new UpdatePaymentClaimCommand(claimId, claimedAmount, note, removeEvidence, upload));
+            return NoContent();
+        }
+        finally
+        {
+            if (stream is not null) await stream.DisposeAsync();
+        }
+    }
+
+    /// <summary>The submitting member can withdraw ("unsend") a claim while it's still Pending.</summary>
+    [HttpDelete("{claimId:int}")]
+    public async Task<IActionResult> Withdraw(int claimId)
+    {
+        await _mediator.Send(new WithdrawPaymentClaimCommand(claimId));
         return NoContent();
     }
 

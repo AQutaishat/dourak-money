@@ -16,7 +16,9 @@ public interface IAppDbContext
     DbSet<PayoutPosition> PayoutPositions { get; }
     DbSet<Cycle> Cycles { get; }
     DbSet<Contribution> Contributions { get; }
+    DbSet<ContributionPayment> ContributionPayments { get; }
     DbSet<Payout> Payouts { get; }
+    DbSet<PayoutPayment> PayoutPayments { get; }
     DbSet<PaymentClaim> PaymentClaims { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

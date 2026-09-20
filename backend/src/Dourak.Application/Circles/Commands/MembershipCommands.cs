@@ -33,7 +33,8 @@ public class AddUserMemberCommandHandler : IRequestHandler<AddUserMemberCommand,
 
     public async Task<int> Handle(AddUserMemberCommand request, CancellationToken cancellationToken)
     {
-        var circle = await _db.Circles.FirstOrDefaultAsync(c => c.Id == request.CircleId, cancellationToken)
+        var circle = await _db.Circles.Include(c => c.PayoutPositions)
+            .FirstOrDefaultAsync(c => c.Id == request.CircleId, cancellationToken)
             ?? throw new NotFoundException(nameof(SavingsCircle), request.CircleId);
 
         if (circle.Status != CircleStatus.Draft)
@@ -68,7 +69,87 @@ public class AddUserMemberCommandHandler : IRequestHandler<AddUserMemberCommand,
 
         _db.CircleMembers.Add(member);
         await _db.SaveChangesAsync(cancellationToken);
+
+        if (member.IsParticipating)
+            circle.AppendMemberToPayoutOrder(member.Id);
+        await _db.SaveChangesAsync(cancellationToken);
         return member.Id;
+    }
+}
+
+// ---------- Invite someone not yet registered, by name, over WhatsApp (token-based) ----------
+
+public record InviteUnregisteredMemberCommand(int CircleId, string Name) : IRequest<InviteUnregisteredMemberResult>, ICircleOwnedRequest;
+
+public record InviteUnregisteredMemberResult(int MemberId, string Token);
+
+public class InviteUnregisteredMemberCommandValidator : AbstractValidator<InviteUnregisteredMemberCommand>
+{
+    public InviteUnregisteredMemberCommandValidator() => RuleFor(x => x.Name).NotEmpty();
+}
+
+public class InviteUnregisteredMemberCommandHandler : IRequestHandler<InviteUnregisteredMemberCommand, InviteUnregisteredMemberResult>
+{
+    private readonly IAppDbContext _db;
+    public InviteUnregisteredMemberCommandHandler(IAppDbContext db) => _db = db;
+
+    public async Task<InviteUnregisteredMemberResult> Handle(InviteUnregisteredMemberCommand request, CancellationToken cancellationToken)
+    {
+        var circle = await _db.Circles.FirstOrDefaultAsync(c => c.Id == request.CircleId, cancellationToken)
+            ?? throw new NotFoundException(nameof(SavingsCircle), request.CircleId);
+
+        if (circle.Status != CircleStatus.Draft)
+            throw new DomainException("Members can only be added while the circle is in Draft status.");
+
+        var member = new CircleMember { CircleId = circle.Id };
+        var token = Guid.NewGuid().ToString("N");
+        member.InviteUnregistered(request.Name.Trim(), token, DateTimeOffset.UtcNow);
+
+        _db.CircleMembers.Add(member);
+        await _db.SaveChangesAsync(cancellationToken);
+        return new InviteUnregisteredMemberResult(member.Id, token);
+    }
+}
+
+// ---------- The invited person links their account to that invite token (prompt: WhatsApp invite) ----------
+//
+// Deliberately NOT ICircleOwnedRequest: the actor is the invitee opening their link, not the organizer.
+
+public record LinkInvitationTokenCommand(string Token) : IRequest;
+
+public class LinkInvitationTokenCommandHandler : IRequestHandler<LinkInvitationTokenCommand>
+{
+    private readonly IAppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IIdentityService _identity;
+
+    public LinkInvitationTokenCommandHandler(IAppDbContext db, ICurrentUserService currentUser, IIdentityService identity)
+    {
+        _db = db;
+        _currentUser = currentUser;
+        _identity = identity;
+    }
+
+    public async Task Handle(LinkInvitationTokenCommand request, CancellationToken cancellationToken)
+    {
+        var member = await _db.CircleMembers.FirstOrDefaultAsync(m => m.InviteToken == request.Token, cancellationToken)
+            ?? throw new NotFoundException(nameof(CircleMember), request.Token);
+
+        var userId = _currentUser.UserId!;
+
+        // Someone already a member of this circle can't also hold a second, invited row.
+        var alreadyThere = await _db.CircleMembers
+            .AnyAsync(m => m.CircleId == member.CircleId && m.UserId == userId, cancellationToken);
+        if (alreadyThere)
+            throw new DomainException("You are already a member of this circle.");
+
+        var profile = await _identity.GetProfileAsync(userId);
+        member.LinkToUser(userId, profile?.Email, profile?.Phone);
+
+        var now = DateTimeOffset.UtcNow;
+        member.UpdatedAt = now;
+        member.UpdatedBy = userId;
+        await _db.SaveChangesAsync(cancellationToken);
     }
 }
 
@@ -91,7 +172,8 @@ public class AddSelfAsMemberCommandHandler : IRequestHandler<AddSelfAsMemberComm
 
     public async Task<int> Handle(AddSelfAsMemberCommand request, CancellationToken cancellationToken)
     {
-        var circle = await _db.Circles.FirstOrDefaultAsync(c => c.Id == request.CircleId, cancellationToken)
+        var circle = await _db.Circles.Include(c => c.PayoutPositions)
+            .FirstOrDefaultAsync(c => c.Id == request.CircleId, cancellationToken)
             ?? throw new NotFoundException(nameof(SavingsCircle), request.CircleId);
 
         if (circle.Status != CircleStatus.Draft)
@@ -119,6 +201,9 @@ public class AddSelfAsMemberCommandHandler : IRequestHandler<AddSelfAsMemberComm
 
         _db.CircleMembers.Add(member);
         await _db.SaveChangesAsync(cancellationToken);
+
+        circle.AppendMemberToPayoutOrder(member.Id);
+        await _db.SaveChangesAsync(cancellationToken);
         return member.Id;
     }
 }
@@ -143,7 +228,8 @@ public class RespondToInvitationCommandHandler : IRequestHandler<RespondToInvita
 
     public async Task Handle(RespondToInvitationCommand request, CancellationToken cancellationToken)
     {
-        var member = await _db.CircleMembers.FirstOrDefaultAsync(m => m.Id == request.MemberId, cancellationToken)
+        var member = await _db.CircleMembers.Include(m => m.Circle!).ThenInclude(c => c.PayoutPositions)
+            .FirstOrDefaultAsync(m => m.Id == request.MemberId, cancellationToken)
             ?? throw new NotFoundException(nameof(CircleMember), request.MemberId);
 
         if (string.IsNullOrEmpty(member.UserId) || member.UserId != _currentUser.UserId)
@@ -155,6 +241,11 @@ public class RespondToInvitationCommandHandler : IRequestHandler<RespondToInvita
 
         member.UpdatedAt = now;
         member.UpdatedBy = _currentUser.UserId;
+
+        // Accepting makes the member participating from this moment — give them the next
+        // payout position immediately, same as any other newly-participating member.
+        if (request.Accept) member.Circle!.AppendMemberToPayoutOrder(member.Id);
+
         await _db.SaveChangesAsync(cancellationToken);
     }
 }

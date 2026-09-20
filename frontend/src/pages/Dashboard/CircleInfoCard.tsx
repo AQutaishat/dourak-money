@@ -1,6 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { circlesApi } from "../../api/circles";
 import type { CircleStatus, CircleSummary } from "../../api/types";
 
 /**
@@ -18,17 +20,44 @@ const STATUS_COLOR: Record<CircleStatus, "success" | "info" | "warning" | "defau
 
 export function CircleInfoCard({ circle }: { circle: CircleSummary }) {
   const { t, i18n } = useTranslation();
+  // Same collection/payout badges shown on the active-circle summary card up top — only
+  // fetched for an Active circle, since that's the only status with a current cycle to report.
+  const { data: dashboard } = useQuery({
+    queryKey: ["dashboard", circle.id],
+    queryFn: () => circlesApi.dashboard(circle.id),
+    enabled: circle.status === "Active",
+  });
 
   const created = new Date(circle.createdAt).toLocaleDateString(i18n.language, {
     year: "numeric", month: "short", day: "numeric",
   });
 
+  const fullyCollected = !!dashboard && dashboard.collected >= dashboard.expected;
+
   return (
     <Card component={RouterLink} to={`/circles/${circle.id}`} sx={{ textDecoration: "none", display: "block", height: "100%" }}>
       <CardContent>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} flexWrap="wrap">
           <Typography variant="subtitle1" fontWeight={600}>{circle.name}</Typography>
-          <Chip size="small" color={STATUS_COLOR[circle.status]} label={t(`circle.${circle.status.toLowerCase()}`)} />
+          <Stack direction="row" spacing={0.5} flexWrap="wrap">
+            <Chip size="small" color={STATUS_COLOR[circle.status]} label={t(`circle.${circle.status.toLowerCase()}`)} />
+            {dashboard && (
+              <>
+                <Chip
+                  size="small"
+                  color={fullyCollected ? "success" : "warning"}
+                  label={t(fullyCollected ? "circle.collectionDone" : "circle.collectionUnderway")}
+                />
+                {(fullyCollected || dashboard.payoutStatus === "Paid") && (
+                  <Chip
+                    size="small"
+                    color={dashboard.payoutStatus === "Paid" ? "success" : "warning"}
+                    label={t(dashboard.payoutStatus === "Paid" ? "circle.payoutPaidBadge" : "circle.payoutPendingBadge")}
+                  />
+                )}
+              </>
+            )}
+          </Stack>
         </Stack>
 
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>

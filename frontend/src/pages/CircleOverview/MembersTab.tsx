@@ -2,9 +2,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
-  IconButton, List, ListItem, ListItemText, Stack, Tooltip, Typography,
+  IconButton, List, ListItem, Stack, Tooltip, Typography,
 } from "@mui/material";
-import PersonOffIcon from "@mui/icons-material/PersonOff";
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import HistoryIcon from "@mui/icons-material/History";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
@@ -13,11 +12,13 @@ import { useTranslation } from "react-i18next";
 import { Link as RouterLink } from "react-router-dom";
 import { circlesApi } from "../../api/circles";
 import type { CircleDetail } from "../../api/types";
+import { isRtl } from "../../i18n";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { InvitationStatusChip } from "./StatusChip";
 
 export function MembersTab({ circle }: { circle: CircleDetail }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const rtl = isRtl(i18n.language);
   const queryClient = useQueryClient();
   const { data: members } = useQuery({ queryKey: ["members", circle.id], queryFn: () => circlesApi.members(circle.id) });
 
@@ -34,11 +35,6 @@ export function MembersTab({ circle }: { circle: CircleDetail }) {
     queryClient.invalidateQueries({ queryKey: ["members", circle.id] });
     queryClient.invalidateQueries({ queryKey: ["circle", circle.id] });
   };
-
-  const deactivateMutation = useMutation({
-    mutationFn: (memberId: number) => circlesApi.deactivateMember(circle.id, memberId),
-    onSuccess: invalidate,
-  });
 
   const reinviteMutation = useMutation({
     mutationFn: (memberId: number) => circlesApi.reinviteMember(circle.id, memberId),
@@ -90,27 +86,22 @@ export function MembersTab({ circle }: { circle: CircleDetail }) {
               key={m.id}
               secondaryAction={
                 <Stack direction="row" spacing={1} alignItems="center">
-                  {m.payoutPosition && <Chip size="small" label={`#${m.payoutPosition}`} />}
-                  <InvitationStatusChip status={m.invitationStatus} />
+                  {/* No badge once accepted — the invitation is a non-event at that point. */}
+                  {m.invitationStatus !== "Accepted" && <InvitationStatusChip status={m.invitationStatus} />}
 
-                  <Tooltip title={t("circle.viewHistory")}>
-                    <IconButton component={RouterLink} to={`/circles/${circle.id}/members/${m.id}/history`} size="small">
-                      <HistoryIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  {/* History only makes sense once the circle has actually started collecting. */}
+                  {circle.status === "Active" && (
+                    <Tooltip title={t("circle.viewHistory")}>
+                      <IconButton component={RouterLink} to={`/circles/${circle.id}/members/${m.id}/history`} size="small">
+                        <HistoryIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
 
                   {canManage && isDraft && m.invitationStatus === "Declined" && (
                     <Tooltip title={t("circle.reinvite")}>
                       <IconButton size="small" onClick={() => reinviteMutation.mutate(m.id)}>
                         <RefreshIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-
-                  {canManage && isDraft && m.isActive && (
-                    <Tooltip title={t("circle.deactivate")}>
-                      <IconButton size="small" onClick={() => deactivateMutation.mutate(m.id)}>
-                        <PersonOffIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   )}
@@ -127,11 +118,20 @@ export function MembersTab({ circle }: { circle: CircleDetail }) {
                 </Stack>
               }
             >
-              <ListItemText
-                primary={m.name}
-                secondary={[m.phone, m.email].filter(Boolean).join(" · ") || undefined}
-                sx={{ opacity: excluded ? 0.5 : 1, textDecoration: excluded ? "line-through" : "none", paddingInlineEnd: "20px" }}
-              />
+              <Stack
+                direction="row"
+                spacing={2}
+                alignItems="center"
+                sx={{ opacity: excluded ? 0.5 : 1, textDecoration: excluded ? "line-through" : "none", paddingInlineEnd: "20px", flex: 1 }}
+              >
+                <Box sx={{ width: 40, flexShrink: 0 }}>
+                  {m.payoutPosition && <Chip size="small" label={`#${m.payoutPosition}`} />}
+                </Box>
+                <Typography sx={{ flex: 1, minWidth: 0 }} noWrap>{m.name || m.email || ""}</Typography>
+                <Typography sx={{ flex: 1, minWidth: 0 }} color="text.secondary" noWrap style={{ textAlign: rtl ? "right" : "left" }}>
+                  {m.name ? (m.email ?? "") : ""}
+                </Typography>
+              </Stack>
             </ListItem>
           );
         })}
