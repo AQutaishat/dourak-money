@@ -4,6 +4,25 @@ Items deliberately pushed out of the current phase(s), tracked here so they're
 not forgotten but also don't creep into active scope uninvited. Nothing here
 should be built unless a future prompt explicitly pulls it back into scope.
 
+## Observability: error/crash tracking — higher priority than analytics below
+
+- **No error/crash tracking exists anywhere in production** — not on the web
+  app, the admin site, the mobile app, or the API beyond raw Serilog/Seq logs
+  (which nobody is alerted by; someone has to think to go look). Practically
+  this means a real bug affecting real users — a web page throwing in
+  production, a mobile crash, an unhandled API exception — can go completely
+  unnoticed indefinitely unless a user happens to complain. This should be
+  treated as more urgent than the analytics items below, since it's about
+  *knowing something is broken* rather than *understanding usage*.
+  - **Sentry** is the natural fit: one SDK family across React (`frontend/`),
+    Flutter (`mobile/`), and ASP.NET Core (the API), with a free tier that's
+    almost certainly enough at current scale. Gives stack traces, breadcrumbs,
+    release tracking, and (for mobile) crash reporting, plus optional email/
+    Slack alerting so issues surface immediately instead of being found by
+    accident.
+  - Low-to-moderate effort: mostly SDK install + init per app, no
+    architectural change needed anywhere.
+
 ## Analytics / Product Insight
 
 - **Google Analytics 4 integration** — no analytics of any kind exist yet on
@@ -13,9 +32,9 @@ should be built unless a future prompt explicitly pulls it back into scope.
   member added, circle activated, payment claim submitted), and for mobile
   the `firebase_analytics` Flutter package (needs a Firebase project, which
   also unlocks Crashlytics for free — worth doing alongside this rather than
-  separately). Low effort, mostly config not code.
-  - **Alternatives worth considering instead of/alongside GA4**, roughly in
-    order of fit for a small product like this:
+  separately, though Sentry above is the more complete option). Low effort,
+  mostly config not code.
+  - **Alternatives worth considering instead of/alongside GA4**:
     - **PostHog** (self-hostable or cloud) — product analytics + session
       replay + feature flags in one tool, more useful than GA4 for
       understanding *why* users drop off mid-flow (e.g. abandoning circle
@@ -23,11 +42,6 @@ should be built unless a future prompt explicitly pulls it back into scope.
     - **Plausible / Umami** — much simpler, privacy-friendly, cookie-consent-
       free page-view analytics if the goal is just "how many people visit and
       from where," not funnel/behavior analysis.
-    - **Sentry** — not an analytics tool, but genuinely more urgent than any
-      of the above: there is currently no error-tracking/crash-reporting at
-      all in production (web, mobile, or API beyond Serilog/Seq logs), so a
-      real user-facing bug can go unnoticed indefinitely unless someone
-      happens to check the logs.
 
 ## Infrastructure / DevOps
 
