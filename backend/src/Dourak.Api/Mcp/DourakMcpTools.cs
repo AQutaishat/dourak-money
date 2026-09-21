@@ -53,11 +53,11 @@ public static class DourakMcpTools
         ToJson(await mediator.Send(new GetMembersQuery(circleId), cancellationToken));
 
     [McpServerTool(Name = "get_circle_history")]
-    [Description("Lists a circle's completed past cycles: who received each payout, amounts collected, and who was late or unpaid that cycle.")]
+    [Description("Lists every one of a circle's monthly cycles (past, current and future) with full per-member detail — the exact same data as the website's \"الدورات الشهرية\" (Monthly Cycles) tab: due date, who received that month's payout and its amount/payment breakdown, and each member's contribution rows (amount, date, and claim status where visible to the caller).")]
     public static async Task<string> GetCircleHistory(
         [Description("The circle's numeric id.")] int circleId,
         IMediator mediator, CancellationToken cancellationToken) =>
-        ToJson(await mediator.Send(new GetCircleHistoryQuery(circleId), cancellationToken));
+        ToJson(await mediator.Send(new GetCircleMonthsDetailQuery(circleId), cancellationToken));
 
     [McpServerTool(Name = "get_pending_invitations")]
     [Description("Lists circle invitations awaiting the authenticated user's accept/decline response.")]
@@ -70,6 +70,44 @@ public static class DourakMcpTools
         ToJson(await mediator.Send(new GetMyPaymentClaimsQuery(), cancellationToken));
 
     // ---------- Write tools ----------
+
+    [McpServerTool(Name = "create_circle")]
+    [Description("Creates a new savings circle (جمعية) as a Draft owned by the authenticated user, who becomes its organizer. A draft circle has no members yet — use add_circle_member to add them, then activate_circle once at least two members exist and everyone invited has accepted.")]
+    public static async Task<string> CreateCircle(
+        [Description("Circle name.")] string name,
+        [Description("Optional description.")] string? description,
+        [Description("3-letter currency code, e.g. JOD, USD.")] string currency,
+        [Description("Each member's contribution amount per cycle, in the circle's currency.")] decimal contributionAmount,
+        [Description("The first cycle's start date, as an ISO date (YYYY-MM-DD).")] DateOnly startDate,
+        IMediator mediator, CancellationToken cancellationToken)
+    {
+        var circleId = await mediator.Send(new CreateCircleCommand(name, description, currency, contributionAmount, startDate), cancellationToken);
+        return ToJson(new { circleId, status = "Draft" });
+    }
+
+    [McpServerTool(Name = "add_circle_member")]
+    [Description("Adds a member to a Draft circle by name (plus optional phone/email/notes) — the same simple \"add by name\" flow the app uses, not a search-and-invite of an existing Dourak user. Only works while the circle is still Draft; the new member participates immediately with the next payout position.")]
+    public static async Task<string> AddCircleMember(
+        [Description("The circle's numeric id — must currently be Draft.")] int circleId,
+        [Description("Member's display name.")] string name,
+        [Description("Optional phone number.")] string? phone,
+        [Description("Optional email.")] string? email,
+        [Description("Optional free-text note.")] string? notes,
+        IMediator mediator, CancellationToken cancellationToken)
+    {
+        var memberId = await mediator.Send(new AddMemberCommand(circleId, name, phone, email, notes), cancellationToken);
+        return ToJson(new { memberId });
+    }
+
+    [McpServerTool(Name = "activate_circle")]
+    [Description("Activates a Draft circle, locking in its members and payout order and generating its monthly cycle schedule. Requires at least two participating members and that every invited member has already accepted (get_circle_members shows invitation status) — if no payout order was set manually, activation defaults to the members' current order.")]
+    public static async Task<string> ActivateCircle(
+        [Description("The circle's numeric id.")] int circleId,
+        IMediator mediator, CancellationToken cancellationToken)
+    {
+        await mediator.Send(new ActivateCircleCommand(circleId), cancellationToken);
+        return ToJson(new { circleId, status = "Active" });
+    }
 
     [McpServerTool(Name = "submit_payment_claim")]
     [Description("Reports that the authenticated user has paid their own contribution for a circle cycle. This does NOT mark it paid immediately — it creates a claim the circle's organizer must approve, exactly like using the 'Report my payment' button in the app.")]
