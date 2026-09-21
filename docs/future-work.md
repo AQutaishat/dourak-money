@@ -6,20 +6,23 @@ should be built unless a future prompt explicitly pulls it back into scope.
 
 ## Infrastructure / DevOps
 
-- **MCP server: refresh-token flow / OAuth** — the MCP server
-  (`backend/src/Dourak.Api/Mcp/DourakMcpTools.cs`, mapped at `POST /api/mcp`)
-  currently only accepts the same short-lived JWT `/api/auth/login` issues
-  (1 week expiry, no refresh token exists anywhere in the app yet). A user
-  connecting Dourak to ChatGPT/Claude today has to manually re-log-in and
-  paste a fresh token into their MCP client's env var every time it expires
-  — fine for one's own testing, but not viable for real users. Proper fix is
-  either (a) a refresh-token flow added to the existing JWT auth (long-lived
-  refresh token, short-lived access token, a `/api/auth/refresh` endpoint),
-  or (b) a full OAuth 2.1 authorization-code flow in front of the MCP server
-  specifically (what ChatGPT's Apps directory actually expects for a public,
-  "click to connect" listing — see the MCP research/design discussion this
-  was scoped from). Do (a) first regardless, since it also benefits the web/
-  mobile apps' own session handling, not just MCP.
+- ~~**MCP server: refresh-token flow / OAuth**~~ — **[DONE]** implemented as
+  a full OAuth 2.1 authorization-code flow specifically in front of the MCP
+  server (`backend/src/Dourak.Api/Controllers/OAuthController.cs`), because
+  it turned out to be a hard requirement, not just a convenience: Claude
+  Desktop's "Connect" button for custom connectors only speaks MCP's OAuth
+  authorization spec (RFC 7591 dynamic client registration, RFC 8414 /
+  RFC 9728 discovery metadata, PKCE S256, no client secret) — it has no
+  field to paste a bearer token the way ChatGPT's custom-connector form
+  does. Public-client only (PKCE instead of a secret); access tokens are
+  the same short-lived JWTs `/api/auth/login` issues, refresh tokens are
+  opaque, rotated on every use, 90-day lifetime
+  (`OAuthClient`/`OAuthAuthorizationCode`/`OAuthRefreshToken` entities).
+  The web/mobile apps' own login still uses the plain `/api/auth/login`
+  JWT flow unchanged — this OAuth server exists only for MCP clients.
+  Still not built: revoking a refresh token from the UI (e.g. "disconnect
+  this app" on the profile page) — today the only way to invalidate one is
+  directly in the database.
 - ~~**"Forgot password" functionality**~~ — **[DONE]** email verification +
   password reset both implemented (backend: `IIdentityService` email
   methods, `AuthController` endpoints; web: `/forgot-password`,

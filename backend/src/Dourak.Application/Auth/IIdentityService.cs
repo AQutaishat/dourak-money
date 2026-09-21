@@ -39,6 +39,13 @@ public interface IIdentityService
 
     Task<AuthResult> LoginAsync(string email, string password);
 
+    /// <summary>
+    /// Issues a fresh access token for an already-known user id, with no password check —
+    /// used by the OAuth token endpoint (see OAuthController) once an authorization code or
+    /// refresh token has already proven who the caller is acting for.
+    /// </summary>
+    Task<AuthResult> IssueTokenAsync(string userId);
+
     Task<UserProfileDto?> GetProfileAsync(string userId);
 
     /// <summary>

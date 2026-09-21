@@ -74,6 +74,42 @@ public class PaymentReminderConfiguration : IEntityTypeConfiguration<PaymentRemi
     }
 }
 
+public class OAuthClientConfiguration : IEntityTypeConfiguration<OAuthClient>
+{
+    public void Configure(EntityTypeBuilder<OAuthClient> builder)
+    {
+        builder.Property(c => c.ClientId).IsRequired().HasMaxLength(100);
+        builder.Property(c => c.ClientName).IsRequired().HasMaxLength(200);
+        builder.Property(c => c.RedirectUris).IsRequired().HasMaxLength(2000);
+        builder.HasIndex(c => c.ClientId).IsUnique();
+    }
+}
+
+public class OAuthAuthorizationCodeConfiguration : IEntityTypeConfiguration<OAuthAuthorizationCode>
+{
+    public void Configure(EntityTypeBuilder<OAuthAuthorizationCode> builder)
+    {
+        builder.Property(c => c.Code).IsRequired().HasMaxLength(200);
+        builder.Property(c => c.ClientId).IsRequired().HasMaxLength(100);
+        builder.Property(c => c.UserId).IsRequired().HasMaxLength(450);
+        builder.Property(c => c.RedirectUri).IsRequired().HasMaxLength(2000);
+        builder.Property(c => c.CodeChallenge).IsRequired().HasMaxLength(200);
+        builder.Property(c => c.CodeChallengeMethod).IsRequired().HasMaxLength(20);
+        builder.HasIndex(c => c.Code).IsUnique();
+    }
+}
+
+public class OAuthRefreshTokenConfiguration : IEntityTypeConfiguration<OAuthRefreshToken>
+{
+    public void Configure(EntityTypeBuilder<OAuthRefreshToken> builder)
+    {
+        builder.Property(t => t.Token).IsRequired().HasMaxLength(200);
+        builder.Property(t => t.ClientId).IsRequired().HasMaxLength(100);
+        builder.Property(t => t.UserId).IsRequired().HasMaxLength(450);
+        builder.HasIndex(t => t.Token).IsUnique();
+    }
+}
+
 public class ApplicationUserConfiguration : IEntityTypeConfiguration<Dourak.Infrastructure.Identity.ApplicationUser>
 {
     public void Configure(EntityTypeBuilder<Dourak.Infrastructure.Identity.ApplicationUser> builder)

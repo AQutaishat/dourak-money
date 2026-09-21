@@ -78,6 +78,18 @@ public class IdentityService : IIdentityService
         return new AuthResult(true, user.Id, token, expiresAt, Array.Empty<string>());
     }
 
+    public async Task<AuthResult> IssueTokenAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null) return new AuthResult(false, null, null, null, new[] { "User not found." });
+        if (await _userManager.IsLockedOutAsync(user))
+            return new AuthResult(false, null, null, null, new[] { "This account has been deactivated." });
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var (token, expiresAt) = _tokenGenerator.Generate(user, roles);
+        return new AuthResult(true, user.Id, token, expiresAt, Array.Empty<string>());
+    }
+
     public async Task<UserProfileDto?> GetProfileAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);

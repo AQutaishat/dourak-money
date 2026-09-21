@@ -49,6 +49,9 @@ public class FakeIdentityService : IIdentityService
     public Task<AuthResult> LoginAsync(string email, string password) =>
         throw new NotSupportedException();
 
+    public Task<AuthResult> IssueTokenAsync(string userId) =>
+        throw new NotSupportedException();
+
     public Task SendEmailVerificationAsync(string userId, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 

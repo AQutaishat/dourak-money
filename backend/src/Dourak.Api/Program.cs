@@ -86,6 +86,22 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSection["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
     };
+    options.Events = new JwtBearerEvents
+    {
+        // MCP clients that speak the OAuth-based authorization spec (Claude Desktop) discover
+        // this server's OAuth endpoints from this header on a bare 401 — see
+        // /.well-known/oauth-protected-resource in OAuthController.
+        OnChallenge = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api/mcp"))
+            {
+                var baseUrl = builder.Configuration.GetSection("App")["FrontendBaseUrl"]?.TrimEnd('/') ?? "";
+                context.Response.Headers.Append("WWW-Authenticate",
+                    $"Bearer resource_metadata=\"{baseUrl}/.well-known/oauth-protected-resource\"");
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 builder.Services.AddAuthorization();
 

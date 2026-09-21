@@ -21,6 +21,9 @@ public interface IAppDbContext
     DbSet<PayoutPayment> PayoutPayments { get; }
     DbSet<PaymentClaim> PaymentClaims { get; }
     DbSet<PaymentReminder> PaymentReminders { get; }
+    DbSet<OAuthClient> OAuthClients { get; }
+    DbSet<OAuthAuthorizationCode> OAuthAuthorizationCodes { get; }
+    DbSet<OAuthRefreshToken> OAuthRefreshTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

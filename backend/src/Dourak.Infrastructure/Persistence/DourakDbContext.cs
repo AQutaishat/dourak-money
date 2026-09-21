@@ -20,6 +20,9 @@ public class DourakDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<PayoutPayment> PayoutPayments => Set<PayoutPayment>();
     public DbSet<PaymentClaim> PaymentClaims => Set<PaymentClaim>();
     public DbSet<PaymentReminder> PaymentReminders => Set<PaymentReminder>();
+    public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();
+    public DbSet<OAuthAuthorizationCode> OAuthAuthorizationCodes => Set<OAuthAuthorizationCode>();
+    public DbSet<OAuthRefreshToken> OAuthRefreshTokens => Set<OAuthRefreshToken>();
 
     public void RemoveCircle(SavingsCircle circle) => Circles.Remove(circle);
 

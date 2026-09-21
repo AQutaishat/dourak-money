@@ -34,6 +34,17 @@ dourak.money, www.dourak.money {
 		reverse_proxy api:8080
 	}
 
+	# OAuth discovery documents (RFC 8414 / RFC 9728) for the MCP server's authorization-code
+	# flow (see Dourak.Api/Controllers/OAuthController.cs) — these two exact paths only, so the
+	# rest of /.well-known/ (e.g. assetlinks.json for Android App Links) still falls through to
+	# the SPA's static file_server below.
+	handle /.well-known/oauth-authorization-server {
+		reverse_proxy api:8080
+	}
+	handle /.well-known/oauth-protected-resource {
+		reverse_proxy api:8080
+	}
+
 	# Everything else is the React SPA. try_files falls back to index.html
 	# so client-side routes (e.g. /circles/5) don't 404 on a hard refresh.
 	handle {
