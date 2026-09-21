@@ -1,0 +1,423 @@
+<title>Dourak User Guide</title>
+<style>
+  :root{
+    --ink:#1f2a24;
+    --ink-soft:#5c6b62;
+    --paper:#faf7f2;
+    --card:#ffffff;
+    --line:#e6e1d6;
+    --brand:#1f7a5c;
+    --brand-deep:#155943;
+    --brand-soft:#e7f3ec;
+    --accent:#c98a3e;
+    --warn-bg:#fdf1e4; --warn-line:#e9c48f; --warn-ink:#7a4c12;
+    --danger-bg:#fbeaea; --danger-line:#e9a3a3; --danger-ink:#7a1f1f;
+    --shadow: 0 1px 2px rgba(31,42,36,.06), 0 8px 24px -12px rgba(31,42,36,.18);
+    --radius: 16px;
+  }
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme: dark){
+      --ink:#eef1ee; --ink-soft:#a7b3ac; --paper:#100f0d; --card:#191d1a; --line:#2b312c;
+      --brand:#3fb787; --brand-deep:#8fe0bb; --brand-soft:#173229; --accent:#e0a75c;
+      --warn-bg:#2b2214; --warn-line:#5c4620; --warn-ink:#e7c088;
+      --danger-bg:#2b1616; --danger-line:#5c2a2a; --danger-ink:#e79a9a;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#eef1ee; --ink-soft:#a7b3ac; --paper:#100f0d; --card:#191d1a; --line:#2b312c;
+    --brand:#3fb787; --brand-deep:#8fe0bb; --brand-soft:#173229; --accent:#e0a75c;
+    --warn-bg:#2b2214; --warn-line:#5c4620; --warn-ink:#e7c088;
+    --danger-bg:#2b1616; --danger-line:#5c2a2a; --danger-ink:#e79a9a;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Inter','Segoe UI',sans-serif;
+    direction:ltr; padding-inline:16px; padding-block:26px; line-height:1.75; font-size:16px;
+  }
+  h1,h2,h3{ font-family:'Cairo','Inter',sans-serif; text-wrap:balance; margin:0; }
+  .wrap{max-width:880px;margin-inline:auto;}
+
+  header.hero{
+    display:flex; align-items:center; gap:16px; padding:22px 24px;
+    background:linear-gradient(135deg,var(--brand) 0%, var(--brand-deep) 100%);
+    border-radius:20px; color:#fff; margin-bottom:22px; box-shadow:var(--shadow);
+  }
+  .hero-badge{
+    width:56px;height:56px;border-radius:16px; background:rgba(255,255,255,.16);
+    display:flex;align-items:center;justify-content:center; font-size:28px;flex:none;
+    border:1px solid rgba(255,255,255,.25);
+  }
+  header.hero h1{font-size:clamp(21px,4vw,28px);font-weight:800;}
+  header.hero p{margin:.35em 0 0;opacity:.94;font-size:15px;max-width:60ch;}
+
+  .part{ margin: 36px 0 16px; display:flex; align-items:center; gap:12px; }
+  .part .badge{
+    font-family:'Cairo',sans-serif; font-weight:800; font-size:13px; color:#fff;
+    background:var(--brand); border-radius:999px; padding:6px 16px; flex:none;
+  }
+  .part h2{font-size:19px;font-weight:800;color:var(--brand-deep);}
+  .part-desc{
+    color:var(--ink-soft); font-size:14.5px; margin:-8px 0 18px 0; padding-inline-start:8px;
+    border-inline-start:3px solid var(--line); padding-block:2px 6px;
+  }
+
+  section.step{ margin-bottom:30px; scroll-margin-top:16px; }
+  .step-head{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .step-num{
+    font-family:'Cairo',sans-serif;font-weight:800; color:var(--brand-deep); background:var(--brand-soft);
+    border:1px solid var(--line); width:34px;height:34px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center; font-size:14.5px;flex:none;
+  }
+  .step-head h3{font-size:17px;font-weight:800;}
+  .step-text p{margin:0 0 9px;color:var(--ink);font-size:15px;}
+  .step-text p:last-child{margin-bottom:0;}
+
+  .tip{
+    margin-top:10px; background:var(--brand-soft); border:1px solid var(--line);
+    border-inline-start:4px solid var(--brand); border-radius:10px; padding:10px 14px;
+    font-size:14px; color:var(--ink);
+  }
+  .warn{
+    margin-top:10px; background:var(--warn-bg); border:1px solid var(--warn-line);
+    border-inline-start:4px solid var(--accent); border-radius:10px; padding:10px 14px;
+    font-size:14px; color:var(--warn-ink);
+  }
+  .danger{
+    margin-top:10px; background:var(--danger-bg); border:1px solid var(--danger-line);
+    border-inline-start:4px solid #c94f4f; border-radius:10px; padding:10px 14px;
+    font-size:14px; color:var(--danger-ink);
+  }
+  .tip b, .warn b, .danger b{color:inherit;}
+
+  .shots{ display:grid; grid-template-columns:1fr; gap:12px; margin-top:14px; }
+  .shots.two{grid-template-columns:1fr 1fr;}
+  @media (max-width:640px){ .shots.two{grid-template-columns:1fr;} }
+
+  figure{
+    margin:0; background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); overflow:hidden;
+  }
+  figure img{ display:block;width:100%;height:auto; border-bottom:1px solid var(--line); }
+  figcaption{ padding:8px 13px; font-size:12.5px; color:var(--ink-soft); display:flex;align-items:center;gap:6px; }
+  figcaption .dot{width:6px;height:6px;border-radius:50%;background:var(--brand);flex:none;}
+
+  hr.sep{ border:none;border-top:1px solid var(--line); margin:34px 0; }
+
+  nav.toc{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; margin-bottom:30px; box-shadow:var(--shadow);
+  }
+  nav.toc h2{font-size:14px;color:var(--ink-soft);letter-spacing:.03em;margin-bottom:10px;font-weight:700;}
+  nav.toc ol{ list-style:none;margin:0;padding:0; display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:5px 18px; counter-reset:toc; }
+  nav.toc li{counter-increment:toc;}
+  nav.toc a{ color:var(--ink);text-decoration:none;font-size:13.5px; display:flex;align-items:baseline;gap:8px; padding:3px 2px;border-radius:8px; }
+  nav.toc a:hover{color:var(--brand);}
+  nav.toc a::before{
+    content:counter(toc); font-family:'Cairo',sans-serif;font-weight:800;color:var(--brand-deep);
+    font-size:11px; background:var(--brand-soft); width:18px;height:18px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+
+  footer{ text-align:center;color:var(--ink-soft);font-size:13px; padding-top:8px; }
+</style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;800&family=Inter:wght@400;500;700&display=swap">
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="hero-badge">🤝</div>
+    <div>
+      <h1>Dourak User Guide</h1>
+      <p>A step-by-step, illustrated walkthrough — from creating a new circle to managing every payment in it. Follow the steps in order.</p>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Guide sections">
+    <h2>Sections</h2>
+    <ol>
+      <li><a href="#p1">Creating the circle and members</a></li>
+      <li><a href="#p2">This month's payments</a></li>
+      <li><a href="#p3">Paying out the recipient</a></li>
+      <li><a href="#p4">The full monthly record</a></li>
+      <li><a href="#p5">My account</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ PART 1 ============ -->
+  <div class="part" id="p1"><span class="badge">Part 1</span><h2>Creating the circle and adding members</h2></div>
+  <p class="part-desc">In this section we'll create a new circle from scratch, add members to it, and learn what to do if one of them doesn't accept.</p>
+
+  <section class="step" id="s1">
+    <div class="step-head"><div class="step-num">1</div><h3>Create a new circle</h3></div>
+    <div class="step-text">
+      <p>Press <b>"Create Savings Circle"</b>. Enter the circle's name, then each member's monthly contribution amount, the first month's start date, and the day of the month funds are collected (e.g. the 5th).</p>
+      <p class="tip"><b>You don't need to fill in everything now</b> — just the name, amount, and date. You can edit the details later.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/en/01-create-circle-empty.png" alt="Empty create-circle form"><figcaption><span class="dot"></span> Before filling anything in</figcaption></figure>
+      <figure><img src="images/en/02-create-circle-filled.png" alt="Create-circle form filled with basic details"><figcaption><span class="dot"></span> After entering the basic details</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s2">
+    <div class="step-head"><div class="step-num">2</div><h3>The circle is created</h3></div>
+    <div class="step-text">
+      <p>After pressing "Next" the new circle's page appears. Its status is now <b>"Draft"</b> — meaning it hasn't started yet, and you can still freely edit anything in it.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/en/03-circle-created-draft.png" alt="Circle page right after creation, status Draft"><figcaption><span class="dot"></span> The circle as a draft, ready for members</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s3">
+    <div class="step-head"><div class="step-num">3</div><h3>Add members</h3></div>
+    <div class="step-text">
+      <p>Press <b>"Add Member"</b>, then search for the person by name, email, or phone number, pick them from the list, and press <b>"Add"</b>. Repeat this for every member you want to include.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/en/04-add-member-search.png" alt="Search box for adding a member to the circle"><figcaption><span class="dot"></span> Searching for a member to add</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s4">
+    <div class="step-head"><div class="step-num">4</div><h3>Members now show "Pending"</h3></div>
+    <div class="step-text">
+      <p>A member you add doesn't join the circle right away — they get a notification and must <b>accept it themselves</b> first. Until they do, their name shows as <b>"Pending"</b>.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/en/05-members-pending.png" alt="Member list, two of them Pending"><figcaption><span class="dot"></span> Two members added, neither has accepted yet</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s5">
+    <div class="step-head"><div class="step-num">5</div><h3>You can't start until everyone has responded</h3></div>
+    <div class="step-text">
+      <p>If you try to activate the circle while a member still hasn't responded, a warning stops you. That's normal — just wait for their reply, or remove them if you'd rather not include them.</p>
+    </div>
+    <div class="warn"><b>Remember:</b> a member who hasn't accepted yet is not included in the payout order, and the circle cannot be activated while they're still pending.</div>
+    <div class="shots">
+      <figure><img src="images/en/06-activate-blocked.png" alt="Warning blocking activation because some members haven't responded"><figcaption><span class="dot"></span> Activation blocked — some invites are still pending</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s6">
+    <div class="step-head"><div class="step-num">6</div><h3>How a member accepts an invitation</h3></div>
+    <div class="step-text">
+      <p>When the invited member opens their app, the invitation appears on their home page, along with the circle's name and who invited them. They press <b>"Accept"</b> to join, or <b>"Decline"</b> to opt out.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/en/07-pending-invitation.png" alt="Invitation shown to the invited member"><figcaption><span class="dot"></span> The invitation, as the member sees it</figcaption></figure>
+      <figure><img src="images/en/08-invitation-accepted.png" alt="After pressing Accept, the invitation disappears and the circle joins My Circles"><figcaption><span class="dot"></span> After pressing "Accept"</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s7">
+    <div class="step-head"><div class="step-num">7</div><h3>Setting the monthly payout order</h3></div>
+    <div class="step-text">
+      <p>From the <b>"Payout Order"</b> tab you can see each member's turn to receive the pooled amount each month. Use the up/down arrows to reorder members however suits your group.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/en/09-payout-order.png" alt="Payout order list before any changes"><figcaption><span class="dot"></span> The default order</figcaption></figure>
+      <figure><img src="images/en/10-payout-order-reordered.png" alt="Payout order list after moving one member"><figcaption><span class="dot"></span> After moving one member with the arrow</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s8">
+    <div class="step-head"><div class="step-num">8</div><h3>Activate the circle</h3></div>
+    <div class="step-text">
+      <p>Once everyone has accepted and the order looks right, press <b>"Activate Circle"</b> then confirm. From this moment the circle actually begins — and the payout order can no longer be changed.</p>
+    </div>
+    <div class="danger"><b>Important:</b> once activated, the payout order becomes permanent and cannot be edited. Double-check it before pressing "Confirm".</div>
+    <div class="shots two">
+      <figure><img src="images/en/11-activate-confirm-dialog.png" alt="Confirmation dialog before activating the circle"><figcaption><span class="dot"></span> The confirmation before activation</figcaption></figure>
+      <figure><img src="images/en/12-circle-activated.png" alt="The circle is now Active after activation"><figcaption><span class="dot"></span> The circle is now "Active"</figcaption></figure>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ============ PART 2 ============ -->
+  <div class="part" id="p2"><span class="badge">Part 2</span><h2>This month's payments</h2></div>
+  <p class="part-desc">Here we follow a different circle (with 4 members, running for a couple of months already) to see how payments get recorded, and how a member's self-reported payment gets approved or rejected.</p>
+
+  <section class="step" id="s9">
+    <div class="step-head"><div class="step-num">9</div><h3>The "Current Cycle" tab</h3></div>
+    <div class="step-text">
+      <p>This tab shows the current month: who's due to receive the pool this month, how much has been collected from members so far, and each member's payment status.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/en/13-current-cycle-baseline.png" alt="Current Cycle tab at the start of the month, nobody has paid yet"><figcaption><span class="dot"></span> Start of the month — nobody has paid yet</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s10">
+    <div class="step-head"><div class="step-num">10</div><h3>Recording a payment for a member</h3></div>
+    <div class="step-text">
+      <p>Next to any member's name press <b>"Record Payment"</b>. Enter the amount they actually paid — <b>it doesn't have to be the full contribution</b>, you can record part of it now and the rest later.</p>
+    </div>
+    <div class="tip"><b>Partial payments are fine:</b> you can record more than one payment for the same member in the same month, until the contribution is complete.</div>
+    <div class="shots two">
+      <figure><img src="images/en/14-record-payment-dialog.png" alt="Dialog recording a partial payment"><figcaption><span class="dot"></span> Recording a partial payment for a member</figcaption></figure>
+      <figure><img src="images/en/15-two-partial-payments.png" alt="Two members with Late status after a partial payment for each"><figcaption><span class="dot"></span> After recording partial payments for two different members</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s11">
+    <div class="step-head"><div class="step-num">11</div><h3>When a member reports their own payment</h3></div>
+    <div class="step-text">
+      <p>The organizer doesn't have to record every payment — any member can press <b>"Record my payment"</b>, enter the amount they paid, and attach proof (like a screenshot of a bank transfer), then submit the report.</p>
+      <p>This report isn't automatically accepted — it stays <b>"pending"</b> until the organizer reviews it.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/en/16-submit-claim-with-evidence.png" alt="Dialog for a member reporting their payment with evidence attached"><figcaption><span class="dot"></span> A member reporting their payment with evidence</figcaption></figure>
+      <figure><img src="images/en/17-claim-pending.png" alt="Payment status after submitting: payment pending"><figcaption><span class="dot"></span> The payment is now "pending" review</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s12">
+    <div class="step-head"><div class="step-num">12</div><h3>Rejecting an unclear payment</h3></div>
+    <div class="step-text">
+      <p>The organizer opens the pending report and sees the amount and attached evidence. If something's wrong — say, the evidence is unclear — they press <b>"Reject"</b> and write a reason so the member knows what's needed.</p>
+    </div>
+    <div class="tip"><b>Note:</b> at any time, the member or organizer can click the <b>"Rejected"</b> or <b>"Approved"</b> badge next to a member's name to see that payment's details again.</div>
+    <div class="shots two">
+      <figure><img src="images/en/18-claim-detail-organizer.png" alt="Claim details as seen by the organizer, with Approve/Reject options"><figcaption><span class="dot"></span> Reviewing the report</figcaption></figure>
+      <figure><img src="images/en/19-reject-reason.png" alt="Writing a rejection reason before confirming"><figcaption><span class="dot"></span> Writing the rejection reason</figcaption></figure>
+    </div>
+    <div class="shots" style="margin-top:12px">
+      <figure><img src="images/en/20b-claim-rejected-detail-open.png" alt="Detail dialog showing a rejected payment with its reason"><figcaption><span class="dot"></span> After clicking the "Rejected" badge — the payment's details and reason are shown</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s13">
+    <div class="step-head"><div class="step-num">13</div><h3>Approving a valid payment</h3></div>
+    <div class="step-text">
+      <p>The member can submit a new report with clearer evidence. This time, the organizer opens the report and presses <b>"Approve"</b> — the amount is then automatically counted toward what's been collected.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/en/21-claim-detail-second.png" alt="A second report from the same member with new evidence"><figcaption><span class="dot"></span> A new report with clearer evidence</figcaption></figure>
+      <figure><img src="images/en/22-claim-approved.png" alt="After approval, the payment is approved and counted"><figcaption><span class="dot"></span> After approval — the member has now paid in full</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s14">
+    <div class="step-head"><div class="step-num">14</div><h3>The month is fully collected</h3></div>
+    <div class="step-text">
+      <p>Once every member has paid (whether recorded by the organizer or via an approved report), the month switches to <b>"Collected"</b> status — meaning the full required amount has been gathered.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/en/23-cycle-fully-collected.png" alt="The month is fully collected, all members paid in full"><figcaption><span class="dot"></span> The month's full amount has been collected</figcaption></figure>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ============ PART 3 ============ -->
+  <div class="part" id="p3"><span class="badge">Part 3</span><h2>Paying out the recipient</h2></div>
+  <p class="part-desc">Once collection is complete, the last step is handing the pooled amount to this month's recipient, and documenting it.</p>
+
+  <section class="step" id="s15">
+    <div class="step-head"><div class="step-num">15</div><h3>Confirming receipt — partial then full</h3></div>
+    <div class="step-text">
+      <p>Press <b>"Confirm recipient's receipt"</b>. You can hand it over in two installments too: first part of it with evidence (like a transfer screenshot), then the rest later until the full amount is delivered.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/en/24-payout-partial-dialog.png" alt="Dialog confirming a partial payout with evidence"><figcaption><span class="dot"></span> Handing over part of the amount with evidence</figcaption></figure>
+      <figure><img src="images/en/25-payout-partial-done.png" alt="After the first installment, some amount remains"><figcaption><span class="dot"></span> After the first installment, some amount remains</figcaption></figure>
+    </div>
+    <div class="shots" style="margin-top:12px">
+      <figure><img src="images/en/26-payout-fully-paid.png" alt="After the remaining amount is paid out, the month is fully complete"><figcaption><span class="dot"></span> After paying the rest — the month is now fully complete (collected and paid out)</figcaption></figure>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ============ PART 4 ============ -->
+  <div class="part" id="p4"><span class="badge">Part 4</span><h2>The full monthly record</h2></div>
+  <p class="part-desc">The "Monthly Cycles" tab shows every month in the circle — past, current, and upcoming — with its full details.</p>
+
+  <section class="step" id="s16">
+    <div class="step-head"><div class="step-num">16</div><h3>Seeing every month at once</h3></div>
+    <div class="step-text">
+      <p>From the <b>"Monthly Cycles"</b> tab you can see every month in order, who paid how much, and even rejected and approved payments. This is the complete record of every financial move in the circle.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/en/27-monthly-cycles-overview.png" alt="Every month of the circle with its payment record"><figcaption><span class="dot"></span> The full record — both a rejected and an approved payment appear here</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s17">
+    <div class="step-head"><div class="step-num">17</div><h3>When a past month isn't fully settled</h3></div>
+    <div class="step-text">
+      <p>Sometimes a month ends and a member still hasn't paid their share. This doesn't stop the circle — that old month stays open, so you can record their late payment at any point afterward.</p>
+    </div>
+    <div class="warn"><b>No problem if someone's late:</b> you can always go back to any earlier month and record a late payment for it, even months afterward.</div>
+    <div class="shots">
+      <figure><img src="images/en/28-past-month-incomplete.png" alt="A past month not yet fully collected, showing a Record Late Payment button"><figcaption><span class="dot"></span> A past month where a member still hasn't paid</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s18">
+    <div class="step-head"><div class="step-num">18</div><h3>Recording a late payment</h3></div>
+    <div class="step-text">
+      <p>Next to the late member's name in that old month, press <b>"Record Late Payment"</b> and enter the amount. It's applied directly to that specific month.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/en/29-record-late-payment-dialog.png" alt="Dialog for recording a late payment for a past month"><figcaption><span class="dot"></span> Recording the late payment</figcaption></figure>
+      <figure><img src="images/en/30-late-payment-done.png" alt="The past month after recording the late payment"><figcaption><span class="dot"></span> The old month is now complete after the late payment</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s19">
+    <div class="step-head"><div class="step-num">19</div><h3>Paying ahead for a future month</h3></div>
+    <div class="step-text">
+      <p>The opposite works too — if a member wants to pay their share for a month <b>that hasn't arrived yet</b>, that can be recorded the same way, using the <b>"Record Advance Payment"</b> button next to their name in that upcoming month.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/en/31-record-advance-payment-dialog.png" alt="Dialog recording an advance payment for a future month"><figcaption><span class="dot"></span> Recording an advance payment for a future month</figcaption></figure>
+      <figure><img src="images/en/32-advance-payment-done.png" alt="Future month showing an amount paid in advance by one member"><figcaption><span class="dot"></span> The upcoming month — an advance payment recorded for one member</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s20">
+    <div class="step-head"><div class="step-num">20</div><h3>Choosing a different month right from "Current Cycle"</h3></div>
+    <div class="step-text">
+      <p>Even from the "Current Cycle" tab itself, when recording a payment for a member you'll find a small link labeled <b>"Record the amount on: Current Cycle"</b> — click it and every other month (past or future) appears, so you can pick one directly without going to the "Monthly Cycles" tab at all.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/en/33-cycle-picker-menu.png" alt="Menu for picking a different month instead of the current cycle when recording a payment"><figcaption><span class="dot"></span> Choosing a different month while recording any payment</figcaption></figure>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ============ PART 5 ============ -->
+  <div class="part" id="p5"><span class="badge">Part 5</span><h2>My account</h2></div>
+  <p class="part-desc">Edit your name and phone number at any time.</p>
+
+  <section class="step" id="s21">
+    <div class="step-head"><div class="step-num">21</div><h3>Editing your name and phone number</h3></div>
+    <div class="step-text">
+      <p>From your name icon at the top of the page, open <b>"My Profile"</b>. Edit your name or phone number as you like, then press <b>"Save"</b>.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/en/34-profile-before.png" alt="Profile page before editing"><figcaption><span class="dot"></span> Before editing</figcaption></figure>
+      <figure><img src="images/en/35-profile-filled.png" alt="Profile page after entering a new name and phone number"><figcaption><span class="dot"></span> After entering the new details</figcaption></figure>
+    </div>
+    <div class="shots" style="margin-top:12px">
+      <figure><img src="images/en/36-profile-saved.png" alt="Confirmation message that the profile was saved successfully"><figcaption><span class="dot"></span> Saved successfully</figcaption></figure>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <footer>
+    The <b>Dourak</b> user guide — your savings circle, organized. For any further questions, contact support inside the app.
+  </footer>
+
+</div>

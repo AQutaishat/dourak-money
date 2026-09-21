@@ -10,6 +10,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import GroupsIcon from "@mui/icons-material/Groups";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { Outlet, Link as RouterLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/AuthContext";
@@ -42,6 +43,11 @@ export function AppLayout() {
     logout();
     navigate("/login");
   };
+
+  // prompt: a static illustrated how-to guide, shipped as a plain HTML file under public/help/
+  // (not part of the SPA/router) so it works standalone — the correct language file is picked
+  // from the current UI language, same `startsWith("ar")` check used for the language select.
+  const userGuideUrl = i18n.language.startsWith("ar") ? "/help/ar.html" : "/help/en.html";
 
   const languageSelect = (
     <Select
@@ -80,6 +86,7 @@ export function AppLayout() {
               <Stack direction="row" spacing={1} alignItems="center" sx={{ marginInlineStart: 2 }}>
                 <Button component={RouterLink} to="/">{t("nav.dashboard")}</Button>
                 <Button component={RouterLink} to="/circles">{t("nav.myCircles")}</Button>
+                <Button component="a" href={userGuideUrl} target="_blank" rel="noopener">{t("nav.userGuide")}</Button>
               </Stack>
 
               <Box sx={{ flexGrow: 1 }} />
@@ -145,6 +152,13 @@ export function AppLayout() {
               component={RouterLink} to="/profile" onClick={() => setDrawerOpen(false)}
             >
               {t("nav.myProfile")}
+            </Button>
+            <Button
+              fullWidth startIcon={<HelpOutlineIcon />} sx={{ justifyContent: "flex-start" }}
+              component="a" href={userGuideUrl} target="_blank" rel="noopener"
+              onClick={() => setDrawerOpen(false)}
+            >
+              {t("nav.userGuide")}
             </Button>
             <Divider />
             {languageSelect}

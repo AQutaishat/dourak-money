@@ -1,6 +1,6 @@
 {
   "app": { "name": "تطبيق دورك", "tagline": "جمعيتك، منظمة." },
-  "nav": { "dashboard": "الرئيسية", "myCircles": "جمعياتي", "logout": "تسجيل الخروج", "settings": "الإعدادات", "myProfile": "ملفي الشخصي", "account": "الحساب" },
+  "nav": { "dashboard": "الرئيسية", "myCircles": "جمعياتي", "logout": "تسجيل الخروج", "settings": "الإعدادات", "myProfile": "ملفي الشخصي", "account": "الحساب", "userGuide": "دليل الاستخدام" },
   "auth": {
     "login": "تسجيل الدخول", "register": "إنشاء حساب", "email": "البريد الإلكتروني", "password": "كلمة المرور", "name": "الاسم",
     "phone": "رقم الهاتف", "preferredLanguage": "اللغة المفضلة", "noAccount": "ليس لديك حساب؟",

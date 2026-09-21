@@ -1,6 +1,6 @@
 {
   "app": { "name": "Dourak App", "tagline": "Your savings circle, organized." },
-  "nav": { "dashboard": "Dashboard", "myCircles": "My Circles", "logout": "Logout", "settings": "Settings", "myProfile": "My Profile", "account": "Account" },
+  "nav": { "dashboard": "Dashboard", "myCircles": "My Circles", "logout": "Logout", "settings": "Settings", "myProfile": "My Profile", "account": "Account", "userGuide": "User Guide" },
   "auth": {
     "login": "Login", "register": "Register", "email": "Email", "password": "Password", "name": "Name",
     "phone": "Phone", "preferredLanguage": "Preferred Language", "noAccount": "Don't have an account?",

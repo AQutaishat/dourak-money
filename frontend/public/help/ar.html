@@ -1,0 +1,429 @@
+<title>دليل دورك المصوّر</title>
+<style>
+  :root{
+    --ink:#1f2a24;
+    --ink-soft:#5c6b62;
+    --paper:#faf7f2;
+    --card:#ffffff;
+    --line:#e6e1d6;
+    --brand:#1f7a5c;
+    --brand-deep:#155943;
+    --brand-soft:#e7f3ec;
+    --accent:#c98a3e;
+    --warn-bg:#fdf1e4; --warn-line:#e9c48f; --warn-ink:#7a4c12;
+    --danger-bg:#fbeaea; --danger-line:#e9a3a3; --danger-ink:#7a1f1f;
+    --shadow: 0 1px 2px rgba(31,42,36,.06), 0 8px 24px -12px rgba(31,42,36,.18);
+    --radius: 16px;
+  }
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme: dark){
+      --ink:#eef1ee; --ink-soft:#a7b3ac; --paper:#100f0d; --card:#191d1a; --line:#2b312c;
+      --brand:#3fb787; --brand-deep:#8fe0bb; --brand-soft:#173229; --accent:#e0a75c;
+      --warn-bg:#2b2214; --warn-line:#5c4620; --warn-ink:#e7c088;
+      --danger-bg:#2b1616; --danger-line:#5c2a2a; --danger-ink:#e79a9a;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#eef1ee; --ink-soft:#a7b3ac; --paper:#100f0d; --card:#191d1a; --line:#2b312c;
+    --brand:#3fb787; --brand-deep:#8fe0bb; --brand-soft:#173229; --accent:#e0a75c;
+    --warn-bg:#2b2214; --warn-line:#5c4620; --warn-ink:#e7c088;
+    --danger-bg:#2b1616; --danger-line:#5c2a2a; --danger-ink:#e79a9a;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Noto Kufi Arabic','Tahoma',sans-serif;
+    direction:rtl; padding-inline:16px; padding-block:26px; line-height:1.85; font-size:16px;
+  }
+  h1,h2,h3{ font-family:'Cairo','Noto Kufi Arabic',sans-serif; text-wrap:balance; margin:0; }
+  .wrap{max-width:880px;margin-inline:auto;}
+
+  header.hero{
+    display:flex; align-items:center; gap:16px; padding:22px 24px;
+    background:linear-gradient(135deg,var(--brand) 0%, var(--brand-deep) 100%);
+    border-radius:20px; color:#fff; margin-bottom:22px; box-shadow:var(--shadow);
+  }
+  .hero-badge{
+    width:56px;height:56px;border-radius:16px; background:rgba(255,255,255,.16);
+    display:flex;align-items:center;justify-content:center; font-size:28px;flex:none;
+    border:1px solid rgba(255,255,255,.25);
+  }
+  header.hero h1{font-size:clamp(21px,4vw,28px);font-weight:800;}
+  header.hero p{margin:.35em 0 0;opacity:.94;font-size:15px;max-width:60ch;}
+
+  /* Big section headers */
+  .part{
+    margin: 36px 0 16px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .part .badge{
+    font-family:'Cairo',sans-serif; font-weight:800; font-size:14px; color:#fff;
+    background:var(--brand); border-radius:999px; padding:6px 16px; flex:none;
+  }
+  .part h2{font-size:19px;font-weight:800;color:var(--brand-deep);}
+  .part-desc{
+    color:var(--ink-soft); font-size:14.5px; margin:-8px 0 18px 0; padding-inline-start:8px;
+    border-inline-start:3px solid var(--line); padding-block:2px 6px;
+  }
+
+  section.step{ margin-bottom:30px; scroll-margin-top:16px; }
+  .step-head{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .step-num{
+    font-family:'Cairo',sans-serif;font-weight:800; color:var(--brand-deep); background:var(--brand-soft);
+    border:1px solid var(--line); width:34px;height:34px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center; font-size:14.5px;flex:none;
+  }
+  .step-head h3{font-size:17px;font-weight:800;}
+  .step-text p{margin:0 0 9px;color:var(--ink);font-size:15px;}
+  .step-text p:last-child{margin-bottom:0;}
+
+  .tip{
+    margin-top:10px; background:var(--brand-soft); border:1px solid var(--line);
+    border-inline-start:4px solid var(--brand); border-radius:10px; padding:10px 14px;
+    font-size:14px; color:var(--ink);
+  }
+  .warn{
+    margin-top:10px; background:var(--warn-bg); border:1px solid var(--warn-line);
+    border-inline-start:4px solid var(--accent); border-radius:10px; padding:10px 14px;
+    font-size:14px; color:var(--warn-ink);
+  }
+  .danger{
+    margin-top:10px; background:var(--danger-bg); border:1px solid var(--danger-line);
+    border-inline-start:4px solid #c94f4f; border-radius:10px; padding:10px 14px;
+    font-size:14px; color:var(--danger-ink);
+  }
+  .tip b, .warn b, .danger b{color:inherit;}
+
+  .shots{
+    display:grid; grid-template-columns:1fr; gap:12px; margin-top:14px;
+  }
+  .shots.two{grid-template-columns:1fr 1fr;}
+  @media (max-width:640px){ .shots.two{grid-template-columns:1fr;} }
+
+  figure{
+    margin:0; background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); overflow:hidden;
+  }
+  figure img{ display:block;width:100%;height:auto; border-bottom:1px solid var(--line); }
+  figcaption{ padding:8px 13px; font-size:12.5px; color:var(--ink-soft); display:flex;align-items:center;gap:6px; }
+  figcaption .dot{width:6px;height:6px;border-radius:50%;background:var(--brand);flex:none;}
+
+  hr.sep{ border:none;border-top:1px solid var(--line); margin:34px 0; }
+
+  nav.toc{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; margin-bottom:30px; box-shadow:var(--shadow);
+  }
+  nav.toc h2{font-size:14px;color:var(--ink-soft);letter-spacing:.03em;margin-bottom:10px;font-weight:700;}
+  nav.toc ol{ list-style:none;margin:0;padding:0; display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:5px 18px; counter-reset:toc; }
+  nav.toc li{counter-increment:toc;}
+  nav.toc a{ color:var(--ink);text-decoration:none;font-size:13.5px; display:flex;align-items:baseline;gap:8px; padding:3px 2px;border-radius:8px; }
+  nav.toc a:hover{color:var(--brand);}
+  nav.toc a::before{
+    content:counter(toc); font-family:'Cairo',sans-serif;font-weight:800;color:var(--brand-deep);
+    font-size:11px; background:var(--brand-soft); width:18px;height:18px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+
+  footer{ text-align:center;color:var(--ink-soft);font-size:13px; padding-top:8px; }
+</style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;800&family=Noto+Kufi+Arabic:wght@400;500;700&display=swap">
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="hero-badge">🤝</div>
+    <div>
+      <h1>دليل دورك المصوّر</h1>
+      <p>خطوة بخطوة، بالصور، من إنشاء جمعية جديدة إلى إدارة كل دفعة فيها. اتبع الخطوات بالترتيب.</p>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="فهرس الدليل">
+    <h2>الأقسام</h2>
+    <ol>
+      <li><a href="#p1">إنشاء الجمعية والأعضاء</a></li>
+      <li><a href="#p2">دفعات الشهر الحالي</a></li>
+      <li><a href="#p3">تسليم المبلغ لصاحب الدور</a></li>
+      <li><a href="#p4">سجل كل الشهور</a></li>
+      <li><a href="#p5">حسابي الشخصي</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ PART 1 ============ -->
+  <div class="part" id="p1"><span class="badge">القسم الأول</span><h2>إنشاء الجمعية وإضافة الأعضاء</h2></div>
+  <p class="part-desc">في هذا القسم سننشئ جمعية جديدة من الصفر، ونضيف لها أعضاء، ونتعلّم ماذا نفعل إن لم يوافق أحدهم.</p>
+
+  <section class="step" id="s1">
+    <div class="step-head"><div class="step-num">١</div><h3>إنشاء جمعية جديدة</h3></div>
+    <div class="step-text">
+      <p>اضغط زر <b>"إنشاء جمعية"</b>. اكتب اسم الجمعية، ثم قيمة القسط الشهري لكل عضو، وتاريخ أول شهر، ويوم استلام الأموال من كل شهر (مثلاً يوم 5).</p>
+      <p class="tip"><b>لا داعي لملء كل شيء الآن</b> — فقط الاسم والمبلغ والتاريخ. يمكنك تعديل التفاصيل لاحقًا.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/ar/01-create-circle-empty.png" alt="نموذج إنشاء جمعية فارغ"><figcaption><span class="dot"></span> الصفحة قبل التعبئة</figcaption></figure>
+      <figure><img src="images/ar/02-create-circle-filled.png" alt="نموذج إنشاء جمعية معبأ بالبيانات الأساسية"><figcaption><span class="dot"></span> بعد كتابة البيانات الأساسية</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s2">
+    <div class="step-head"><div class="step-num">٢</div><h3>الجمعية أُنشئت</h3></div>
+    <div class="step-text">
+      <p>بعد الضغط على "التالي" تظهر صفحة الجمعية الجديدة. حالتها الآن <b>"مسودة"</b> — بمعنى أنها لم تبدأ بعد، ولا زال بإمكانك تعديل كل شيء فيها بحرية.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/ar/03-circle-created-draft.png" alt="صفحة الجمعية بعد الإنشاء، حالتها مسودة"><figcaption><span class="dot"></span> الجمعية كمسودة، جاهزة لإضافة الأعضاء</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s3">
+    <div class="step-head"><div class="step-num">٣</div><h3>إضافة الأعضاء</h3></div>
+    <div class="step-text">
+      <p>اضغط <b>"إضافة عضو"</b>، ثم ابحث عن الشخص بالاسم أو البريد الإلكتروني أو رقم هاتفه، واختره من القائمة، واضغط <b>"إضافة"</b>. كرّر هذا لكل عضو تريد ضمّه.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/ar/04-add-member-search.png" alt="مربع البحث عن عضو لإضافته للجمعية"><figcaption><span class="dot"></span> البحث عن عضو لإضافته</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s4">
+    <div class="step-head"><div class="step-num">٤</div><h3>الأعضاء الآن "بانتظار الرد"</h3></div>
+    <div class="step-text">
+      <p>كل عضو تضيفه لا ينضم للجمعية فورًا — يصله إشعار وعليه <b>الموافقة بنفسه</b> أولًا. لحين موافقته، يظهر اسمه بحالة <b>"بانتظار الرد"</b>.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/ar/05-members-pending.png" alt="قائمة الأعضاء، اثنان منهم بحالة بانتظار الرد"><figcaption><span class="dot"></span> عضوان أُضيفا، ولم يوافقا بعد</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s5">
+    <div class="step-head"><div class="step-num">٥</div><h3>لا يمكن البدء قبل موافقة الجميع</h3></div>
+    <div class="step-text">
+      <p>إذا حاولت تفعيل الجمعية وهناك عضو لم يوافق بعد، سيظهر لك تنبيه يمنعك من الاستمرار. هذا طبيعي — فقط انتظر رده، أو احذفه إن أردت الاستغناء عنه.</p>
+    </div>
+    <div class="warn"><b>تذكّر:</b> العضو الذي لم يوافق بعد لا يدخل في ترتيب استلام الأموال، ولا يمكن تفعيل الجمعية وهو معلّق.</div>
+    <div class="shots">
+      <figure><img src="images/ar/06-activate-blocked.png" alt="رسالة تمنع تفعيل الجمعية بسبب وجود أعضاء لم يوافقوا"><figcaption><span class="dot"></span> محاولة التفعيل مرفوضة لوجود ردود معلّقة</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s6">
+    <div class="step-head"><div class="step-num">٦</div><h3>كيف يوافق العضو على الدعوة</h3></div>
+    <div class="step-text">
+      <p>عندما يفتح العضو المدعو تطبيقه، تظهر له دعوة الانضمام في الصفحة الرئيسية، مع اسم الجمعية ومن دعاه. يضغط <b>"قبول"</b> للانضمام، أو <b>"رفض"</b> للاعتذار.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/ar/07-pending-invitation.png" alt="دعوة انضمام تظهر للعضو المدعو"><figcaption><span class="dot"></span> الدعوة كما يراها العضو</figcaption></figure>
+      <figure><img src="images/ar/08-invitation-accepted.png" alt="بعد ضغط قبول، الدعوة تختفي والجمعية تنضم لقائمة جمعياتي"><figcaption><span class="dot"></span> بعد الضغط على "قبول"</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s7">
+    <div class="step-head"><div class="step-num">٧</div><h3>ترتيب من يستلم كل شهر</h3></div>
+    <div class="step-text">
+      <p>من تبويب <b>"ترتيب الأدوار"</b> ترى ترتيب استلام كل عضو للمبلغ شهريًا. يمكنك تغيير الترتيب بالأسهم لأعلى وأسفل، حسب الأولوية التي تناسبكم.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/ar/09-payout-order.png" alt="قائمة ترتيب الأدوار قبل التعديل"><figcaption><span class="dot"></span> الترتيب الافتراضي</figcaption></figure>
+      <figure><img src="images/ar/10-payout-order-reordered.png" alt="قائمة ترتيب الأدوار بعد تحريك أحد الأعضاء"><figcaption><span class="dot"></span> بعد تحريك أحد الأعضاء بالسهم</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s8">
+    <div class="step-head"><div class="step-num">٨</div><h3>تفعيل الجمعية</h3></div>
+    <div class="step-text">
+      <p>عندما يوافق كل الأعضاء ويصبح الترتيب مناسبًا، اضغط <b>"تفعيل الجمعية"</b> ثم أكّد. من هذه اللحظة تبدأ الجمعية فعليًا، ولا يمكن بعدها تغيير ترتيب الاستلام.</p>
+    </div>
+    <div class="danger"><b>مهم:</b> بعد التفعيل، ترتيب الاستلام يصبح نهائيًا ولا يمكن التعديل عليه. تأكد منه جيدًا قبل الضغط على "تأكيد".</div>
+    <div class="shots two">
+      <figure><img src="images/ar/11-activate-confirm-dialog.png" alt="رسالة تأكيد تفعيل الجمعية"><figcaption><span class="dot"></span> رسالة التأكيد قبل التفعيل</figcaption></figure>
+      <figure><img src="images/ar/12-circle-activated.png" alt="الجمعية أصبحت نشطة بعد التفعيل"><figcaption><span class="dot"></span> الجمعية الآن "نشطة"</figcaption></figure>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ============ PART 2 ============ -->
+  <div class="part" id="p2"><span class="badge">القسم الثاني</span><h2>دفعات الشهر الحالي</h2></div>
+  <p class="part-desc">هنا نتابع جمعية أخرى (فيها 4 أعضاء وبدأت قبل شهرين)، لنرى كيف تُسجَّل الدفعات، وكيف تُقبل أو تُرفض دفعة أرسلها أحد الأعضاء بنفسه.</p>
+
+  <section class="step" id="s9">
+    <div class="step-head"><div class="step-num">٩</div><h3>تبويب "الدورة الحالية"</h3></div>
+    <div class="step-text">
+      <p>هذا التبويب يعرض الشهر الجاري: من صاحب الدور هذا الشهر، وكم تم تحصيله من الأعضاء، وحالة كل عضو (دفع أم لا).</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/ar/13-current-cycle-baseline.png" alt="تبويب الدورة الحالية في بداية الشهر، لا أحد دفع بعد"><figcaption><span class="dot"></span> بداية الشهر، لا أحد دفع بعد</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s10">
+    <div class="step-head"><div class="step-num">١٠</div><h3>تسجيل دفعة عن عضو</h3></div>
+    <div class="step-text">
+      <p>بجانب اسم أي عضو اضغط <b>"تسجيل دفعة"</b>. اكتب المبلغ الذي دفعه فعلًا — <b>لا يشترط أن يكون كامل القسط</b>، يمكنك تسجيل جزء منه الآن والباقي لاحقًا.</p>
+    </div>
+    <div class="tip"><b>الدفعات الجزئية مسموحة:</b> يمكنك تسجيل أكثر من دفعة لنفس العضو في نفس الشهر، حتى يكتمل القسط بالكامل.</div>
+    <div class="shots two">
+      <figure><img src="images/ar/14-record-payment-dialog.png" alt="نافذة تسجيل دفعة بمبلغ جزئي"><figcaption><span class="dot"></span> تسجيل دفعة جزئية لعضو</figcaption></figure>
+      <figure><img src="images/ar/15-two-partial-payments.png" alt="عضوان بحالة متأخر بعد تسجيل دفعة جزئية لكل منهما"><figcaption><span class="dot"></span> بعد تسجيل دفعتين جزئيتين لعضوين مختلفين</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s11">
+    <div class="step-head"><div class="step-num">١١</div><h3>عندما يُبلّغ العضو عن دفعته بنفسه</h3></div>
+    <div class="step-text">
+      <p>لا يشترط أن يسجّل المنظّم كل الدفعات — يمكن لأي عضو أن يضغط <b>"سجّل دفعتي"</b>، ويكتب المبلغ الذي دفعه، ويُرفق صورة إثبات (مثل لقطة تحويل بنكي)، ثم يرسل البلاغ.</p>
+      <p>هذا البلاغ لا يُعتبر مقبولًا تلقائيًا — يبقى <b>"معلّقًا"</b> حتى يراجعه المنظّم.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/ar/16-submit-claim-with-evidence.png" alt="نافذة إبلاغ عضو عن دفعته مع إرفاق صورة إثبات"><figcaption><span class="dot"></span> العضو يُبلّغ عن دفعته مع إثبات</figcaption></figure>
+      <figure><img src="images/ar/17-claim-pending.png" alt="حالة الدفعة بعد الإرسال: دفعة معلقة"><figcaption><span class="dot"></span> الدفعة الآن "معلّقة" بانتظار المراجعة</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s12">
+    <div class="step-head"><div class="step-num">١٢</div><h3>رفض دفعة غير واضحة</h3></div>
+    <div class="step-text">
+      <p>يفتح المنظّم البلاغ المعلّق فيرى المبلغ والإثبات المرفق. إذا كان هناك خلل — مثلًا الإثبات غير واضح — يضغط <b>"رفض"</b>، ويكتب السبب حتى يعرف العضو ما المطلوب منه.</p>
+    </div>
+    <div class="tip"><b>ملاحظة:</b> في أي وقت، يمكن للعضو أو المنظّم الضغط على شارة <b>"دفعة مرفوضة"</b> أو <b>"دفعة مقبولة"</b> بجانب اسم العضو لرؤية تفاصيل تلك الدفعة مجددًا.</div>
+    <div class="shots two">
+      <figure><img src="images/ar/18-claim-detail-organizer.png" alt="تفاصيل البلاغ كما يراها المنظم مع خياري موافقة أو رفض"><figcaption><span class="dot"></span> مراجعة البلاغ</figcaption></figure>
+      <figure><img src="images/ar/19-reject-reason.png" alt="كتابة سبب الرفض قبل التأكيد"><figcaption><span class="dot"></span> كتابة سبب الرفض</figcaption></figure>
+    </div>
+    <div class="shots" style="margin-top:12px">
+      <figure><img src="images/ar/20b-claim-rejected-detail-open.png" alt="نافذة تفاصيل الدفعة المرفوضة تظهر عند الضغط على شارة مرفوضة"><figcaption><span class="dot"></span> بعد الضغط على شارة "مرفوضة" — تظهر تفاصيل الدفعة وسبب الرفض</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s13">
+    <div class="step-head"><div class="step-num">١٣</div><h3>قبول دفعة صحيحة</h3></div>
+    <div class="step-text">
+      <p>يمكن للعضو إرسال بلاغ جديد بإثبات أوضح. هذه المرة، يفتح المنظّم البلاغ ويضغط <b>"موافقة"</b> — فيُحتسب المبلغ تلقائيًا ضمن ما تم تحصيله.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/ar/21-claim-detail-second.png" alt="بلاغ ثانٍ من نفس العضو بإثبات جديد"><figcaption><span class="dot"></span> بلاغ جديد بإثبات أوضح</figcaption></figure>
+      <figure><img src="images/ar/22-claim-approved.png" alt="بعد الموافقة، الدفعة أصبحت مقبولة ومحتسبة"><figcaption><span class="dot"></span> بعد الموافقة — العضو دفع بالكامل الآن</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s14">
+    <div class="step-head"><div class="step-num">١٤</div><h3>اكتمال تحصيل الشهر</h3></div>
+    <div class="step-text">
+      <p>بعد أن يدفع كل الأعضاء (سواء بتسجيل المنظّم أو ببلاغاتهم المقبولة)، يتحول الشهر لحالة <b>"تم التحصيل"</b> — أي أن كل المبلغ المطلوب جُمع بالكامل.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/ar/23-cycle-fully-collected.png" alt="الشهر مكتمل التحصيل، كل الأعضاء دفعوا بالكامل"><figcaption><span class="dot"></span> تم تحصيل كامل مبلغ الشهر</figcaption></figure>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ============ PART 3 ============ -->
+  <div class="part" id="p3"><span class="badge">القسم الثالث</span><h2>تسليم المبلغ لصاحب الدور</h2></div>
+  <p class="part-desc">بعد اكتمال التحصيل، بقي تسليم المبلغ للعضو صاحب الدور هذا الشهر، وتوثيق ذلك.</p>
+
+  <section class="step" id="s15">
+    <div class="step-head"><div class="step-num">١٥</div><h3>تأكيد الاستلام — دفعة جزئية ثم كاملة</h3></div>
+    <div class="step-text">
+      <p>اضغط <b>"تأكيد استلام صاحب الدور"</b>. يمكنك تسليمه المبلغ على دفعتين أيضًا: أولًا جزء منه مع إثبات (مثل صورة تحويل)، ثم الباقي لاحقًا حتى يكتمل المبلغ كله.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/ar/24-payout-partial-dialog.png" alt="نافذة تأكيد تسليم مبلغ جزئي لصاحب الدور مع إثبات"><figcaption><span class="dot"></span> تسليم جزء من المبلغ مع إثبات</figcaption></figure>
+      <figure><img src="images/ar/25-payout-partial-done.png" alt="بعد تسليم الجزء الأول، لا يزال هناك مبلغ متبقٍ"><figcaption><span class="dot"></span> بعد الدفعة الأولى، بقي جزء من المبلغ</figcaption></figure>
+    </div>
+    <div class="shots" style="margin-top:12px">
+      <figure><img src="images/ar/26-payout-fully-paid.png" alt="بعد تسليم كامل المبلغ، الشهر أصبح مكتملاً بالكامل"><figcaption><span class="dot"></span> بعد تسليم الباقي — الشهر مكتمل تمامًا (تحصيل وتسليم)</figcaption></figure>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ============ PART 4 ============ -->
+  <div class="part" id="p4"><span class="badge">القسم الرابع</span><h2>سجل كل شهور الجمعية</h2></div>
+  <p class="part-desc">تبويب "الدورات الشهرية" يعرض كل شهر في الجمعية — الماضي والحالي والقادم — بكل تفاصيله.</p>
+
+  <section class="step" id="s16">
+    <div class="step-head"><div class="step-num">١٦</div><h3>عرض كل الشهور دفعة واحدة</h3></div>
+    <div class="step-text">
+      <p>من تبويب <b>"الدورات الشهرية"</b> ترى كل شهر بترتيبه، ومن دفع كم، وحتى الدفعات المرفوضة والمقبولة. هذا هو السجل الكامل لكل حركة مالية في الجمعية.</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/ar/27-monthly-cycles-overview.png" alt="عرض شهور الجمعية مع سجل الدفعات لكل شهر"><figcaption><span class="dot"></span> السجل الكامل — يظهر فيه الدفعة المرفوضة والمقبولة معًا</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s17">
+    <div class="step-head"><div class="step-num">١٧</div><h3>عندما لا يكتمل شهر ماضٍ</h3></div>
+    <div class="step-text">
+      <p>أحيانًا ينتهي الشهر ولم يدفع أحد الأعضاء نصيبه بعد. هذا لا يوقف الجمعية — يظل الشهر القديم مفتوحًا لتسجيل الدفعة المتأخرة في أي وقت لاحق.</p>
+    </div>
+    <div class="warn"><b>لا مشكلة إن تأخر أحد:</b> يمكنك دائمًا العودة لأي شهر سابق وتسجيل دفعة متأخرة له، حتى لو مرّت شهور عليه.</div>
+    <div class="shots">
+      <figure><img src="images/ar/28-past-month-incomplete.png" alt="شهر ماضٍ لم يكتمل تحصيله بعد، يظهر زر تسجيل دفعة قديمة"><figcaption><span class="dot"></span> شهر ماضٍ لم يدفع فيه أحد الأعضاء بعد</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s18">
+    <div class="step-head"><div class="step-num">١٨</div><h3>تسجيل دفعة متأخرة</h3></div>
+    <div class="step-text">
+      <p>بجانب اسم العضو المتأخر في ذلك الشهر القديم، اضغط <b>"تسجيل دفعة قديمة"</b> وأدخل المبلغ. تُحتسب مباشرة على ذلك الشهر بالذات.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/ar/29-record-late-payment-dialog.png" alt="نافذة تسجيل دفعة متأخرة لشهر ماضٍ"><figcaption><span class="dot"></span> تسجيل الدفعة المتأخرة</figcaption></figure>
+      <figure><img src="images/ar/30-late-payment-done.png" alt="الشهر الماضي بعد تسجيل الدفعة المتأخرة"><figcaption><span class="dot"></span> اكتمل الشهر القديم بعد الدفعة المتأخرة</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s19">
+    <div class="step-head"><div class="step-num">١٩</div><h3>الدفع المسبق لشهر قادم</h3></div>
+    <div class="step-text">
+      <p>بالعكس تمامًا — إذا أراد عضو أن يدفع نصيب شهر <b>لم يأتِ بعد</b>، يمكن تسجيل ذلك أيضًا بنفس الطريقة، من زر <b>"تسجيل دفعة مقدمًا"</b> بجانب اسمه في ذلك الشهر المستقبلي.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/ar/31-record-advance-payment-dialog.png" alt="نافذة تسجيل دفعة مقدمة لشهر مستقبلي"><figcaption><span class="dot"></span> تسجيل دفعة مسبقة لشهر قادم</figcaption></figure>
+      <figure><img src="images/ar/32-advance-payment-done.png" alt="الشهر القادم يظهر فيه مبلغ مدفوع مسبقًا لأحد الأعضاء"><figcaption><span class="dot"></span> الشهر القادم — دفعة مسبقة مسجّلة لأحد الأعضاء</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="s20">
+    <div class="step-head"><div class="step-num">٢٠</div><h3>اختيار شهر آخر مباشرة من "الدورة الحالية"</h3></div>
+    <div class="step-text">
+      <p>حتى من تبويب "الدورة الحالية" نفسه، عند تسجيل دفعة لعضو تجد رابط صغير بعنوان <b>"تسجيل المبلغ على: الدورة الحالية"</b> — اضغطه وستظهر لك كل الشهور الأخرى (الماضية والقادمة) لتختار من بينها مباشرة، دون الحاجة للذهاب لتبويب "الدورات الشهرية".</p>
+    </div>
+    <div class="shots">
+      <figure><img src="images/ar/33-cycle-picker-menu.png" alt="قائمة اختيار شهر آخر بدلاً من الدورة الحالية عند تسجيل دفعة"><figcaption><span class="dot"></span> اختيار شهر مختلف عند تسجيل أي دفعة</figcaption></figure>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ============ PART 5 ============ -->
+  <div class="part" id="p5"><span class="badge">القسم الخامس</span><h2>حسابي الشخصي</h2></div>
+  <p class="part-desc">تعديل اسمك ورقم هاتفك في أي وقت.</p>
+
+  <section class="step" id="s21">
+    <div class="step-head"><div class="step-num">٢١</div><h3>تعديل الاسم ورقم الهاتف</h3></div>
+    <div class="step-text">
+      <p>من أيقونة اسمك أعلى الصفحة افتح <b>"ملفي الشخصي"</b>. عدّل الاسم أو رقم الهاتف كما تريد، ثم اضغط <b>"حفظ"</b>.</p>
+    </div>
+    <div class="shots two">
+      <figure><img src="images/ar/34-profile-before.png" alt="صفحة الملف الشخصي قبل التعديل"><figcaption><span class="dot"></span> قبل التعديل</figcaption></figure>
+      <figure><img src="images/ar/35-profile-filled.png" alt="صفحة الملف الشخصي بعد كتابة اسم ورقم هاتف جديدين"><figcaption><span class="dot"></span> بعد كتابة البيانات الجديدة</figcaption></figure>
+    </div>
+    <div class="shots" style="margin-top:12px">
+      <figure><img src="images/ar/36-profile-saved.png" alt="رسالة تأكيد حفظ الملف الشخصي بنجاح"><figcaption><span class="dot"></span> تم الحفظ بنجاح</figcaption></figure>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <footer>
+    دليل استخدام <b>دورك</b> — جمعيتك، منظّمة. لأي استفسار إضافي راجع فريق الدعم داخل التطبيق.
+  </footer>
+
+</div>
