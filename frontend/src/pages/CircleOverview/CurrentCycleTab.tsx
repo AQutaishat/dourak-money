@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Box, Grid, Card, CardContent, Typography, Table, TableHead, TableRow, TableCell, TableBody,
+  Box, Grid, Card, CardContent, Typography, Table, TableContainer, TableHead, TableRow, TableCell, TableBody,
   Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Stack, Tooltip, Chip, LinearProgress,
   Menu, MenuItem, Link as MuiLink,
 } from "@mui/material";
@@ -257,6 +257,7 @@ export function CurrentCycleTab({ circle }: { circle: CircleDetail }) {
         {t("circle.membersPayments")}
       </Typography>
 
+      <TableContainer sx={{ maxWidth: "100%" }}>
       <Table size="small">
         <TableHead>
           <TableRow>
@@ -327,6 +328,7 @@ export function CurrentCycleTab({ circle }: { circle: CircleDetail }) {
           })}
         </TableBody>
       </Table>
+      </TableContainer>
 
       {/* Grace-period explanation and the WhatsApp share button share one line below the table.
           Physical order is locked left-to-right via a native `style` prop (the RTL emotion cache

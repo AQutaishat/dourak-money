@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Table, TableHead, TableRow, TableCell, TableBody, Typography, Chip } from "@mui/material";
+import { Table, TableContainer, TableHead, TableRow, TableCell, TableBody, Typography, Chip } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { circlesApi } from "../../api/circles";
 
@@ -12,31 +12,37 @@ export function HistoryTab({ circleId, currency }: { circleId: number; currency:
   }
 
   return (
-    <Table size="small">
-      <TableHead>
-        <TableRow>
-          <TableCell>#</TableCell>
-          <TableCell>{t("circle.startDate")}</TableCell>
-          <TableCell>{t("circle.recipient")}</TableCell>
-          <TableCell>{t("circle.collected")}</TableCell>
-          <TableCell>{t("circle.unpaid")}</TableCell>
-          <TableCell>{t("circle.late")}</TableCell>
-          <TableCell>{t("circle.payoutStatus")}</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {history.map((c) => (
-          <TableRow key={c.cycleId}>
-            <TableCell>{c.sequenceNumber}</TableCell>
-            <TableCell>{new Date(c.dueDate).toLocaleDateString(i18n.language, { month: "long", year: "numeric" })}</TableCell>
-            <TableCell>{c.recipientName}</TableCell>
-            <TableCell>{c.collected} / {c.expectedPool} {currency}</TableCell>
-            <TableCell>{c.unpaidMembers.join(", ") || "—"}</TableCell>
-            <TableCell>{c.lateMembers.join(", ") || "—"}</TableCell>
-            <TableCell><Chip size="small" color={c.payoutStatus === "Paid" ? "success" : "default"} label={t(`circle.${c.payoutStatus === "Paid" ? "paid" : "pending"}`)} /></TableCell>
+    // A table this wide doesn't fit a phone — without this wrapper the whole PAGE scrolled
+    // horizontally instead of just the table, which is also what threw off every Dialog/Menu
+    // backdrop's positioning on mobile (their scroll-lock math assumes no stray horizontal
+    // overflow anywhere on the page).
+    <TableContainer sx={{ maxWidth: "100%" }}>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>#</TableCell>
+            <TableCell>{t("circle.startDate")}</TableCell>
+            <TableCell>{t("circle.recipient")}</TableCell>
+            <TableCell>{t("circle.collected")}</TableCell>
+            <TableCell>{t("circle.unpaid")}</TableCell>
+            <TableCell>{t("circle.late")}</TableCell>
+            <TableCell>{t("circle.payoutStatus")}</TableCell>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHead>
+        <TableBody>
+          {history.map((c) => (
+            <TableRow key={c.cycleId}>
+              <TableCell>{c.sequenceNumber}</TableCell>
+              <TableCell>{new Date(c.dueDate).toLocaleDateString(i18n.language, { month: "long", year: "numeric" })}</TableCell>
+              <TableCell>{c.recipientName}</TableCell>
+              <TableCell>{c.collected} / {c.expectedPool} {currency}</TableCell>
+              <TableCell>{c.unpaidMembers.join(", ") || "—"}</TableCell>
+              <TableCell>{c.lateMembers.join(", ") || "—"}</TableCell>
+              <TableCell><Chip size="small" color={c.payoutStatus === "Paid" ? "success" : "default"} label={t(`circle.${c.payoutStatus === "Paid" ? "paid" : "pending"}`)} /></TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }

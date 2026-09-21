@@ -37,9 +37,10 @@ export function UnverifiedEmailBanner() {
         position: "fixed",
         bottom: 16,
         insetInlineEnd: 16,
+        insetInlineStart: { xs: 16, sm: "auto" },
         zIndex: (theme) => theme.zIndex.snackbar,
         p: 2,
-        maxWidth: 320,
+        maxWidth: { xs: "none", sm: 320 },
         borderInlineStart: "4px solid",
         borderColor: "warning.main",
       }}

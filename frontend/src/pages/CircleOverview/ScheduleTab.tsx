@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Box, Stack, Typography, Table, TableHead, TableRow, TableCell, TableBody, Chip,
+  Box, Stack, Typography, Table, TableContainer, TableHead, TableRow, TableCell, TableBody, Chip,
   Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Link as MuiLink,
 } from "@mui/material";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
@@ -190,7 +190,8 @@ export function ScheduleTab({
               )}
             </Box>
 
-            <Table size="small" sx={{ mt: 3 }}>
+            <TableContainer sx={{ maxWidth: "100%", mt: 3 }}>
+            <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell>{t("circle.memberName")}</TableCell>
@@ -268,6 +269,7 @@ export function ScheduleTab({
                 })}
               </TableBody>
             </Table>
+            </TableContainer>
           </Box>
         );
       })}

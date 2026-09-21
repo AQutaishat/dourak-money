@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Chip, Button, Stack } from "@mui/material";
+import { Box, Typography, Table, TableContainer, TableHead, TableRow, TableCell, TableBody, Chip, Button, Stack } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CloseIcon from "@mui/icons-material/Close";
@@ -37,6 +37,7 @@ export function MemberHistoryPage() {
         <Typography color="text.secondary" gutterBottom>{t("circle.payoutOrder")}: #{history.payoutPosition}</Typography>
       )}
 
+      <TableContainer sx={{ maxWidth: "100%" }}>
       <Table size="small">
         <TableHead>
           <TableRow>
@@ -64,6 +65,7 @@ export function MemberHistoryPage() {
           ))}
         </TableBody>
       </Table>
+      </TableContainer>
 
       <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3 }}>
         <Button variant="outlined" startIcon={<CloseIcon />} onClick={backToMembers}>{t("common.close")}</Button>
