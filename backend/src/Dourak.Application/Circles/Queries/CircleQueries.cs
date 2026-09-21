@@ -600,6 +600,28 @@ public class GetMyPaymentClaimsQueryHandler : IRequestHandler<GetMyPaymentClaims
     }
 }
 
+// ---------- The calling user's standing payment-reminder rules ----------
+
+public record GetMyPaymentRemindersQuery : IRequest<IReadOnlyList<PaymentReminderDto>>;
+
+public class GetMyPaymentRemindersQueryHandler : IRequestHandler<GetMyPaymentRemindersQuery, IReadOnlyList<PaymentReminderDto>>
+{
+    private readonly IAppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
+
+    public GetMyPaymentRemindersQueryHandler(IAppDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
+
+    public async Task<IReadOnlyList<PaymentReminderDto>> Handle(GetMyPaymentRemindersQuery request, CancellationToken cancellationToken) =>
+        await _db.PaymentReminders
+            .Where(r => r.UserId == _currentUser.UserId)
+            .Select(r => new PaymentReminderDto(r.Id, r.CircleId, r.Circle!.Name, r.DaysBefore))
+            .ToListAsync(cancellationToken);
+}
+
 internal static class PaymentClaimMapper
 {
     public static PaymentClaimDto ToDto(PaymentClaim pc)

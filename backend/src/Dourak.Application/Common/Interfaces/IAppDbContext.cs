@@ -20,6 +20,7 @@ public interface IAppDbContext
     DbSet<Payout> Payouts { get; }
     DbSet<PayoutPayment> PayoutPayments { get; }
     DbSet<PaymentClaim> PaymentClaims { get; }
+    DbSet<PaymentReminder> PaymentReminders { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

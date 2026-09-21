@@ -60,6 +60,20 @@ public class PaymentClaimConfiguration : IEntityTypeConfiguration<PaymentClaim>
     }
 }
 
+public class PaymentReminderConfiguration : IEntityTypeConfiguration<PaymentReminder>
+{
+    public void Configure(EntityTypeBuilder<PaymentReminder> builder)
+    {
+        builder.Property(r => r.UserId).IsRequired().HasMaxLength(450);
+        builder.Property(r => r.SentForSequenceNumbers).HasMaxLength(500);
+
+        // One reminder rule per user per circle — asking again just updates DaysBefore.
+        builder.HasIndex(r => new { r.UserId, r.CircleId }).IsUnique();
+
+        builder.HasOne(r => r.Circle).WithMany().HasForeignKey(r => r.CircleId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 public class ApplicationUserConfiguration : IEntityTypeConfiguration<Dourak.Infrastructure.Identity.ApplicationUser>
 {
     public void Configure(EntityTypeBuilder<Dourak.Infrastructure.Identity.ApplicationUser> builder)

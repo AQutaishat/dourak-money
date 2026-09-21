@@ -124,3 +124,6 @@ public record PaymentClaimDto(
     string Status, string? Note, string? RejectionReason,
     DateTimeOffset SubmittedAt, DateTimeOffset? ReviewedAt,
     bool HasEvidence, string? EvidenceFileName, string? EvidenceContentType);
+
+/// <summary>One of the calling user's standing "remind me before payment" rules.</summary>
+public record PaymentReminderDto(int Id, int CircleId, string CircleName, int DaysBefore);

@@ -60,6 +60,12 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// MCP server (Model Context Protocol) — lets an AI assistant (ChatGPT, Claude, ...) read a
+// signed-in user's circles/payments and act on their behalf (report a payment, set a reminder),
+// mapped at /mcp below and gated behind the exact same JWT bearer auth as every controller — see
+// Mcp/DourakMcpTools.cs for why no tool ever needs (or accepts) a user id parameter.
+builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
+
 var jwtSection = builder.Configuration.GetSection(JwtSettings.SectionName);
 var jwtSecret = jwtSection["Secret"] ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
 
@@ -110,6 +116,9 @@ app.UseCors(CorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+// Under /api/mcp (not just /mcp) so it's reachable through the same Caddy `/api/*` reverse-proxy
+// block the rest of the API already uses in production — no separate infra/DNS/cert needed.
+app.MapMcp("/api/mcp").RequireAuthorization();
 
 // Apply migrations automatically on startup — acceptable simplicity for an MVP (see README).
 using (var scope = app.Services.CreateScope())

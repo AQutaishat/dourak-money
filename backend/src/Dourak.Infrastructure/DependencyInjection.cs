@@ -58,6 +58,8 @@ public static class DependencyInjection
         services.AddSingleton<IRandomShuffler, CryptoRandomShuffler>();
         services.AddSingleton<IEvidenceFileStorage, Storage.DiskEvidenceFileStorage>();
 
+        services.AddHostedService<Reminders.PaymentReminderBackgroundService>();
+
         return services;
     }
 }
