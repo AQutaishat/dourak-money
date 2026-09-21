@@ -140,9 +140,26 @@ class DourakApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
-    final router = ref.watch(_routerProvider);
     final direction = locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr;
 
+    // The stored-token check (AuthController._bootstrap) is async, so its result isn't
+    // known on the very first frame. Hold the whole app on a blank splash until it
+    // resolves, instead of letting GoRouter's redirect run against a not-yet-known
+    // isAuthenticated value — the fix for "the app makes me log in again every time"
+    // (it wasn't losing the token, it was racing the read of it).
+    final isBootstrapping = ref.watch(authControllerProvider.select((a) => a.isBootstrapping));
+    if (isBootstrapping) {
+      return Directionality(
+        textDirection: direction,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: buildDourakTheme(direction),
+          home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+        ),
+      );
+    }
+
+    final router = ref.watch(_routerProvider);
     return _DeepLinkListener(
       child: Directionality(
         textDirection: direction,

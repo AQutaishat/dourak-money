@@ -4,6 +4,31 @@ Items deliberately pushed out of the current phase(s), tracked here so they're
 not forgotten but also don't creep into active scope uninvited. Nothing here
 should be built unless a future prompt explicitly pulls it back into scope.
 
+## Analytics / Product Insight
+
+- **Google Analytics 4 integration** — no analytics of any kind exist yet on
+  the web app or admin site (mobile has no analytics SDK either). GA4 is the
+  free, standard choice and would need: a `gtag.js`/`react-ga4` snippet on
+  `frontend/` (page views + a handful of custom events — circle created,
+  member added, circle activated, payment claim submitted), and for mobile
+  the `firebase_analytics` Flutter package (needs a Firebase project, which
+  also unlocks Crashlytics for free — worth doing alongside this rather than
+  separately). Low effort, mostly config not code.
+  - **Alternatives worth considering instead of/alongside GA4**, roughly in
+    order of fit for a small product like this:
+    - **PostHog** (self-hostable or cloud) — product analytics + session
+      replay + feature flags in one tool, more useful than GA4 for
+      understanding *why* users drop off mid-flow (e.g. abandoning circle
+      creation), at the cost of being a bit heavier to set up.
+    - **Plausible / Umami** — much simpler, privacy-friendly, cookie-consent-
+      free page-view analytics if the goal is just "how many people visit and
+      from where," not funnel/behavior analysis.
+    - **Sentry** — not an analytics tool, but genuinely more urgent than any
+      of the above: there is currently no error-tracking/crash-reporting at
+      all in production (web, mobile, or API beyond Serilog/Seq logs), so a
+      real user-facing bug can go unnoticed indefinitely unless someone
+      happens to check the logs.
+
 ## Infrastructure / DevOps
 
 - ~~**MCP server: refresh-token flow / OAuth**~~ — **[DONE]** implemented as

@@ -30,23 +30,31 @@ AuthException _toAuthError(Object err, String fallback) {
 }
 
 class AuthData {
-  const AuthData({required this.isAuthenticated, this.profile});
+  const AuthData({required this.isAuthenticated, this.profile, this.isBootstrapping = false});
   final bool isAuthenticated;
   final UserProfile? profile;
+
+  /// True only for the brief window between app start and the stored-token check
+  /// finishing (see AuthController._bootstrap). The router must not decide
+  /// authenticated-vs-not while this is true, or a slow secure-storage read loses
+  /// the race against GoRouter's first redirect and briefly (or, on a slow device,
+  /// not-so-briefly) bounces an already-logged-in user to /login.
+  final bool isBootstrapping;
 
   /// Mirrors `displayLabel` fallback chain in AuthContext.tsx.
   String get displayLabel => profile?.displayLabel ?? profile?.name ?? profile?.email ?? '';
 
-  AuthData copyWith({bool? isAuthenticated, UserProfile? profile, bool clearProfile = false}) {
+  AuthData copyWith({bool? isAuthenticated, UserProfile? profile, bool clearProfile = false, bool? isBootstrapping}) {
     return AuthData(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       profile: clearProfile ? null : (profile ?? this.profile),
+      isBootstrapping: isBootstrapping ?? this.isBootstrapping,
     );
   }
 }
 
 class AuthController extends StateNotifier<AuthData> {
-  AuthController(this._authApi) : super(const AuthData(isAuthenticated: false)) {
+  AuthController(this._authApi) : super(const AuthData(isAuthenticated: false, isBootstrapping: true)) {
     _bootstrap();
   }
 
@@ -58,6 +66,7 @@ class AuthController extends StateNotifier<AuthData> {
       state = state.copyWith(isAuthenticated: true);
       await refreshProfile();
     }
+    state = state.copyWith(isBootstrapping: false);
   }
 
   Future<void> refreshProfile() async {
