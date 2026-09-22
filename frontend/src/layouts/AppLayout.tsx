@@ -11,6 +11,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import GroupsIcon from "@mui/icons-material/Groups";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import ContactSupportOutlinedIcon from "@mui/icons-material/ContactSupportOutlined";
 import { Outlet, Link as RouterLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/AuthContext";
@@ -123,6 +124,10 @@ export function AppLayout() {
                     <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
                     <ListItemText>{t("nav.myProfile")}</ListItemText>
                   </MenuItem>
+                  <MenuItem component={RouterLink} to="/support" onClick={() => setAccountAnchor(null)}>
+                    <ListItemIcon><ContactSupportOutlinedIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>{t("support.title")}</ListItemText>
+                  </MenuItem>
                   <Divider />
                   <MenuItem onClick={handleLogout}>
                     <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
@@ -165,6 +170,12 @@ export function AppLayout() {
               component={RouterLink} to="/profile" onClick={() => setDrawerOpen(false)}
             >
               {t("nav.myProfile")}
+            </Button>
+            <Button
+              fullWidth startIcon={<ContactSupportOutlinedIcon />} sx={{ justifyContent: "flex-start" }}
+              component={RouterLink} to="/support" onClick={() => setDrawerOpen(false)}
+            >
+              {t("support.title")}
             </Button>
             <Button
               fullWidth variant="outlined" startIcon={<HelpOutlineIcon />} sx={{ justifyContent: "flex-start" }}
