@@ -26,45 +26,45 @@ public static class DourakMcpTools
 
     // ---------- Read tools ----------
 
-    [McpServerTool(Name = "get_my_circles", Title = "List my circles", ReadOnly = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_my_circles", Title = "List my circles", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Lists every savings circle (جمعية / ROSCA) the authenticated user organizes or is an accepted member of, with status, contribution amount, member count and currency.")]
     public static async Task<string> GetMyCircles(IMediator mediator, CancellationToken cancellationToken) =>
         ToJson(await mediator.Send(new GetMyCirclesQuery(), cancellationToken));
 
-    [McpServerTool(Name = "get_circle_details", Title = "Get circle details", ReadOnly = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_circle_details", Title = "Get circle details", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Gets full details for one savings circle: description, currency, contribution amount, status, member count, and whether the caller organizes it.")]
     public static async Task<string> GetCircleDetails(
         [Description("The circle's numeric id, from get_my_circles.")] int circleId,
         IMediator mediator, CancellationToken cancellationToken) =>
         ToJson(await mediator.Send(new GetCircleDetailQuery(circleId), cancellationToken));
 
-    [McpServerTool(Name = "get_current_cycle_status", Title = "Get current cycle status", ReadOnly = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_current_cycle_status", Title = "Get current cycle status", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Gets the current month's collection/payout status for a circle: who has paid, who hasn't (and who is late), amounts collected/expected/outstanding, and who is due to receive this cycle's payout.")]
     public static async Task<string> GetCurrentCycleStatus(
         [Description("The circle's numeric id.")] int circleId,
         IMediator mediator, CancellationToken cancellationToken) =>
         ToJson(await mediator.Send(new GetCurrentCycleDashboardQuery(circleId), cancellationToken));
 
-    [McpServerTool(Name = "get_circle_members", Title = "List circle members", ReadOnly = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_circle_members", Title = "List circle members", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Lists a circle's members, their payout order position, and their invitation status (accepted/pending/declined).")]
     public static async Task<string> GetCircleMembers(
         [Description("The circle's numeric id.")] int circleId,
         IMediator mediator, CancellationToken cancellationToken) =>
         ToJson(await mediator.Send(new GetMembersQuery(circleId), cancellationToken));
 
-    [McpServerTool(Name = "get_circle_history", Title = "Get circle cycle history", ReadOnly = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_circle_history", Title = "Get circle cycle history", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Lists every one of a circle's monthly cycles (past, current and future) with full per-member detail — the exact same data as the website's \"الدورات الشهرية\" (Monthly Cycles) tab: due date, who received that month's payout and its amount/payment breakdown, and each member's contribution rows (amount, date, and claim status where visible to the caller).")]
     public static async Task<string> GetCircleHistory(
         [Description("The circle's numeric id.")] int circleId,
         IMediator mediator, CancellationToken cancellationToken) =>
         ToJson(await mediator.Send(new GetCircleMonthsDetailQuery(circleId), cancellationToken));
 
-    [McpServerTool(Name = "get_pending_invitations", Title = "List pending invitations", ReadOnly = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_pending_invitations", Title = "List pending invitations", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Lists circle invitations awaiting the authenticated user's accept/decline response.")]
     public static async Task<string> GetPendingInvitations(IMediator mediator, CancellationToken cancellationToken) =>
         ToJson(await mediator.Send(new GetMyPendingInvitationsQuery(), cancellationToken));
 
-    [McpServerTool(Name = "get_my_payment_claims", Title = "List my payment claims", ReadOnly = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_my_payment_claims", Title = "List my payment claims", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Lists every payment the authenticated user has self-reported across all their circles, and whether each is still pending review, approved, or rejected.")]
     public static async Task<string> GetMyPaymentClaims(IMediator mediator, CancellationToken cancellationToken) =>
         ToJson(await mediator.Send(new GetMyPaymentClaimsQuery(), cancellationToken));
@@ -154,7 +154,7 @@ public static class DourakMcpTools
         return ToJson(new { success = true });
     }
 
-    [McpServerTool(Name = "get_my_payment_reminders", Title = "List my payment reminders", ReadOnly = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_my_payment_reminders", Title = "List my payment reminders", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Lists the authenticated user's standing payment reminders across all circles.")]
     public static async Task<string> GetMyPaymentReminders(IMediator mediator, CancellationToken cancellationToken) =>
         ToJson(await mediator.Send(new GetMyPaymentRemindersQuery(), cancellationToken));
