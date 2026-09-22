@@ -101,6 +101,14 @@ class AuthController extends StateNotifier<AuthData> {
     }
   }
 
+  Future<void> googleLogin(String idToken) async {
+    try {
+      await _applyResult(await _authApi.googleLogin(idToken));
+    } catch (err) {
+      throw _toAuthError(err, 'Google sign-in failed');
+    }
+  }
+
   Future<void> register(String email, String password) async {
     try {
       await _applyResult(await _authApi.register(email: email, password: password));

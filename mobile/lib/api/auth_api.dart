@@ -16,6 +16,18 @@ class AuthApi {
     return AuthResult.fromJson(res.data as Map<String, dynamic>);
   }
 
+  /// Whether the login screen should offer "Sign in with Google" at all.
+  Future<AuthConfig> config() async {
+    final res = await _client.dio.get('/auth/config');
+    return AuthConfig.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// `idToken` is what `google_sign_in` hands back client-side — never a password.
+  Future<AuthResult> googleLogin(String idToken) async {
+    final res = await _client.dio.post('/auth/google', data: {'idToken': idToken});
+    return AuthResult.fromJson(res.data as Map<String, dynamic>);
+  }
+
   Future<UserProfile> profile() async {
     final res = await _client.dio.get('/auth/profile');
     return UserProfile.fromJson(res.data as Map<String, dynamic>);

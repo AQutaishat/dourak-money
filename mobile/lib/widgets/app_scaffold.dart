@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../state/locale_provider.dart';
 import '../state/providers.dart';
+import '../utils/whatsapp.dart' show dourakAppUrl;
 
 /// A shared top bar + drawer for the authenticated screens, mirroring the top nav
 /// in frontend/src/layouts: app name, dashboard/my-circles links, a language
@@ -104,6 +106,20 @@ class AppScaffold extends ConsumerWidget {
                 onTap: () {
                   Navigator.pop(context);
                   context.push('/profile');
+                },
+              ),
+              const Divider(),
+              // Mirrors the web nav's "User Guide" button (AppLayout.tsx) — but opens the
+              // web app's illustrated static guide in the device browser rather than
+              // building a native duplicate of it (per product direction), same as invite
+              // links already fall back to the web address rather than in-app content.
+              ListTile(
+                leading: const Icon(Icons.help_outline),
+                title: Text(context.t('nav.userGuide')),
+                onTap: () {
+                  Navigator.pop(context);
+                  final path = locale.languageCode == 'ar' ? 'ar.html' : 'en.html';
+                  launchUrl(Uri.parse('$dourakAppUrl/help/$path'), mode: LaunchMode.externalApplication);
                 },
               ),
             ],

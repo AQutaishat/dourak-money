@@ -1,7 +1,7 @@
 name: dourak_mobile
 description: "Dourak — savings circle organizer (Flutter/Android mirror of the web app)."
 publish_to: "none"
-version: 1.0.4+5
+version: 1.0.5+6
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -20,6 +20,10 @@ dependencies:
   url_launcher: ^6.3.0
   file_picker: ^10.3.3
   app_links: ^7.2.1
+  # "Sign in with Google" — off until the backend's /auth/config reports a client ID (see
+  # LoginScreen). Configured with `serverClientId` (the web OAuth client, not a separate
+  # Android one) so the ID token it returns is already the audience the backend validates.
+  google_sign_in: ^6.2.2
 
 dev_dependencies:
   flutter_test:

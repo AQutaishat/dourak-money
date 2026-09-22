@@ -761,3 +761,20 @@ class AuthResult {
         errors: (j['errors'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
       );
 }
+
+/// Mirrors AuthConfigDto (backend) / AuthConfig (frontend/src/api/auth.ts) — whether to
+/// offer "Sign in with Google" at all. `googleClientId` here is the same *web* OAuth
+/// client ID the website uses; GoogleSignIn on Android is configured with it as
+/// `serverClientId` so the ID token it returns has the audience the backend already
+/// validates against (see GoogleAuthOptions.ClientId) — no separate mobile client needed.
+class AuthConfig {
+  final bool googleSignInEnabled;
+  final String? googleClientId;
+
+  AuthConfig({required this.googleSignInEnabled, this.googleClientId});
+
+  factory AuthConfig.fromJson(Map<String, dynamic> j) => AuthConfig(
+        googleSignInEnabled: j['googleSignInEnabled'] as bool? ?? false,
+        googleClientId: j['googleClientId'] as String?,
+      );
+}

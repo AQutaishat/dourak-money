@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../utils/remote_log.dart';
+
 /// Mirrors frontend/src/api/client.ts.
 ///
 /// Base URL: mirrors `VITE_API_BASE_URL`. Pass at build/run time with
@@ -56,6 +58,11 @@ class ApiClient {
           secureStorage.delete(key: _tokenKey);
           client.onUnauthorized?.call();
         }
+        // Guarded against the diagnostics endpoint itself inside logRemote — see its doc comment.
+        logRemote(
+          'API request failed: ${error.requestOptions.method} ${error.requestOptions.path}',
+          error: error,
+        );
         handler.next(error);
       },
     ));
