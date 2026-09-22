@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dourak Support</title>
+<style>
+  :root{
+    --ink:#1f2a24; --ink-soft:#5c6b62; --paper:#faf7f2; --card:#ffffff; --line:#e6e1d6;
+    --brand:#1f7a5c; --brand-deep:#155943;
+    --shadow: 0 1px 2px rgba(31,42,36,.06), 0 8px 24px -12px rgba(31,42,36,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --ink:#eef1ee; --ink-soft:#a7b3ac; --paper:#100f0d; --card:#191d1a; --line:#2b312c;
+      --brand:#3fb787; --brand-deep:#8fe0bb;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.6); }
+  }
+  *{box-sizing:border-box;}
+  body{ background:var(--paper); color:var(--ink); font-family:'Segoe UI',Inter,sans-serif;
+    direction:ltr; padding-inline:16px; padding-block:26px; line-height:1.7; font-size:16px; }
+  .wrap{max-width:600px;margin-inline:auto;}
+  header{ display:flex; align-items:center; gap:14px; padding:20px 22px;
+    background:linear-gradient(135deg,var(--brand) 0%, var(--brand-deep) 100%);
+    border-radius:18px; color:#fff; margin-bottom:24px; box-shadow:var(--shadow); }
+  header h1{ margin:0; font-size:clamp(20px,4vw,26px); font-weight:800; }
+  main{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:28px 30px; box-shadow:var(--shadow); text-align:center; }
+  a.button{ display:inline-block; margin-top:14px; padding:12px 26px; border-radius:10px; background:var(--brand); color:#fff; text-decoration:none; font-weight:600; }
+  footer{ text-align:center; color:var(--ink-soft); font-size:13px; margin-top:22px; }
+  footer a{ color:var(--brand); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Dourak Support</h1></header>
+  <main>
+    <p>Have a question, ran into a problem, or want to report an issue with your account or a circle?</p>
+    <a class="button" href="mailto:anass.shaddad@gmail.com">Email anass.shaddad@gmail.com</a>
+    <p style="margin-top:18px; font-size:14px; color:var(--ink-soft);">We aim to reply within a few business days.</p>
+  </main>
+  <footer>Dourak &middot; <a href="https://dourak.money">dourak.money</a> &middot; <a href="/privacy/en.html">Privacy Policy</a> &middot; <a href="/terms/en.html">Terms of Service</a></footer>
+</div>
+</body>
+</html>
