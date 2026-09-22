@@ -59,6 +59,10 @@ jobs:
             # whatever backup-prod.sh already exists on disk (not the incoming
             # version) in case this pull is the one introducing a bad change.
             bash scripts/backup-prod.sh
+            # scripts/backup-prod.sh itself was untracked on the server (placed there
+            # manually before this workflow added it to the repo) — remove it so the
+            # pull doesn't refuse to overwrite an untracked file it now tracks.
+            rm -f scripts/backup-prod.sh
             git pull --ff-only
             docker compose up -d --build
             docker image prune -f
