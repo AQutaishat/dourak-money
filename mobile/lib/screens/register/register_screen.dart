@@ -2,13 +2,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../auth/auth_state.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/providers.dart';
+import '../../widgets/google_logo.dart';
 import '../../widgets/validated_text_field.dart';
 
 /// Phase 2 §7: registration only asks for email + password; name/phone come later
 /// from the profile screen (mirrors RegisterPage.tsx).
+///
+/// The Google button here uses the same googleLogin as the login screen (find-or-create by
+/// Google account), so it doubles as "sign up with Google" without a separate registration call.
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -22,11 +28,47 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   String? error;
   bool loading = false;
 
+  String? googleClientId;
+  bool googleLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(authApiProvider).config().then((config) {
+      if (mounted) setState(() => googleClientId = config.googleSignInEnabled ? config.googleClientId : null);
+    }).catchError((_) {
+      if (mounted) setState(() => googleClientId = null);
+    });
+  }
+
   @override
   void dispose() {
     email.dispose();
     password.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitGoogle() async {
+    final clientId = googleClientId;
+    if (clientId == null) return;
+    setState(() { error = null; googleLoading = true; });
+    try {
+      final googleSignIn = GoogleSignIn(scopes: const ['email'], serverClientId: clientId);
+      final account = await googleSignIn.signIn();
+      if (account == null) { setState(() => googleLoading = false); return; } // user cancelled
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) {
+        throw AuthException('Google did not return an ID token.', 'server');
+      }
+      await ref.read(authControllerProvider.notifier).googleLogin(idToken);
+      if (mounted) context.go('/');
+    } catch (err) {
+      debugPrint('Google sign-in failed: $err');
+      setState(() => error = context.t('common.error'));
+    } finally {
+      if (mounted) setState(() => googleLoading = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -101,6 +143,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         ),
                       ),
                     ),
+                    // Absent entirely until the backend confirms Google sign-in is configured
+                    // and enabled — mirrors login_screen.dart.
+                    if (googleClientId != null) ...[
+                      const SizedBox(height: 16),
+                      Row(children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(context.t('auth.orContinueWith'), style: Theme.of(context).textTheme.bodySmall),
+                        ),
+                        const Expanded(child: Divider()),
+                      ]),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: googleLoading ? null : _submitGoogle,
+                          icon: googleLoading
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const GoogleLogo(size: 18),
+                          label: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(context.t('auth.continueWithGoogle')),
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,

@@ -19,7 +19,7 @@ import 'members_tab.dart';
 import 'payout_order_tab.dart';
 import 'schedule_tab.dart';
 
-const _draftTabKeys = ['basicInfo', 'members', 'payoutOrder'];
+const _draftTabKeys = ['members', 'payoutOrder'];
 const _activeTabKeys = ['currentCycle', 'schedule', 'members', 'history'];
 
 /// Mirrors CircleOverviewPage.tsx: tab container + header actions (Actions menu for
@@ -86,10 +86,6 @@ class _CircleOverviewScreenState extends ConsumerState<CircleOverviewScreen> {
                     ],
                   ),
               ],
-              bottom: TabBar(
-                isScrollable: true,
-                tabs: tabKeys.map((k) => Tab(text: context.t('circle.$k'))).toList(),
-              ),
             ),
             body: SafeArea(
               child: Column(
@@ -98,14 +94,25 @@ class _CircleOverviewScreenState extends ConsumerState<CircleOverviewScreen> {
                   // lives in the AppBar, so it sits at the very top of the body instead.
                   _CircleHeaderLine(circle: circle),
                   // The mobile equivalent of the web's "timeline under the circle name": it sits
-                  // directly below the header/tab bar, shared by every tab, and only once the
-                  // circle has an actual schedule (a Draft one has no cycles yet).
+                  // directly below the header, shared by every tab, and only once the circle has
+                  // an actual schedule (a Draft one has no cycles yet).
                   if (!circle.isDraft) CircleTimeline(circleId: circle.id),
+                  // Mirrors CircleOverviewPage.tsx: one shared basic-info box (description, dates,
+                  // amount, organizer, member count), above the tabs and below the timeline, for
+                  // every circle status — not tab-specific content, and not at the very top of the
+                  // screen the way the tab bar used to sit.
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: BasicInfoTab(circle: circle),
+                  ),
+                  TabBar(
+                    isScrollable: true,
+                    tabs: tabKeys.map((k) => Tab(text: context.t('circle.$k'))).toList(),
+                  ),
                   Expanded(
                     child: TabBarView(
                       children: circle.isDraft
                           ? [
-                              SingleChildScrollView(padding: const EdgeInsets.all(16), child: BasicInfoTab(circle: circle)),
                               MembersTab(circle: circle),
                               PayoutOrderTab(circle: circle),
                             ]

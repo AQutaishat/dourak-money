@@ -8,7 +8,6 @@ import '../../state/providers.dart';
 import '../../utils/format.dart';
 import '../../utils/whatsapp.dart';
 import '../../widgets/status_chips.dart';
-import 'basic_info_tab.dart';
 import 'payment_claim_dialogs.dart';
 import 'payment_dialogs.dart';
 import 'payout_lines.dart';
@@ -37,8 +36,6 @@ class CurrentCycleTab extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              BasicInfoTab(circle: circle, dense: true),
-              const SizedBox(height: 12),
               Text(context.t('circle.activate')),
             ],
           );
@@ -60,7 +57,6 @@ class CurrentCycleTab extends ConsumerWidget {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            BasicInfoTab(circle: circle, dense: true),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

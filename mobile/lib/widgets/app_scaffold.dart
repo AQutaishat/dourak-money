@@ -122,6 +122,16 @@ class AppScaffold extends ConsumerWidget {
                   launchUrl(Uri.parse('$dourakAppUrl/help/$path'), mode: LaunchMode.externalApplication);
                 },
               ),
+              // Opens the web app's support form (SupportPage.tsx) in the device browser rather
+              // than duplicating it natively — same product direction as the User Guide link above.
+              ListTile(
+                leading: const Icon(Icons.support_agent_outlined),
+                title: Text(context.t('nav.support')),
+                onTap: () {
+                  Navigator.pop(context);
+                  launchUrl(Uri.parse('$dourakAppUrl/support'), mode: LaunchMode.externalApplication);
+                },
+              ),
             ],
           ),
         ),

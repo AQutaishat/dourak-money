@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../auth/auth_state.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/locale_provider.dart';
 import '../../state/providers.dart';
+import '../../utils/whatsapp.dart' show dourakAppUrl;
+import '../../widgets/google_logo.dart';
 import '../../widgets/validated_text_field.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -64,6 +67,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(authControllerProvider.notifier).googleLogin(idToken);
       if (mounted) context.go('/');
     } catch (err) {
+      // GoogleSignIn on Android throws PlatformException(code: 'sign_in_failed', message:
+      // 'ApiException: 10: ...') when the app's package name + signing certificate SHA-1
+      // fingerprint isn't registered as an Android OAuth client in Google Cloud Console (a
+      // *separate* client from the Web one used as serverClientId) — printed here so
+      // `flutter logs`/`adb logcat` shows that exact cause instead of just "an error occurred".
       debugPrint('Google sign-in failed: $err');
       setState(() => error = context.t('common.error'));
     } finally {
@@ -177,10 +185,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           onPressed: googleLoading ? null : _submitGoogle,
                           icon: googleLoading
                               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Icon(Icons.login),
+                              : const GoogleLogo(size: 18),
                           label: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Text('Google'),
+                            child: Text(context.t('auth.continueWithGoogle')),
                           ),
                         ),
                       ),
@@ -212,6 +220,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             DropdownMenuItem(value: 'ar', child: Text('العربية')),
                             DropdownMenuItem(value: 'en', child: Text('English')),
                           ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // External browser links, same content and targets as the web login page's
+                    // footer (LoginPage.tsx) — no native reimplementation of either page.
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            final path = ref.read(localeProvider).languageCode == 'ar' ? 'ar.html' : 'en.html';
+                            launchUrl(Uri.parse('$dourakAppUrl/privacy/$path'), mode: LaunchMode.externalApplication);
+                          },
+                          child: Text(context.t('auth.privacyPolicy'), style: Theme.of(context).textTheme.bodySmall),
+                        ),
+                        Text('·', style: Theme.of(context).textTheme.bodySmall),
+                        TextButton(
+                          onPressed: () => launchUrl(Uri.parse('$dourakAppUrl/support'), mode: LaunchMode.externalApplication),
+                          child: Text(context.t('nav.support'), style: Theme.of(context).textTheme.bodySmall),
                         ),
                       ],
                     ),
