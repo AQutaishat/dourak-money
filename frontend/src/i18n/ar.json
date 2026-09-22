@@ -7,6 +7,7 @@
     "haveAccount": "لديك حساب بالفعل؟", "loginCta": "دخول", "registerCta": "إنشاء الحساب",
     "invalidCredentials": "بيانات الدخول غير صحيحة",
     "orContinueWith": "أو",
+    "privacyPolicy": "سياسة الخصوصية",
     "emailAlreadyRegistered": "هذا البريد الإلكتروني مسجل مسبقًا. جرّب تسجيل الدخول بدلاً من ذلك.",
     "passwordRules": "٨ أحرف على الأقل، وتتضمن حرفًا ورقمًا.",
     "profileTitle": "ملفي الشخصي",

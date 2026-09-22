@@ -181,6 +181,15 @@ export function LoginPage() {
             </Stack>
           </Stack>
         </Box>
+        <Typography variant="caption" color="text.secondary" align="center" sx={{ display: "block", mt: 2 }}>
+          <MuiLink
+            href={i18n.language.startsWith("ar") ? "/privacy/ar.html" : "/privacy/en.html"}
+            target="_blank"
+            rel="noopener"
+          >
+            {t("auth.privacyPolicy")}
+          </MuiLink>
+        </Typography>
       </Paper>
     </Box>
   );
