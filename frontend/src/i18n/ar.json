@@ -6,6 +6,7 @@
     "phone": "رقم الهاتف", "preferredLanguage": "اللغة المفضلة", "noAccount": "ليس لديك حساب؟",
     "haveAccount": "لديك حساب بالفعل؟", "loginCta": "دخول", "registerCta": "إنشاء الحساب",
     "invalidCredentials": "بيانات الدخول غير صحيحة",
+    "orContinueWith": "أو",
     "emailAlreadyRegistered": "هذا البريد الإلكتروني مسجل مسبقًا. جرّب تسجيل الدخول بدلاً من ذلك.",
     "passwordRules": "٨ أحرف على الأقل، وتتضمن حرفًا ورقمًا.",
     "profileTitle": "ملفي الشخصي",

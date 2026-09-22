@@ -18,6 +18,11 @@
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
+    <!-- "Sign in with Google": GoogleJsonWebSignature.ValidateAsync verifies the ID token the
+         frontend gets from Google's own sign-in button (signature + audience + expiry), purely
+         offline against Google's cached public keys — no server-to-server call per login, and
+         no client secret needed for this flow. -->
+    <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
   </ItemGroup>
 
   <PropertyGroup>

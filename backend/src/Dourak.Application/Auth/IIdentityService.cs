@@ -2,6 +2,13 @@ namespace Dourak.Application.Auth;
 
 public record AuthResult(bool Succeeded, string? UserId, string? Token, DateTimeOffset? ExpiresAt, IReadOnlyList<string> Errors);
 
+/// <summary>
+/// Capability discovery for the login screen: whether "Sign in with Google" should render at
+/// all. True only once a Google OAuth client ID is configured server-side AND the feature
+/// hasn't been switched off via the separate kill switch (see GoogleAuthOptions).
+/// </summary>
+public record AuthConfigDto(bool GoogleSignInEnabled, string? GoogleClientId);
+
 /// <summary>Profile as shown on the account page (prompt02 §8). Email is read-only there.</summary>
 public record UserProfileDto(string UserId, string? Name, string? Email, string? Phone, string PreferredLanguage, bool EmailConfirmed)
 {
@@ -38,6 +45,19 @@ public interface IIdentityService
     Task<AuthResult> RegisterAsync(string email, string password);
 
     Task<AuthResult> LoginAsync(string email, string password);
+
+    /// <summary>
+    /// Verifies a Google ID token (from the frontend's "Sign in with Google" button), then
+    /// finds the matching account — by an existing Google login first, falling back to a
+    /// matching verified email (linking it), otherwise creating a brand-new account — and
+    /// issues a normal Dourak token exactly like <see cref="LoginAsync"/>. Fails if Google
+    /// sign-in isn't configured/enabled (see GoogleAuthOptions) so this can't be used as a
+    /// backdoor while the button is hidden.
+    /// </summary>
+    Task<AuthResult> GoogleLoginAsync(string idToken);
+
+    /// <summary>Whether the login screen should offer "Sign in with Google" at all.</summary>
+    Task<AuthConfigDto> GetAuthConfigAsync();
 
     /// <summary>
     /// Issues a fresh access token for an already-known user id, with no password check —

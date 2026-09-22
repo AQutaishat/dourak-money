@@ -61,6 +61,13 @@ services:
       Admin__Accounts__1__Password: "${ADMIN_2_PASSWORD:-}"
       Admin__Accounts__2__Email: "${ADMIN_3_EMAIL:-}"
       Admin__Accounts__2__Password: "${ADMIN_3_PASSWORD:-}"
+      # "Sign in with Google" — hidden on the login page until GOOGLE_CLIENT_ID is set in .env
+      # (a Google Cloud OAuth client's ID, not secret — this flow never needs the secret).
+      # GOOGLE_SIGNIN_ENABLED is a separate kill switch: set to false to hide the button
+      # immediately without touching the client ID (e.g. during an incident), then back to
+      # true to restore it — no other config or code change either way.
+      Auth__Google__ClientId: "${GOOGLE_CLIENT_ID:-}"
+      Auth__Google__SignInEnabled: "${GOOGLE_SIGNIN_ENABLED:-true}"
       # Phase 2: payment-claim evidence is written to disk inside the container; the named
       # volume below is what makes it survive `docker compose up -d --build`.
       Storage__EvidencePath: "/app/data/evidence"

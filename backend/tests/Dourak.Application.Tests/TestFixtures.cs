@@ -52,6 +52,12 @@ public class FakeIdentityService : IIdentityService
     public Task<AuthResult> IssueTokenAsync(string userId) =>
         throw new NotSupportedException();
 
+    public Task<AuthResult> GoogleLoginAsync(string idToken) =>
+        throw new NotSupportedException();
+
+    public Task<AuthConfigDto> GetAuthConfigAsync() =>
+        Task.FromResult(new AuthConfigDto(false, null));
+
     public Task SendEmailVerificationAsync(string userId, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 

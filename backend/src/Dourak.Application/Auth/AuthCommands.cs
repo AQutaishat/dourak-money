@@ -47,6 +47,36 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResult>
         _identityService.LoginAsync(request.Email, request.Password);
 }
 
+public record GoogleLoginCommand(string IdToken) : IRequest<AuthResult>;
+
+public class GoogleLoginCommandValidator : AbstractValidator<GoogleLoginCommand>
+{
+    public GoogleLoginCommandValidator()
+    {
+        RuleFor(x => x.IdToken).NotEmpty();
+    }
+}
+
+public class GoogleLoginCommandHandler : IRequestHandler<GoogleLoginCommand, AuthResult>
+{
+    private readonly IIdentityService _identityService;
+    public GoogleLoginCommandHandler(IIdentityService identityService) => _identityService = identityService;
+
+    public Task<AuthResult> Handle(GoogleLoginCommand request, CancellationToken cancellationToken) =>
+        _identityService.GoogleLoginAsync(request.IdToken);
+}
+
+public record GetAuthConfigQuery : IRequest<AuthConfigDto>;
+
+public class GetAuthConfigQueryHandler : IRequestHandler<GetAuthConfigQuery, AuthConfigDto>
+{
+    private readonly IIdentityService _identityService;
+    public GetAuthConfigQueryHandler(IIdentityService identityService) => _identityService = identityService;
+
+    public Task<AuthConfigDto> Handle(GetAuthConfigQuery request, CancellationToken cancellationToken) =>
+        _identityService.GetAuthConfigAsync();
+}
+
 // ---------- Profile (prompt02 §1, §8) ----------
 
 public record GetMyProfileQuery : IRequest<UserProfileDto?>;

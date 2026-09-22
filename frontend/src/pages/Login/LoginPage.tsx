@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Box, Button, Paper, TextField, Typography, Alert, Stack, Link as MuiLink,
-  Select, MenuItem, IconButton,
+  Select, MenuItem, IconButton, Divider,
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
@@ -9,12 +9,52 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AuthError, useAuth } from "../../auth/AuthContext";
 import { useValidatedField } from "../../components/ValidatedTextField";
+import { authApi } from "../../api/auth";
 import dourakLogo from "../../assets/dourak-logo.png";
+
+// Google Identity Services' JS SDK attaches itself to `window.google` — no official types
+// package for this bit (the credential-response button flow), so a minimal ambient shape is
+// declared here rather than pulling in a whole @types package for three methods.
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: { client_id: string; callback: (response: { credential: string }) => void }) => void;
+          renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+        };
+      };
+    };
+  }
+}
+
+const GOOGLE_SCRIPT_ID = "google-identity-services";
+
+function loadGoogleScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.google?.accounts?.id) { resolve(); return; }
+    const existing = document.getElementById(GOOGLE_SCRIPT_ID);
+    if (existing) { existing.addEventListener("load", () => resolve()); return; }
+    const script = document.createElement("script");
+    script.id = GOOGLE_SCRIPT_ID;
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Google Identity Services"));
+    document.head.appendChild(script);
+  });
+}
 
 export function LoginPage() {
   const { t, i18n } = useTranslation();
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  // undefined = still checking; null = checked, not available. Never renders the button (or
+  // loads Google's script at all) until the backend has actually confirmed it's configured —
+  // see GoogleAuthOptions.IsUsable server-side.
+  const [googleClientId, setGoogleClientId] = useState<string | null | undefined>(undefined);
 
   // Common on-blur validation pattern (prompt02 §Login screen).
   const email = useValidatedField("", ["required", "email"]);
@@ -47,6 +87,42 @@ export function LoginPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    authApi.config()
+      .then((config) => setGoogleClientId(config.googleSignInEnabled ? config.googleClientId : null))
+      .catch(() => setGoogleClientId(null)); // config lookup failing must never block plain email/password login
+  }, []);
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) return;
+    let cancelled = false;
+
+    loadGoogleScript()
+      .then(() => {
+        if (cancelled || !window.google || !googleButtonRef.current) return;
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async (response) => {
+            setError(null);
+            try {
+              await googleLogin(response.credential);
+              navigate("/");
+            } catch (err) {
+              setError(err instanceof Error ? err.message : t("auth.invalidCredentials"));
+            }
+          },
+        });
+        window.google.accounts.id.renderButton(googleButtonRef.current, {
+          type: "standard", theme: "outline", size: "large", width: 296,
+          text: "continue_with", locale: i18n.language.startsWith("ar") ? "ar" : "en",
+        });
+      })
+      .catch(() => setGoogleClientId(null)); // script failed to load — fail quiet, not a login error
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [googleClientId, i18n.language]);
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "background.default", p: 2 }}>
@@ -81,6 +157,15 @@ export function LoginPage() {
               {t("auth.forgotPassword")}
             </MuiLink>
             <Button type="submit" variant="contained" size="large" disabled={loading}>{t("auth.loginCta")}</Button>
+            {/* Absent entirely (no divider, no reserved space, no script fetched) until the
+                backend confirms Google sign-in is actually configured and enabled — see
+                GoogleAuthOptions on the backend. */}
+            {googleClientId && (
+              <>
+                <Divider>{t("auth.orContinueWith")}</Divider>
+                <Box ref={googleButtonRef} sx={{ display: "flex", justifyContent: "center" }} />
+              </>
+            )}
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography variant="body2">
                 {t("auth.noAccount")} <MuiLink component={RouterLink} to="/register">{t("auth.register")}</MuiLink>

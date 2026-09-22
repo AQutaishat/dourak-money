@@ -8,6 +8,7 @@ namespace Dourak.Api.Controllers;
 /// <summary>prompt02 §7: registration takes email + password only.</summary>
 public record RegisterRequest(string Email, string Password);
 public record LoginRequest(string Email, string Password);
+public record GoogleLoginRequest(string IdToken);
 public record UpdateProfileRequest(string? Name, string? Phone, string? PreferredLanguage);
 public record ConfirmEmailRequest(string UserId, string Token);
 public record ForgotPasswordRequest(string Email);
@@ -31,6 +32,21 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login(LoginRequest request)
     {
         var result = await _mediator.Send(new LoginCommand(request.Email, request.Password));
+        return result.Succeeded ? Ok(result) : Unauthorized(result);
+    }
+
+    /// <summary>Public: whether the login screen should render the "Sign in with Google" button.</summary>
+    [HttpGet("config")]
+    public async Task<IActionResult> GetConfig() => Ok(await _mediator.Send(new GetAuthConfigQuery()));
+
+    /// <summary>
+    /// Public: the frontend posts the ID token it got back from Google's own sign-in button —
+    /// this never sees the user's Google password, only a token Google already vouches for.
+    /// </summary>
+    [HttpPost("google")]
+    public async Task<IActionResult> GoogleLogin(GoogleLoginRequest request)
+    {
+        var result = await _mediator.Send(new GoogleLoginCommand(request.IdToken));
         return result.Succeeded ? Ok(result) : Unauthorized(result);
     }
 

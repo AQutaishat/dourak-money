@@ -3,6 +3,7 @@ using Dourak.Application.Auth;
 using Dourak.Application.Common.Interfaces;
 using Dourak.Domain.Entities;
 using Dourak.Domain.Enums;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -14,10 +15,14 @@ public class IdentityService : IIdentityService
     /// <summary>Surfaced verbatim to the register screen so it can show a specific message (prompt02 §Register).</summary>
     public const string EmailAlreadyRegistered = "An account with this email already exists.";
 
+    /// <summary>Identity's "provider" name for a Google-linked login (AspNetUserLogins.LoginProvider).</summary>
+    private const string GoogleLoginProvider = "Google";
+
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly JwtTokenGenerator _tokenGenerator;
     private readonly IEmailSender _emailSender;
     private readonly AppOptions _appOptions;
+    private readonly GoogleAuthOptions _googleOptions;
     private readonly IAppDbContext _db;
 
     public IdentityService(
@@ -25,12 +30,14 @@ public class IdentityService : IIdentityService
         JwtTokenGenerator tokenGenerator,
         IEmailSender emailSender,
         IOptions<AppOptions> appOptions,
+        IOptions<GoogleAuthOptions> googleOptions,
         IAppDbContext db)
     {
         _userManager = userManager;
         _tokenGenerator = tokenGenerator;
         _emailSender = emailSender;
         _appOptions = appOptions.Value;
+        _googleOptions = googleOptions.Value;
         _db = db;
     }
 
@@ -82,6 +89,80 @@ public class IdentityService : IIdentityService
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null) return new AuthResult(false, null, null, null, new[] { "User not found." });
+        if (await _userManager.IsLockedOutAsync(user))
+            return new AuthResult(false, null, null, null, new[] { "This account has been deactivated." });
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var (token, expiresAt) = _tokenGenerator.Generate(user, roles);
+        return new AuthResult(true, user.Id, token, expiresAt, Array.Empty<string>());
+    }
+
+    public Task<AuthConfigDto> GetAuthConfigAsync() =>
+        Task.FromResult(new AuthConfigDto(_googleOptions.IsUsable, _googleOptions.IsUsable ? _googleOptions.ClientId : null));
+
+    public async Task<AuthResult> GoogleLoginAsync(string idToken)
+    {
+        // The button is only ever rendered once GetAuthConfigAsync says it's usable, but this
+        // is the actual gate — without it, disabling the kill switch (SignInEnabled=false)
+        // would only hide the button while the endpoint kept quietly accepting tokens.
+        if (!_googleOptions.IsUsable)
+            return new AuthResult(false, null, null, null, new[] { "Google sign-in is not available." });
+
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            payload = await GoogleJsonWebSignature.ValidateAsync(idToken, new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = new[] { _googleOptions.ClientId },
+            });
+        }
+        catch (InvalidJwtException)
+        {
+            // Expired, wrong audience, bad signature, malformed — all the same to the caller.
+            return new AuthResult(false, null, null, null, new[] { "Invalid Google sign-in token." });
+        }
+
+        // An existing Google-linked account signs in directly, same as a password login.
+        var user = await _userManager.FindByLoginAsync(GoogleLoginProvider, payload.Subject);
+
+        if (user is null)
+        {
+            // No link yet — if a Dourak account already exists for this (Google-verified) email,
+            // link this Google identity to it instead of creating a duplicate account, so
+            // someone who registered with a password can still add "Sign in with Google" later
+            // just by using it once. An unverified Google email is never trusted for this.
+            if (payload.EmailVerified && !string.IsNullOrWhiteSpace(payload.Email))
+                user = await _userManager.FindByEmailAsync(payload.Email);
+
+            if (user is null)
+            {
+                if (string.IsNullOrWhiteSpace(payload.Email))
+                    return new AuthResult(false, null, null, null, new[] { "This Google account has no email to sign in with." });
+
+                user = new ApplicationUser
+                {
+                    UserName = payload.Email,
+                    Email = payload.Email,
+                    EmailConfirmed = payload.EmailVerified,
+                    DisplayName = string.IsNullOrWhiteSpace(payload.Name) ? null : payload.Name,
+                    PreferredLanguage = "ar",
+                };
+
+                // No password set — this account can only ever sign in via Google, unless the
+                // person later uses "forgot password" to set one (same Identity mechanism as
+                // any other account).
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                    return new AuthResult(false, null, null, null, createResult.Errors.Select(e => e.Description).ToList());
+            }
+
+            var linkResult = await _userManager.AddLoginAsync(user,
+                new UserLoginInfo(GoogleLoginProvider, payload.Subject, GoogleLoginProvider));
+            if (!linkResult.Succeeded)
+                return new AuthResult(false, null, null, null, linkResult.Errors.Select(e => e.Description).ToList());
+        }
+
+        // Same deactivation check every other login path enforces.
         if (await _userManager.IsLockedOutAsync(user))
             return new AuthResult(false, null, null, null, new[] { "This account has been deactivated." });
 

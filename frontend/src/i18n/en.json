@@ -6,6 +6,7 @@
     "phone": "Phone", "preferredLanguage": "Preferred Language", "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?", "loginCta": "Sign in", "registerCta": "Create account",
     "invalidCredentials": "Invalid credentials",
+    "orContinueWith": "or",
     "emailAlreadyRegistered": "This email is already registered. Try signing in instead.",
     "passwordRules": "At least 8 characters, including a letter and a digit.",
     "profileTitle": "My Profile",

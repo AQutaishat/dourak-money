@@ -43,6 +43,10 @@ public static class DependencyInjection
         services.Configure<AppOptions>(configuration.GetSection(AppOptions.SectionName));
         services.Configure<AdminOptions>(configuration.GetSection(AdminOptions.SectionName));
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        // "Sign in with Google": disabled (button hidden) until Auth__Google__ClientId is set —
+        // see GoogleAuthOptions.IsUsable, checked by IdentityService.GetAuthConfigAsync /
+        // GoogleLoginAsync, not by swapping a DI registration like the email sender above.
+        services.Configure<GoogleAuthOptions>(configuration.GetSection(GoogleAuthOptions.SectionName));
         // No SMTP host configured -> log emails instead of sending (see LoggingEmailSender);
         // set Email:Host (e.g. via env vars once a provider like Zoho Mail is set up) to switch
         // to real delivery with no code change.

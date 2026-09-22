@@ -10,6 +10,7 @@ interface AuthContextValue {
   displayLabel: string;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  googleLogin: (idToken: string) => Promise<void>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
 }
@@ -91,6 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const googleLogin = async (idToken: string) => {
+    try {
+      await applyResult(await authApi.googleLogin({ idToken }));
+    } catch (err) {
+      throw toAuthError(err, "Google sign-in failed");
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     setProfile(null);
@@ -100,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const displayLabel = profile?.displayLabel ?? profile?.name ?? profile?.email ?? "";
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, profile, displayLabel, login, register, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ isAuthenticated, profile, displayLabel, login, register, googleLogin, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
