@@ -168,6 +168,21 @@ should be built unless a future prompt explicitly pulls it back into scope.
   - A UI for granting/revoking the `Admin` role itself (today it's done
     once via `.env`'s `ADMIN_EMAIL`/`ADMIN_PASSWORD` + a server restart —
     fine for a single admin, not for managing several).
+  - **Revoking an MCP client's connection** — the "disconnect this app"
+    action noted under the OAuth item above would naturally live here (an
+    admin, or eventually the user's own profile page, revoking an
+    `OAuthRefreshToken` row) rather than only being possible directly in
+    the database.
+  - **Support requests page enrichment** — the current Support Requests
+    page (see `docs/meta-data.md` § Support page) just lists submissions;
+    no reply-from-admin flow, no status (open/resolved), no filtering.
+  - **A circle-level view of what MCP/AI-assistant activity happened** —
+    since an assistant can now create circles, add members, and activate
+    them on a user's behalf (see the MCP tools list), there's currently no
+    way for an admin — or the user themselves — to tell that a given
+    circle/action originated from an AI assistant rather than the app UI.
+  - **Search/filter on the users table** — today it's every user, unpaged;
+    fine at current scale, won't be once the user count grows.
 
 ## From Phase 3 (deferred out of `prompt03.md`)
 
