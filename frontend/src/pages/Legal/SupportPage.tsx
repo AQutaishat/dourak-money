@@ -6,13 +6,21 @@ import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { supportApi } from "../../api/support";
 import { useValidatedField } from "../../components/ValidatedTextField";
+import { useAuth } from "../../auth/AuthContext";
 import dourakLogo from "../../assets/dourak-logo.png";
 
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 
-/** Public — no sign-in required, so someone locked out of their account can still reach us. */
+/**
+ * Reachable both signed-out (no sign-in required, so someone locked out of their account can
+ * still reach us) and signed-in (linked from the main nav) — the "back" link below adapts to
+ * wherever the visitor actually came from instead of always assuming a signed-out visitor.
+ */
 export function SupportPage() {
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuth();
+  const backTo = isAuthenticated ? "/" : "/login";
+  const backLabel = isAuthenticated ? t("support.backToHome") : t("auth.backToLogin");
   const email = useValidatedField("", ["required", "email"]);
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
@@ -66,7 +74,7 @@ export function SupportPage() {
           <Stack spacing={2} alignItems="center" textAlign="center">
             <Typography variant="h6" fontWeight={700}>{t("support.sentTitle")}</Typography>
             <Alert severity="success" sx={{ width: "100%" }}>{t("support.sentHint")}</Alert>
-            <MuiLink component={RouterLink} to="/login">{t("auth.backToLogin")}</MuiLink>
+            <MuiLink component={RouterLink} to={backTo}>{backLabel}</MuiLink>
           </Stack>
         ) : (
           <Box component="form" onSubmit={handleSubmit} noValidate>
@@ -103,7 +111,7 @@ export function SupportPage() {
                 />
               </Box>
               <Button type="submit" variant="contained" size="large" disabled={loading}>{t("support.submit")}</Button>
-              <MuiLink component={RouterLink} to="/login" textAlign="center">{t("auth.backToLogin")}</MuiLink>
+              <MuiLink component={RouterLink} to={backTo} textAlign="center">{backLabel}</MuiLink>
             </Stack>
           </Box>
         )}

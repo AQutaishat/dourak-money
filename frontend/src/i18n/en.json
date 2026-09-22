@@ -162,6 +162,7 @@
     "submit": "Send",
     "submitError": "Could not send your message. Please try again.",
     "sentTitle": "Message sent",
-    "sentHint": "Thanks — we've received your message and will get back to you by email."
+    "sentHint": "Thanks — we've received your message and will get back to you by email.",
+    "backToHome": "Back to Dourak"
   }
 }

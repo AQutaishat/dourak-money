@@ -91,17 +91,25 @@ export function AppLayout() {
 
               <Box sx={{ flexGrow: 1 }} />
 
-              {/* Language switcher + account menu: always on the end side. The User Guide link
-                  sits here too (not with Dashboard/My Circles) — styled distinctly (outlined,
-                  with an icon) so it stands out — placed right before the language switcher, so
-                  reading order is: account name (outermost end edge) → language → User Guide. */}
+              {/* Language switcher + account menu: always on the end side. The User Guide and
+                  Contact support links sit here too (not with Dashboard/My Circles) — styled
+                  distinctly (outlined, with an icon) so they stand out — placed right before the
+                  language switcher, so reading order is: account name (outermost end edge) →
+                  language → Contact support → User Guide. */}
               <Stack direction="row" spacing={1} alignItems="center">
                 <Button
-                  component="a" href={userGuideUrl} target="_blank" rel="noopener"
-                  variant="outlined" size="small" startIcon={<HelpOutlineIcon />}
+                  component={RouterLink} to="/support"
+                  variant="outlined" size="small" startIcon={<ContactSupportOutlinedIcon />}
                   // Matches the language Select's rendered height exactly (a plain MUI small
                   // Button is 30.75px tall, the small outlined Select is 40px) so the two sit
                   // flush at the same height side by side instead of looking misaligned.
+                  sx={{ textTransform: "none", height: 40 }}
+                >
+                  {t("support.title")}
+                </Button>
+                <Button
+                  component="a" href={userGuideUrl} target="_blank" rel="noopener"
+                  variant="outlined" size="small" startIcon={<HelpOutlineIcon />}
                   sx={{ textTransform: "none", height: 40 }}
                 >
                   {t("nav.userGuide")}
@@ -123,10 +131,6 @@ export function AppLayout() {
                   <MenuItem component={RouterLink} to="/profile" onClick={() => setAccountAnchor(null)}>
                     <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
                     <ListItemText>{t("nav.myProfile")}</ListItemText>
-                  </MenuItem>
-                  <MenuItem component={RouterLink} to="/support" onClick={() => setAccountAnchor(null)}>
-                    <ListItemIcon><ContactSupportOutlinedIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText>{t("support.title")}</ListItemText>
                   </MenuItem>
                   <Divider />
                   <MenuItem onClick={handleLogout}>
