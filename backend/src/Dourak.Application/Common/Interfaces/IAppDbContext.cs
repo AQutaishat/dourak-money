@@ -24,6 +24,7 @@ public interface IAppDbContext
     DbSet<OAuthClient> OAuthClients { get; }
     DbSet<OAuthAuthorizationCode> OAuthAuthorizationCodes { get; }
     DbSet<OAuthRefreshToken> OAuthRefreshTokens { get; }
+    DbSet<SupportRequest> SupportRequests { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

@@ -1,4 +1,5 @@
 using Dourak.Application.Admin;
+using Dourak.Application.Support;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -58,6 +59,16 @@ public class AdminController : ControllerBase
     {
         var result = await _mediator.Send(new AdminDeleteUserCommand(userId));
         return result.Succeeded ? NoContent() : BadRequest(result);
+    }
+
+    [HttpGet("support-requests")]
+    public async Task<IActionResult> GetSupportRequests() => Ok(await _mediator.Send(new GetSupportRequestsQuery()));
+
+    [HttpGet("support-requests/{id:int}/attachment")]
+    public async Task<IActionResult> GetSupportRequestAttachment(int id)
+    {
+        var download = await _mediator.Send(new GetSupportRequestAttachmentQuery(id));
+        return download is null ? NotFound() : File(download.Content, download.ContentType, download.FileName);
     }
 
     // ---------- Dev-only test-data helpers — hidden (404, not 403) outside Development ----------

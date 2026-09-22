@@ -21,6 +21,16 @@ export interface AdminCircleSummary {
   status: string;
 }
 
+export interface SupportRequest {
+  id: number;
+  name?: string | null;
+  email: string;
+  message: string;
+  createdAt: string;
+  hasAttachment: boolean;
+  attachmentOriginalFileName?: string | null;
+}
+
 export interface AdminUser {
   userId: string;
   name?: string | null;

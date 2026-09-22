@@ -19,6 +19,7 @@ export function AdminLayout() {
           <Stack direction="row" spacing={1} sx={{ flexGrow: 1 }}>
             <Button component={RouterLink} to="/">Dashboard</Button>
             <Button component={RouterLink} to="/users">Users</Button>
+            <Button component={RouterLink} to="/support-requests">Support</Button>
           </Stack>
           <Button onClick={handleLogout}>Sign out</Button>
         </Toolbar>

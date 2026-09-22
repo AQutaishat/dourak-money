@@ -150,5 +150,18 @@
     "save": "Save", "cancel": "Cancel", "back": "Back", "next": "Next", "loading": "Loading...",
     "confirm": "Confirm", "close": "Close", "delete": "Delete", "add": "Add", "yes": "Yes", "no": "No",
     "submit": "Submit", "error": "Something went wrong. Please try again.", "edit": "Edit"
+  },
+  "support": {
+    "title": "Contact support",
+    "hint": "Have a question or ran into a problem? Send us a message and we'll get back to you.",
+    "name": "Name (optional)",
+    "message": "How can we help?",
+    "attach": "Attach a screenshot or file (optional)",
+    "attachmentTooLarge": "Attachment must be 5 MB or smaller.",
+    "messageRequired": "Please describe your issue.",
+    "submit": "Send",
+    "submitError": "Could not send your message. Please try again.",
+    "sentTitle": "Message sent",
+    "sentHint": "Thanks — we've received your message and will get back to you by email."
   }
 }

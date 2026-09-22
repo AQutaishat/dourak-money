@@ -189,6 +189,8 @@ export function LoginPage() {
           >
             {t("auth.privacyPolicy")}
           </MuiLink>
+          {" · "}
+          <MuiLink component={RouterLink} to="/support">{t("support.title")}</MuiLink>
         </Typography>
       </Paper>
     </Box>

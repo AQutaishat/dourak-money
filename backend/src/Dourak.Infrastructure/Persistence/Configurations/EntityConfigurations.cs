@@ -74,6 +74,21 @@ public class PaymentReminderConfiguration : IEntityTypeConfiguration<PaymentRemi
     }
 }
 
+public class SupportRequestConfiguration : IEntityTypeConfiguration<SupportRequest>
+{
+    public void Configure(EntityTypeBuilder<SupportRequest> builder)
+    {
+        builder.Property(r => r.Name).HasMaxLength(200);
+        builder.Property(r => r.Email).IsRequired().HasMaxLength(320);
+        builder.Property(r => r.Message).IsRequired().HasMaxLength(4000);
+        builder.Property(r => r.AttachmentStoredFileName).HasMaxLength(300);
+        builder.Property(r => r.AttachmentOriginalFileName).HasMaxLength(300);
+        builder.Property(r => r.AttachmentContentType).HasMaxLength(100);
+
+        builder.HasIndex(r => r.CreatedAt);
+    }
+}
+
 public class OAuthClientConfiguration : IEntityTypeConfiguration<OAuthClient>
 {
     public void Configure(EntityTypeBuilder<OAuthClient> builder)

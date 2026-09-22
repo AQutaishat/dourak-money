@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { AuthResult, AdminStats, AdminUser } from "./types";
+import type { AuthResult, AdminStats, AdminUser, SupportRequest } from "./types";
 
 export const authApi = {
   login: (data: { email: string; password: string }) =>
@@ -17,4 +17,10 @@ export const adminApi = {
   /** Dev-only (also 404s server-side outside Development). */
   createTestCircles: (userId: string) => apiClient.post(`/admin/users/${userId}/test-circles`),
   deleteUserCircles: (userId: string) => apiClient.delete(`/admin/users/${userId}/circles`),
+
+  supportRequests: () => apiClient.get<SupportRequest[]>("/admin/support-requests").then((r) => r.data),
+  supportRequestAttachmentUrl: async (id: number) => {
+    const response = await apiClient.get(`/admin/support-requests/${id}/attachment`, { responseType: "blob" });
+    return URL.createObjectURL(response.data as Blob);
+  },
 };
