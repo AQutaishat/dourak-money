@@ -98,7 +98,10 @@ export function AppLayout() {
                 <Button
                   component="a" href={userGuideUrl} target="_blank" rel="noopener"
                   variant="outlined" size="small" startIcon={<HelpOutlineIcon />}
-                  sx={{ textTransform: "none" }}
+                  // Matches the language Select's rendered height exactly (a plain MUI small
+                  // Button is 30.75px tall, the small outlined Select is 40px) so the two sit
+                  // flush at the same height side by side instead of looking misaligned.
+                  sx={{ textTransform: "none", height: 40 }}
                 >
                   {t("nav.userGuide")}
                 </Button>
