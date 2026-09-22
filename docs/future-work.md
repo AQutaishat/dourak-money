@@ -4,6 +4,34 @@ Items deliberately pushed out of the current phase(s), tracked here so they're
 not forgotten but also don't creep into active scope uninvited. Nothing here
 should be built unless a future prompt explicitly pulls it back into scope.
 
+## Notifications: WhatsApp API + push notifications
+
+- **WhatsApp Business API integration** — today "WhatsApp" support is just a
+  share-link (`wa.me/...`) the organizer taps to manually send an invite text
+  they still have to compose/send themselves; there's no real integration.
+  A real integration would use the WhatsApp Business Platform (Cloud API) to
+  actually *send* messages from Dourak itself — e.g. an invite arriving
+  automatically when a member is added, or a payment-due reminder sent over
+  WhatsApp instead of (or alongside) email. Needs a Meta developer/business
+  account, a verified WhatsApp Business phone number, and pre-approved
+  message templates (Meta requires template approval for anything outside a
+  live 24-hour conversation window) — none of that exists yet. Moderate
+  effort: mostly account/template setup plus one new `IWhatsAppSender`-style
+  seam in `Dourak.Infrastructure` next to the existing `IEmailSender`.
+- **Push notifications** — no push channel exists on any platform yet
+  (`docs/future-work.md`'s Phase-1-carryover list already noted this as
+  out of scope; promoted here since it's now being actively considered).
+  Needs Firebase Cloud Messaging (works for both Android and, later, iOS),
+  which the mobile app doesn't currently depend on at all (no Firebase
+  project exists — see the analytics section above, which would also want
+  one for Crashlytics, so doing both together is worth considering). Would
+  give the existing `PaymentReminderBackgroundService` (currently email-only,
+  see `Dourak.Infrastructure/Reminders`) a second delivery channel with no
+  change to its scheduling logic — just an additional `INotificationSender`
+  implementation alongside `IEmailSender`. The web app has no equivalent
+  push mechanism (browser push/service workers) and would need its own,
+  separate effort if push there is ever wanted too.
+
 ## Observability: error/crash tracking — higher priority than analytics below
 
 - **No error/crash tracking exists anywhere in production** — not on the web
