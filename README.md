@@ -224,6 +224,39 @@ npm run dev       # local dev server, calls VITE_API_BASE_URL or /api
 npm run build     # production build (also run by admin/Dockerfile)
 ```
 
+## MCP server (AI assistant access)
+
+Dourak exposes a [Model Context Protocol](https://modelcontextprotocol.io) server so an AI
+assistant (Claude Desktop, ChatGPT custom connectors, etc.) can read and act on a *user's own*
+circles on their behalf — there's no separate service or deployment step; it's mounted inside
+the same API at **`https://dourak.money/api/mcp`** and already live in production.
+
+- **Tools available** (`backend/src/Dourak.Api/Mcp/DourakMcpTools.cs`) — every call is scoped
+  to whichever Dourak account the client authenticated as (resolved from the JWT, never passed
+  as a parameter), so a connected assistant can only ever see/act on that one user's data:
+  - *Read*: `get_my_circles`, `get_circle_details`, `get_current_cycle_status`,
+    `get_circle_members`, `get_circle_history`, `get_pending_invitations`,
+    `get_my_payment_claims`, `get_my_payment_reminders`.
+  - *Write*: `create_circle`, `add_circle_member`, `activate_circle`, `submit_payment_claim`,
+    `withdraw_payment_claim`, `set_payment_reminder`, `remove_payment_reminder`.
+- **Connecting a client that supports MCP's OAuth flow (e.g. Claude Desktop's "Connect" custom
+  connector)**: just point it at `https://dourak.money/api/mcp`. The server implements the full
+  discovery/auth spec it expects — RFC 7591 dynamic client registration, RFC 8414 / RFC 9728
+  metadata, PKCE S256, no client secret (`backend/src/Dourak.Api/Controllers/OAuthController.cs`)
+  — so the client self-registers, opens a plain login page, and the user signs in with their
+  **normal Dourak email + password** right there. Access tokens are the same short-lived JWTs
+  `/api/auth/login` issues; refresh tokens are opaque, rotated on every use, 90-day lifetime.
+- **Connecting a client that only accepts a bearer token (e.g. ChatGPT's custom-connector
+  form)**: get a token from `POST /api/auth/login` (the same call the web app makes) and paste
+  it in directly — this bypasses the OAuth server entirely, since ChatGPT has no field for the
+  authorization-code flow above.
+- **Nothing to configure**: OAuth clients register themselves per-connection (no pre-shared
+  `client_id`); metadata is built from the same `App__FrontendBaseUrl` the rest of the app
+  already uses, and Caddy already routes `/api/*` plus the two `.well-known` OAuth metadata
+  paths in production — connecting "just works" against the URL above.
+- **Known limitation**: no way yet to revoke a connected client's refresh token from the UI
+  (e.g. a "disconnect this app" button on the profile page) — see `docs/future-work.md`.
+
 ## Deployment (GitHub Actions)
 
 `.github/workflows/deploy.yml` deploys to the production Oracle server automatically
