@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../utils/remote_log.dart';
@@ -8,12 +9,15 @@ import '../utils/remote_log.dart';
 /// Base URL: mirrors `VITE_API_BASE_URL`. Pass at build/run time with
 /// `--dart-define=API_BASE_URL=<url>`:
 ///   - Local emulator debug: `http://10.0.2.2:5210/api` (10.0.2.2 is the Android
-///     emulator's alias for the host machine running the backend) — the default
-///     below, for debug convenience.
+///     emulator's alias for the host machine running the backend).
 ///   - Real production builds: `https://dourak.money/api` (the real domain, served
 ///     over HTTPS via Caddy's Let's Encrypt cert — see docker-compose.yml/Caddyfile).
+/// The default (used when the flag is omitted) follows `kReleaseMode` rather than always being
+/// the emulator URL: a `flutter build`/`--release` run defaults to production so a release build
+/// can never silently ship pointed at an emulator-only address just because `--dart-define` was
+/// forgotten, while `flutter run` (debug) keeps defaulting to the local emulator for convenience.
 /// See docs/progress.md for the release note.
-const String _defaultBaseUrl = 'http://10.0.2.2:5210/api';
+const String _defaultBaseUrl = kReleaseMode ? 'https://dourak.money/api' : 'http://10.0.2.2:5210/api';
 const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: _defaultBaseUrl);
 
 const _tokenKey = 'dourak_token';
