@@ -50,6 +50,30 @@ should be built unless a future prompt explicitly pulls it back into scope.
     accident.
   - Low-to-moderate effort: mostly SDK install + init per app, no
     architectural change needed anywhere.
+  - **Azure Application Insights** is the other strong option, especially
+    for the backend: near-zero-config with ASP.NET Core
+    (`AddApplicationInsightsTelemetry()`), and goes beyond error tracking
+    into full APM — request/dependency tracing (e.g. seeing exactly which
+    EF Core query or outbound call made a request slow), live metrics, and
+    availability/uptime tests hitting `dourak.money` from outside. Sentry
+    and App Insights overlap heavily on the error-tracking piece; App
+    Insights is the deeper pick if request-performance visibility (not just
+    crashes) turns out to matter, Sentry if a single unified SDK across
+    React/Flutter/ASP.NET Core matters more. Worth trialing one rather than
+    running both — pick based on which gap (crashes vs. performance) is
+    actually felt once real users exist.
+  - **Add distributed tracing to the Seq instance already running** —
+    cheaper than either of the above since Seq is already deployed
+    (`logs.dourak.money`) and accepts OpenTelemetry traces natively over
+    OTLP: add the `OpenTelemetry.Extensions.Hosting` +
+    `OpenTelemetry.Instrumentation.AspNetCore`/`.Http` packages to
+    `Dourak.Api`, call
+    `AddOpenTelemetry().WithTracing(...).AddOtlpExporter(...)` pointed at
+    Seq's OTLP ingestion endpoint. Gets per-request traces (including
+    outbound HTTP calls) alongside the structured logs Seq already has,
+    without standing up a new service or account — the smallest-effort
+    step of the three, though it doesn't cover the frontend/mobile crash
+    side the way Sentry would.
 
 ## Analytics / Product Insight
 
@@ -123,6 +147,31 @@ should be built unless a future prompt explicitly pulls it back into scope.
   repo's directory on the server) — set once in GitHub repo Settings →
   Secrets and variables → Actions. Also runnable on demand from the Actions
   tab (workflow_dispatch) without a new commit.
+
+## Admin-configurable settings (maybe)
+
+The admin site now has a Settings page (`admin/src/pages/SettingsPage.tsx`) backed by a generic
+key/value table (`AppSetting` entity, `GET`/`PUT /api/admin/settings`) — adding a new setting is
+just a new key in `AppSettingKeys.All` (backend) plus a form field (admin), no migration needed.
+Four keys are wired up today: `maintenanceMode`, `announcementMessage`, `minSupportedAppVersion`,
+`supportEmail` — all echoed back publicly through `GET /api/auth/config`, which both the web and
+mobile apps already call at startup. Candidates for more keys, none built yet:
+
+- **`claimEvidenceMaxSizeMb`** — the 5MB payment-evidence upload cap is hardcoded today (backend
+  validation + the app's own helper text).
+- **`defaultReminderDaysBefore`** — the default value pre-filled when a member sets up a payment
+  reminder for the first time.
+- **`lateGracePeriodDays`** — "late after N days" is a fixed 7 today (shown via
+  `circle.gracePeriodHint`); making it a setting would let it be tuned without a redeploy.
+- **`whatsappSupportNumber`** — an optional WhatsApp contact alongside the existing `/support` form.
+- **`remoteLoggingEnabled`** (server-side kill switch) — lets mobile's error relay to
+  `/api/diagnostics/log` be turned off without a new app release, same "off until configured"
+  pattern as `GoogleAuthOptions.SignInEnabled`.
+
+None of `maintenanceMode`/`minSupportedAppVersion` are actually *enforced* by either client yet
+either — today they're just fields an admin can set and the apps can read, not something either
+app currently acts on (no maintenance banner/block, no forced-update prompt). That's separate
+follow-up work once/if those keys are populated.
 
 ## From Phase 2 (deferred out of `prompt02.md`)
 

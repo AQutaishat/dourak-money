@@ -13,7 +13,11 @@ namespace Dourak.Application.Circles.Commands;
 
 // ---------- Add a member by picking a registered user (prompt02 §2) ----------
 
-public record AddUserMemberCommand(int CircleId, string UserId) : IRequest<int>, ICircleOwnedRequest;
+public record AddUserMemberCommand(int CircleId, string UserId) : IRequest<int>, ICircleOwnedRequest, IAuditableAction
+{
+    public string AuditAction => "CircleMemberAdded";
+    public string? AuditDetails => $"CircleId={CircleId};MemberUserId={UserId}";
+}
 
 public class AddUserMemberCommandValidator : AbstractValidator<AddUserMemberCommand>
 {
@@ -155,7 +159,11 @@ public class LinkInvitationTokenCommandHandler : IRequestHandler<LinkInvitationT
 
 // ---------- Organizer adds themselves as a member (prompt02 §Draft circles) ----------
 
-public record AddSelfAsMemberCommand(int CircleId) : IRequest<int>, ICircleOwnedRequest;
+public record AddSelfAsMemberCommand(int CircleId) : IRequest<int>, ICircleOwnedRequest, IAuditableAction
+{
+    public string AuditAction => "CircleMemberAdded";
+    public string? AuditDetails => $"CircleId={CircleId};Self=true";
+}
 
 public class AddSelfAsMemberCommandHandler : IRequestHandler<AddSelfAsMemberCommand, int>
 {

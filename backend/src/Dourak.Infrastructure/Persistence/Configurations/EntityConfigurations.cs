@@ -191,3 +191,30 @@ public class PayoutConfiguration : IEntityTypeConfiguration<Payout>
         builder.HasOne(p => p.Recipient).WithMany().HasForeignKey(p => p.RecipientMemberId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
+{
+    public void Configure(EntityTypeBuilder<AuditLog> builder)
+    {
+        builder.Property(a => a.UserId).HasMaxLength(450);
+        builder.Property(a => a.UserDisplayName).HasMaxLength(200);
+        builder.Property(a => a.Action).IsRequired().HasMaxLength(100);
+        builder.Property(a => a.Details).HasMaxLength(2000);
+        builder.Property(a => a.IpAddress).HasMaxLength(64);
+
+        builder.HasIndex(a => a.CreatedAt);
+        builder.HasIndex(a => a.UserId);
+        builder.HasIndex(a => a.Action);
+    }
+}
+
+public class AppSettingConfiguration : IEntityTypeConfiguration<AppSetting>
+{
+    public void Configure(EntityTypeBuilder<AppSetting> builder)
+    {
+        builder.HasKey(s => s.Key);
+        builder.Property(s => s.Key).HasMaxLength(100);
+        builder.Property(s => s.Value).HasMaxLength(2000);
+        builder.Property(s => s.UpdatedByUserId).HasMaxLength(450); // matches AspNetUsers.Id length
+    }
+}

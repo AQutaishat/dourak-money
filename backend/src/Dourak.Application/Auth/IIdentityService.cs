@@ -7,7 +7,18 @@ public record AuthResult(bool Succeeded, string? UserId, string? Token, DateTime
 /// all. True only once a Google OAuth client ID is configured server-side AND the feature
 /// hasn't been switched off via the separate kill switch (see GoogleAuthOptions).
 /// </summary>
-public record AuthConfigDto(bool GoogleSignInEnabled, string? GoogleClientId);
+/// <summary>
+/// The last four fields are the public whitelist of <see cref="Dourak.Application.Admin.AppSettingKeys"/>
+/// (see <see cref="Dourak.Application.Auth.GetAuthConfigQueryHandler"/>, which merges them in from
+/// the admin-editable settings table) — not from <see cref="Infrastructure.Identity.GoogleAuthOptions"/>.
+/// </summary>
+public record AuthConfigDto(
+    bool GoogleSignInEnabled,
+    string? GoogleClientId,
+    bool MaintenanceMode = false,
+    string? AnnouncementMessage = null,
+    string? MinSupportedAppVersion = null,
+    string? SupportEmail = null);
 
 /// <summary>Profile as shown on the account page (prompt02 §8). Email is read-only there.</summary>
 public record UserProfileDto(string UserId, string? Name, string? Email, string? Phone, string PreferredLanguage, bool EmailConfirmed)
@@ -134,7 +145,8 @@ public record AdminUserDto(
     bool EmailConfirmed,
     bool IsActive,
     IReadOnlyList<AdminCircleSummaryDto> OrganizedCircles,
-    IReadOnlyList<AdminCircleSummaryDto> MemberCircles)
+    IReadOnlyList<AdminCircleSummaryDto> MemberCircles,
+    DateTimeOffset? CreatedAt = null)
 {
     public string DisplayLabel => string.IsNullOrWhiteSpace(Name) ? (Email ?? UserId) : Name;
 }

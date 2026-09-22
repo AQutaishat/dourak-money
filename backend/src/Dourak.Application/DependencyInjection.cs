@@ -15,6 +15,7 @@ public static class DependencyInjection
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
             cfg.AddOpenBehavior(typeof(CircleOwnershipBehavior<,>));
             cfg.AddOpenBehavior(typeof(CircleReadAccessBehavior<,>));
+            cfg.AddOpenBehavior(typeof(AuditLoggingBehavior<,>));
         });
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
         return services;

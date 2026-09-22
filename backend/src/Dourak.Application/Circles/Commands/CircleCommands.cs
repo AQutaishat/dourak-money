@@ -17,7 +17,10 @@ namespace Dourak.Application.Circles.Commands;
 /// </summary>
 public record CreateCircleCommand(
     string Name, string? Description, string Currency, decimal ContributionAmount,
-    DateOnly StartDate) : IRequest<int>;
+    DateOnly StartDate) : IRequest<int>, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => "CircleCreated";
+}
 
 public class CreateCircleCommandValidator : AbstractValidator<CreateCircleCommand>
 {
@@ -311,7 +314,11 @@ public class ResetPayoutOrderCommandHandler : IRequestHandler<ResetPayoutOrderCo
 
 // ---------- Activate ----------
 
-public record ActivateCircleCommand(int CircleId) : IRequest, Common.Behaviors.ICircleOwnedRequest;
+public record ActivateCircleCommand(int CircleId) : IRequest, Common.Behaviors.ICircleOwnedRequest, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => "CircleActivated";
+    public string? AuditDetails => $"CircleId={CircleId}";
+}
 
 public class ActivateCircleCommandHandler : IRequestHandler<ActivateCircleCommand>
 {

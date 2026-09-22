@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert, Box, Button, Chip, CircularProgress, Collapse, Dialog, DialogActions, DialogContent,
   DialogTitle, IconButton, List, ListItem, ListItemText, Paper, Snackbar, Stack, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
+  TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField, Typography,
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
@@ -102,6 +102,7 @@ function UserRow({ user, onChanged }: { user: AdminUser; onChanged: (msg: string
         <TableCell>{user.displayLabel}</TableCell>
         <TableCell>{user.email}</TableCell>
         <TableCell>{user.phone ?? "—"}</TableCell>
+        <TableCell sx={{ whiteSpace: "nowrap" }}>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"}</TableCell>
         <TableCell>
           <Chip
             size="small"
@@ -146,7 +147,7 @@ function UserRow({ user, onChanged }: { user: AdminUser; onChanged: (msg: string
         </TableCell>
       </TableRow>
       <TableRow>
-        <TableCell colSpan={7} sx={{ py: 0, borderBottom: expanded ? undefined : "none" }}>
+        <TableCell colSpan={8} sx={{ py: 0, borderBottom: expanded ? undefined : "none" }}>
           <Collapse in={expanded} unmountOnExit>
             <Box sx={{ py: 2, display: "flex", gap: 4 }}>
               <Box sx={{ minWidth: 220 }}>
@@ -256,7 +257,12 @@ function UserRow({ user, onChanged }: { user: AdminUser; onChanged: (msg: string
 
 export function UsersPage() {
   const queryClient = useQueryClient();
-  const { data: users, isLoading } = useQuery({ queryKey: ["admin-users"], queryFn: adminApi.users });
+  const [page, setPage] = useState(0); // MUI TablePagination is 0-based
+  const [pageSize, setPageSize] = useState(25);
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-users", page, pageSize],
+    queryFn: () => adminApi.users({ page: page + 1, pageSize }),
+  });
   const [toast, setToast] = useState<string | null>(null);
 
   const handleChanged = (msg: string) => {
@@ -265,7 +271,7 @@ export function UsersPage() {
     void queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
   };
 
-  if (isLoading || !users) return <CircularProgress />;
+  if (isLoading || !data) return <CircularProgress />;
 
   return (
     <>
@@ -278,17 +284,27 @@ export function UsersPage() {
               <TableCell>Name</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Phone</TableCell>
+              <TableCell>Created</TableCell>
               <TableCell>Email status</TableCell>
               <TableCell>Account status</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((u) => (
+            {data.items.map((u) => (
               <UserRow key={u.userId} user={u} onChanged={handleChanged} />
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          component="div"
+          count={data.totalCount}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={pageSize}
+          onRowsPerPageChange={(e) => { setPageSize(parseInt(e.target.value, 10)); setPage(0); }}
+          rowsPerPageOptions={[10, 25, 50, 100]}
+        />
       </TableContainer>
       <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast(null)} message={toast} />
     </>

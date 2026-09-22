@@ -11,4 +11,5 @@ public class CurrentUserService : ICurrentUserService
 
     public string? UserId => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
     public string? DisplayName => _httpContextAccessor.HttpContext?.User?.FindFirstValue("displayName");
+    public string? IpAddress => _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
 }

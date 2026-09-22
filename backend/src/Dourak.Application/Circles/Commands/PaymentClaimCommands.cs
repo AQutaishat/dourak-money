@@ -19,7 +19,11 @@ public record SubmitPaymentClaimCommand(
     int CycleId,
     decimal ClaimedAmount,
     string? Note,
-    EvidenceUpload? Evidence) : IRequest<int>;
+    EvidenceUpload? Evidence) : IRequest<int>, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => "PaymentClaimSubmitted";
+    public string? AuditDetails => $"CycleId={CycleId};Amount={ClaimedAmount}";
+}
 
 public class SubmitPaymentClaimCommandValidator : AbstractValidator<SubmitPaymentClaimCommand>
 {
@@ -176,7 +180,11 @@ public class UpdatePaymentClaimCommandHandler : IRequestHandler<UpdatePaymentCla
     }
 }
 
-public record WithdrawPaymentClaimCommand(int ClaimId) : IRequest;
+public record WithdrawPaymentClaimCommand(int ClaimId) : IRequest, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => "PaymentClaimWithdrawn";
+    public string? AuditDetails => $"ClaimId={ClaimId}";
+}
 
 public class WithdrawPaymentClaimCommandHandler : IRequestHandler<WithdrawPaymentClaimCommand>
 {
@@ -212,7 +220,11 @@ public class WithdrawPaymentClaimCommandHandler : IRequestHandler<WithdrawPaymen
 
 // ---------- Organizer reviews a claim (prompt02 §6b) ----------
 
-public record ReviewPaymentClaimCommand(int ClaimId, bool Approve, string? RejectionReason) : IRequest;
+public record ReviewPaymentClaimCommand(int ClaimId, bool Approve, string? RejectionReason) : IRequest, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => Approve ? "PaymentClaimApproved" : "PaymentClaimRejected";
+    public string? AuditDetails => $"ClaimId={ClaimId}";
+}
 
 public class ReviewPaymentClaimCommandValidator : AbstractValidator<ReviewPaymentClaimCommand>
 {

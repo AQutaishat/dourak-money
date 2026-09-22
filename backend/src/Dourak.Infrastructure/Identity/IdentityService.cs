@@ -53,7 +53,8 @@ public class IdentityService : IIdentityService
             Email = email,
             // prompt02 §7: no name or preferred language at registration — set later from the profile page.
             DisplayName = null,
-            PreferredLanguage = "ar"
+            PreferredLanguage = "ar",
+            CreatedAt = DateTimeOffset.UtcNow
         };
 
         var result = await _userManager.CreateAsync(user, password);
@@ -146,6 +147,7 @@ public class IdentityService : IIdentityService
                     EmailConfirmed = payload.EmailVerified,
                     DisplayName = string.IsNullOrWhiteSpace(payload.Name) ? null : payload.Name,
                     PreferredLanguage = "ar",
+                    CreatedAt = DateTimeOffset.UtcNow
                 };
 
                 // No password set — this account can only ever sign in via Google, unless the
@@ -351,7 +353,8 @@ public class IdentityService : IIdentityService
             u.EmailConfirmed,
             IsActive: u.LockoutEnd is null || u.LockoutEnd <= now,
             organizedByUser.TryGetValue(u.Id, out var org) ? org : Array.Empty<AdminCircleSummaryDto>(),
-            memberByUser.TryGetValue(u.Id, out var mem) ? mem : Array.Empty<AdminCircleSummaryDto>()
+            memberByUser.TryGetValue(u.Id, out var mem) ? mem : Array.Empty<AdminCircleSummaryDto>(),
+            u.CreatedAt
         )).ToList();
     }
 

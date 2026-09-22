@@ -3,6 +3,7 @@ using System;
 using Dourak.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dourak.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DourakDbContext))]
-    partial class DourakDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260922182144_AddAppSettings")]
+    partial class AddAppSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -42,47 +45,6 @@ namespace Dourak.Infrastructure.Persistence.Migrations
                     b.HasKey("Key");
 
                     b.ToTable("AppSettings");
-                });
-
-            modelBuilder.Entity("Dourak.Domain.Entities.AuditLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Details")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<string>("IpAddress")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("UserDisplayName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("UserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Action");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("Dourak.Domain.Entities.CircleMember", b =>

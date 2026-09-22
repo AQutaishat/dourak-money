@@ -41,4 +41,38 @@ export interface AdminUser {
   organizedCircles: AdminCircleSummary[];
   memberCircles: AdminCircleSummary[];
   displayLabel: string;
+  createdAt?: string | null;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface AuditLog {
+  id: string;
+  userId?: string | null;
+  userDisplayName?: string | null;
+  action: string;
+  details?: string | null;
+  createdAt: string;
+  ipAddress?: string | null;
+}
+
+export interface AuditLogFilters {
+  page: number;
+  pageSize: number;
+  userId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  action?: string;
+}
+
+export interface AppSetting {
+  key: string;
+  value: string | null;
+  updatedAt: string | null;
+  updatedByUserId: string | null;
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Serilog.Context;
 
 namespace Dourak.Api.Controllers;
 
@@ -33,16 +34,21 @@ public class DiagnosticsController : ControllerBase
     [HttpPost("log")]
     public IActionResult Log(ClientLogRequest request)
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var level = request.Level.ToLowerInvariant() switch
         {
             "error" => LogLevel.Error,
             "warning" => LogLevel.Warning,
             _ => LogLevel.Information,
         };
-        // Structured (not string-interpolated) so Seq indexes Message/Details/UserId as their
-        // own searchable/filterable fields, not just baked into one opaque line of text.
-        _logger.Log(level, "[MobileApp] {Message} — {Details} (user {UserId})", request.Message, request.Details, userId);
+        // Source="MobileApp" for just this one log event — overrides the process-wide
+        // Source="Dourak.Api" default set in Program.cs (see its comment on enricher ordering).
+        // UserId/RequestId are already on the ambient LogContext from
+        // RequestLogEnrichmentMiddleware (this endpoint requires auth, so UserId is always set),
+        // so this call no longer needs to extract or pass either one itself.
+        using (LogContext.PushProperty("Source", "MobileApp"))
+        {
+            _logger.Log(level, "{Message} — {Details}", request.Message, request.Details);
+        }
         return NoContent();
     }
 }

@@ -22,4 +22,11 @@ public class ApplicationUser : IdentityUser
     public string PreferredLanguage { get; set; } = "ar";
     public string DefaultCurrency { get; set; } = "SAR";
     public string? TimeZone { get; set; }
+
+    /// <summary>
+    /// When the account was created. Nullable because it was added after users already existed —
+    /// pre-existing rows are backfilled to null rather than a guessed timestamp; the admin UI
+    /// renders those as "—".
+    /// </summary>
+    public DateTimeOffset? CreatedAt { get; set; }
 }

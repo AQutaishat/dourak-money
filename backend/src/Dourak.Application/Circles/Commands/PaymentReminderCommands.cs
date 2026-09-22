@@ -15,7 +15,11 @@ namespace Dourak.Application.Circles.Commands;
 /// Not <see cref="Common.Behaviors.ICircleOwnedRequest"/>: any participating member (not just the
 /// organizer) can ask to be reminded about their own upcoming contribution.
 /// </summary>
-public record SetPaymentReminderCommand(int CircleId, int DaysBefore) : IRequest<int>;
+public record SetPaymentReminderCommand(int CircleId, int DaysBefore) : IRequest<int>, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => "PaymentReminderSet";
+    public string? AuditDetails => $"CircleId={CircleId};DaysBefore={DaysBefore}";
+}
 
 public class SetPaymentReminderCommandValidator : AbstractValidator<SetPaymentReminderCommand>
 {
@@ -76,7 +80,11 @@ public class SetPaymentReminderCommandHandler : IRequestHandler<SetPaymentRemind
 
 // ---------- Remove a reminder ----------
 
-public record RemovePaymentReminderCommand(int CircleId) : IRequest;
+public record RemovePaymentReminderCommand(int CircleId) : IRequest, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => "PaymentReminderRemoved";
+    public string? AuditDetails => $"CircleId={CircleId}";
+}
 
 public class RemovePaymentReminderCommandHandler : IRequestHandler<RemovePaymentReminderCommand>
 {

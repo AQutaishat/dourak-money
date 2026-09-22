@@ -30,7 +30,35 @@ public class GetAdminUsersQueryHandler : IRequestHandler<GetAdminUsersQuery, IRe
         _identityService.GetAllUsersForAdminAsync();
 }
 
-public record AdminSetPasswordCommand(string UserId, string NewPassword) : IRequest<OperationResult>;
+/// <summary>
+/// Paged variant of <see cref="GetAdminUsersQuery"/> for the admin Users page's TablePagination.
+/// The underlying user set is small enough that IIdentityService still loads it all (same as the
+/// unpaged query — see GetAllUsersForAdminAsync) and this just slices in memory; revisit with a
+/// DB-level paged query if the user count grows enough to matter.
+/// </summary>
+public record GetAdminUsersPagedQuery(int Page = 1, int PageSize = 25) : IRequest<PagedResult<AdminUserDto>>;
+
+public class GetAdminUsersPagedQueryHandler : IRequestHandler<GetAdminUsersPagedQuery, PagedResult<AdminUserDto>>
+{
+    private readonly IIdentityService _identityService;
+    public GetAdminUsersPagedQueryHandler(IIdentityService identityService) => _identityService = identityService;
+
+    public async Task<PagedResult<AdminUserDto>> Handle(GetAdminUsersPagedQuery request, CancellationToken cancellationToken)
+    {
+        var page = Math.Max(1, request.Page);
+        var pageSize = Math.Clamp(request.PageSize, 1, 200);
+
+        var all = await _identityService.GetAllUsersForAdminAsync();
+        var items = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return new PagedResult<AdminUserDto>(items, all.Count, page, pageSize);
+    }
+}
+
+public record AdminSetPasswordCommand(string UserId, string NewPassword) : IRequest<OperationResult>, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => "AdminResetUserPassword";
+    public string? AuditDetails => $"TargetUserId={UserId}";
+}
 
 public class AdminSetPasswordCommandValidator : AbstractValidator<AdminSetPasswordCommand>
 {
@@ -51,7 +79,11 @@ public class AdminSetPasswordCommandHandler : IRequestHandler<AdminSetPasswordCo
         _identityService.AdminSetPasswordAsync(request.UserId, request.NewPassword);
 }
 
-public record AdminSetActiveCommand(string UserId, bool IsActive) : IRequest<OperationResult>;
+public record AdminSetActiveCommand(string UserId, bool IsActive) : IRequest<OperationResult>, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => IsActive ? "AdminActivatedUser" : "AdminDeactivatedUser";
+    public string? AuditDetails => $"TargetUserId={UserId}";
+}
 
 public class AdminSetActiveCommandValidator : AbstractValidator<AdminSetActiveCommand>
 {
@@ -70,7 +102,11 @@ public class AdminSetActiveCommandHandler : IRequestHandler<AdminSetActiveComman
         _identityService.AdminSetActiveAsync(request.UserId, request.IsActive);
 }
 
-public record AdminDeleteUserCommand(string UserId) : IRequest<OperationResult>;
+public record AdminDeleteUserCommand(string UserId) : IRequest<OperationResult>, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => "AdminDeletedUser";
+    public string? AuditDetails => $"TargetUserId={UserId}";
+}
 
 public class AdminDeleteUserCommandValidator : AbstractValidator<AdminDeleteUserCommand>
 {

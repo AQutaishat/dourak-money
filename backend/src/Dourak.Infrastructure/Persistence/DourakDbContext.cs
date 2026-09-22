@@ -24,6 +24,8 @@ public class DourakDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<OAuthAuthorizationCode> OAuthAuthorizationCodes => Set<OAuthAuthorizationCode>();
     public DbSet<OAuthRefreshToken> OAuthRefreshTokens => Set<OAuthRefreshToken>();
     public DbSet<SupportRequest> SupportRequests => Set<SupportRequest>();
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     public void RemoveCircle(SavingsCircle circle) => Circles.Remove(circle);
 

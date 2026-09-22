@@ -1,4 +1,5 @@
 using Dourak.Application.Admin;
+using Dourak.Application.Admin.Audit;
 using Dourak.Application.Support;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -31,7 +32,14 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> GetStats() => Ok(await _mediator.Send(new GetAdminStatsQuery()));
 
     [HttpGet("users")]
-    public async Task<IActionResult> GetUsers() => Ok(await _mediator.Send(new GetAdminUsersQuery()));
+    public async Task<IActionResult> GetUsers([FromQuery] int? page, [FromQuery] int? pageSize)
+    {
+        // No page param -> old unpaged shape, for callers that haven't switched over yet.
+        if (page is null && pageSize is null)
+            return Ok(await _mediator.Send(new GetAdminUsersQuery()));
+
+        return Ok(await _mediator.Send(new GetAdminUsersPagedQuery(page ?? 1, pageSize ?? 25)));
+    }
 
     [HttpPost("users/{userId}/reset-password")]
     public async Task<IActionResult> ResetPassword(string userId, AdminSetPasswordRequest request)
@@ -60,6 +68,29 @@ public class AdminController : ControllerBase
         var result = await _mediator.Send(new AdminDeleteUserCommand(userId));
         return result.Succeeded ? NoContent() : BadRequest(result);
     }
+
+    [HttpGet("settings")]
+    public async Task<IActionResult> GetSettings() => Ok(await _mediator.Send(new GetAdminSettingsQuery()));
+
+    [HttpPut("settings")]
+    public async Task<IActionResult> UpdateSettings([FromBody] Dictionary<string, string?> values)
+    {
+        await _mediator.Send(new UpdateAppSettingsCommand(values));
+        return NoContent();
+    }
+
+    [HttpGet("audit-logs")]
+    public async Task<IActionResult> GetAuditLogs(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? userId = null,
+        [FromQuery] DateTimeOffset? dateFrom = null,
+        [FromQuery] DateTimeOffset? dateTo = null,
+        [FromQuery] string? action = null) =>
+        Ok(await _mediator.Send(new GetAuditLogsQuery(page, pageSize, userId, dateFrom, dateTo, action)));
+
+    [HttpGet("audit-log-actions")]
+    public async Task<IActionResult> GetAuditLogActions() => Ok(await _mediator.Send(new GetAuditLogActionsQuery()));
 
     [HttpGet("support-requests")]
     public async Task<IActionResult> GetSupportRequests() => Ok(await _mediator.Send(new GetSupportRequestsQuery()));

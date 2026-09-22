@@ -58,6 +58,7 @@ public static class DependencyInjection
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IAuditLogger, Persistence.AuditLogger>();
 
         services.AddSingleton<IRandomShuffler, CryptoRandomShuffler>();
         services.AddSingleton<IEvidenceFileStorage, Storage.DiskEvidenceFileStorage>();

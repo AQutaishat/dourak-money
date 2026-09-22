@@ -20,6 +20,8 @@ export function AdminLayout() {
             <Button component={RouterLink} to="/">Dashboard</Button>
             <Button component={RouterLink} to="/users">Users</Button>
             <Button component={RouterLink} to="/support-requests">Support</Button>
+            <Button component={RouterLink} to="/audit-logs">Audit trail</Button>
+            <Button component={RouterLink} to="/settings">Settings</Button>
           </Stack>
           <Button onClick={handleLogout}>Sign out</Button>
         </Toolbar>

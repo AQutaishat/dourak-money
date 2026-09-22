@@ -7,6 +7,8 @@ import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { UsersPage } from "./pages/UsersPage";
 import { SupportRequestsPage } from "./pages/SupportRequestsPage";
+import { AuditLogsPage } from "./pages/AuditLogsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 const queryClient = new QueryClient();
 // Same brand color as the main app/mobile app for visual consistency, English-only UI (no
@@ -27,6 +29,8 @@ function Router() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/support-requests" element={<SupportRequestsPage />} />
+          <Route path="/audit-logs" element={<AuditLogsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

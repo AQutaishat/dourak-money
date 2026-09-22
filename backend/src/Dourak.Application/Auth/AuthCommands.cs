@@ -1,12 +1,23 @@
+using Dourak.Application.Admin;
 using Dourak.Application.Common.Interfaces;
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Dourak.Application.Auth;
 
 /// <summary>prompt02 §7: the register screen only asks for email + password.</summary>
-public record RegisterCommand(string Email, string Password) : IRequest<AuthResult>;
-public record LoginCommand(string Email, string Password) : IRequest<AuthResult>;
+public record RegisterCommand(string Email, string Password) : IRequest<AuthResult>, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => "UserRegistered";
+    public string? AuditDetails => $"Email={Email}";
+}
+
+public record LoginCommand(string Email, string Password) : IRequest<AuthResult>, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => "UserLoggedIn";
+    public string? AuditDetails => $"Email={Email}";
+}
 
 public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
 {
@@ -47,7 +58,10 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResult>
         _identityService.LoginAsync(request.Email, request.Password);
 }
 
-public record GoogleLoginCommand(string IdToken) : IRequest<AuthResult>;
+public record GoogleLoginCommand(string IdToken) : IRequest<AuthResult>, Common.Behaviors.IAuditableAction
+{
+    public string AuditAction => "UserLoggedInGoogle";
+}
 
 public class GoogleLoginCommandValidator : AbstractValidator<GoogleLoginCommand>
 {
@@ -68,13 +82,40 @@ public class GoogleLoginCommandHandler : IRequestHandler<GoogleLoginCommand, Aut
 
 public record GetAuthConfigQuery : IRequest<AuthConfigDto>;
 
+/// <summary>
+/// Both the web and mobile apps call this once at startup — Google's fields come from
+/// <see cref="IIdentityService.GetAuthConfigAsync"/> (env-var backed, see GoogleAuthOptions), and
+/// the rest come from the admin-editable settings table, restricted to
+/// <see cref="AppSettingKeys.PublicKeys"/> so nothing admin-only ever leaks through this
+/// unauthenticated endpoint.
+/// </summary>
 public class GetAuthConfigQueryHandler : IRequestHandler<GetAuthConfigQuery, AuthConfigDto>
 {
     private readonly IIdentityService _identityService;
-    public GetAuthConfigQueryHandler(IIdentityService identityService) => _identityService = identityService;
+    private readonly IAppDbContext _db;
+    public GetAuthConfigQueryHandler(IIdentityService identityService, IAppDbContext db)
+    {
+        _identityService = identityService;
+        _db = db;
+    }
 
-    public Task<AuthConfigDto> Handle(GetAuthConfigQuery request, CancellationToken cancellationToken) =>
-        _identityService.GetAuthConfigAsync();
+    public async Task<AuthConfigDto> Handle(GetAuthConfigQuery request, CancellationToken cancellationToken)
+    {
+        var google = await _identityService.GetAuthConfigAsync();
+        var settings = await _db.AppSettings
+            .Where(s => AppSettingKeys.PublicKeys.Contains(s.Key))
+            .ToDictionaryAsync(s => s.Key, s => s.Value, cancellationToken);
+
+        string? Get(string key) => settings.TryGetValue(key, out var v) ? v : null;
+
+        return google with
+        {
+            MaintenanceMode = Get(AppSettingKeys.MaintenanceMode) == "true",
+            AnnouncementMessage = Get(AppSettingKeys.AnnouncementMessage),
+            MinSupportedAppVersion = Get(AppSettingKeys.MinSupportedAppVersion),
+            SupportEmail = Get(AppSettingKeys.SupportEmail),
+        };
+    }
 }
 
 // ---------- Profile (prompt02 §1, §8) ----------

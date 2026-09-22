@@ -32,8 +32,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
+    // FromLogContext runs first, so a per-call override (e.g. DiagnosticsController pushing
+    // Source="MobileApp" for one relayed log line) wins; the fixed WithProperty below only fills
+    // in Source for everything else, since Serilog enrichers use AddPropertyIfAbsent.
     .Enrich.FromLogContext()
-    .Enrich.WithProperty("Application", "Dourak.Api"));
+    .Enrich.WithProperty("Source", "Dourak.Api")
+    .Enrich.WithProperty("Environment", context.HostingEnvironment.EnvironmentName));
 
 // ----- Services -----
 
@@ -118,7 +122,6 @@ var app = builder.Build();
 
 // ----- Pipeline -----
 
-app.UseSerilogRequestLogging(); // one structured line per HTTP request (method, path, status, elapsed ms)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -131,6 +134,10 @@ app.UseHttpsRedirection();
 app.UseCors(CorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
+// After auth (so the ClaimsPrincipal is populated) and before request logging (so its own
+// summary line picks up RequestId/UserId too, not just log lines from inside a controller).
+app.UseMiddleware<RequestLogEnrichmentMiddleware>();
+app.UseSerilogRequestLogging(); // one structured line per HTTP request (method, path, status, elapsed ms)
 app.MapControllers();
 // Under /api/mcp (not just /mcp) so it's reachable through the same Caddy `/api/*` reverse-proxy
 // block the rest of the API already uses in production — no separate infra/DNS/cert needed.

@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { AuthResult, AdminStats, AdminUser, SupportRequest } from "./types";
+import type { AuthResult, AdminStats, AdminUser, SupportRequest, PagedResult, AuditLog, AuditLogFilters, AppSetting } from "./types";
 
 export const authApi = {
   login: (data: { email: string; password: string }) =>
@@ -8,7 +8,8 @@ export const authApi = {
 
 export const adminApi = {
   stats: () => apiClient.get<AdminStats>("/admin/stats").then((r) => r.data),
-  users: () => apiClient.get<AdminUser[]>("/admin/users").then((r) => r.data),
+  users: (params: { page: number; pageSize: number }) =>
+    apiClient.get<PagedResult<AdminUser>>("/admin/users", { params }).then((r) => r.data),
   resetPassword: (userId: string, newPassword: string) =>
     apiClient.post(`/admin/users/${userId}/reset-password`, { newPassword }),
   deactivate: (userId: string) => apiClient.post(`/admin/users/${userId}/deactivate`),
@@ -23,4 +24,11 @@ export const adminApi = {
     const response = await apiClient.get(`/admin/support-requests/${id}/attachment`, { responseType: "blob" });
     return URL.createObjectURL(response.data as Blob);
   },
+
+  auditLogs: (params: AuditLogFilters) =>
+    apiClient.get<PagedResult<AuditLog>>("/admin/audit-logs", { params }).then((r) => r.data),
+  auditLogActions: () => apiClient.get<string[]>("/admin/audit-log-actions").then((r) => r.data),
+
+  settings: () => apiClient.get<AppSetting[]>("/admin/settings").then((r) => r.data),
+  updateSettings: (values: Record<string, string | null>) => apiClient.put("/admin/settings", values),
 };
