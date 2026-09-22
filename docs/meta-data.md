@@ -17,25 +17,25 @@ gitignored `docs/credential.md` for those. This file is safe to keep in the publ
 
 ## App identity / هوية التطبيق
 
-| | |
-|---|---|
-| Product name | **Dourak** (دورك) |
-| Tagline (EN) | A simple, Arabic-first organizer for جمعية / Savings Circles (ROSCA) |
-| الشعار (عربي) | أداة بسيطة، عربية أولاً، لتنظيم الجمعيات الادخارية |
-| One-line description | Helps a circle's organizer and members track membership, payout order, monthly contribution cycles, and self-reported payments — without ever touching or moving real money. |
-| وصف مختصر (عربي) | يساعد منظّم الجمعية وأعضاءها على متابعة العضوية، وترتيب استلام الدور، والدورات الشهرية، ومن أبلغ عن دفع اشتراكه — دون أن يلمس التطبيق أي أموال فعلية أو يحرّكها. |
-| Primary domain | `https://dourak.money` |
-| Admin site | `https://admin.dourak.money` (separate codebase, gated by an `Admin` Identity role) |
-| Logs (internal, no auth) | `https://logs.dourak.money` (Seq) |
-| DB admin (internal, no auth) | `https://db.dourak.money` (Adminer) |
-| Owner / contact email | `anass.shaddad@gmail.com` (published on every legal page) |
-| Owner (git author) | Anas Qutaishat |
-| Android package id | `com.dourak.mobile` |
-| Supported languages | Arabic (default/primary, RTL), English |
-| Platforms | Web (React SPA), Android (Flutter). No iOS build yet. |
-| Backend framework | ASP.NET Core 10 Web API, Clean Architecture |
-| Database | PostgreSQL |
-| Hosting | Self-managed Oracle Cloud VM, Docker Compose, Caddy reverse proxy (auto Let's Encrypt HTTPS) |
+|                              |                                                                                                                                                                              |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product name                 | **Dourak** (دورك)                                                                                                                                                            |
+| Tagline (EN)                 | A simple, Arabic-first organizer for جمعية / Savings Circles (ROSCA)                                                                                                         |
+| الشعار (عربي)                | أداة بسيطة، عربية أولاً، لتنظيم الجمعيات الادخارية                                                                                                                           |
+| One-line description         | Helps a circle's organizer and members track membership, payout order, monthly contribution cycles, and self-reported payments — without ever touching or moving real money. |
+| وصف مختصر (عربي)             | يساعد منظّم الجمعية وأعضاءها على متابعة العضوية، وترتيب استلام الدور، والدورات الشهرية، ومن أبلغ عن دفع اشتراكه — دون أن يلمس التطبيق أي أموال فعلية أو يحرّكها.             |
+| Primary domain               | `https://dourak.money`                                                                                                                                                       |
+| Admin site                   | `https://admin.dourak.money` (separate codebase, gated by an `Admin` Identity role)                                                                                          |
+| Logs (internal, no auth)     | `https://logs.dourak.money` (Seq)                                                                                                                                            |
+| DB admin (internal, no auth) | `https://db.dourak.money` (Adminer)                                                                                                                                          |
+| Owner / contact email        | `anass.shaddad@gmail.com` (published on every legal page)                                                                                                                    |
+| Owner (git author)           | Anas Qutaishat                                                                                                                                                               |
+| Android package id           | `com.dourak.mobile`                                                                                                                                                          |
+| Supported languages          | Arabic (default/primary, RTL), English                                                                                                                                       |
+| Platforms                    | Web (React SPA), Android (Flutter). No iOS build yet.                                                                                                                        |
+| Backend framework            | ASP.NET Core 10 Web API, Clean Architecture                                                                                                                                  |
+| Database                     | PostgreSQL                                                                                                                                                                   |
+| Hosting                      | Self-managed Oracle Cloud VM, Docker Compose, Caddy reverse proxy (auto Let's Encrypt HTTPS)                                                                                 |
 
 ### Longer description / وصف أطول (من `docs/proposal.md` و`docs/Dourak_Business_Requirements.md`)
 
@@ -73,14 +73,14 @@ keeps the financial record structured."**
 
 ## Version history (mobile)
 
-| Version | Build | Note |
-|---|---|---|
-| 1.0.0+1 | 1 | Original Flutter port |
-| 1.0.1+2 | 2 | First Play Console upload |
-| 1.0.2+3 | 3 | Rejected by Play Console before use — see 1.0.3 |
-| 1.0.3+4 | 4 | Fixed release AAB baked with the emulator-only API URL (`10.0.2.2`) instead of `https://dourak.money/api` — real devices couldn't reach the backend at all until this |
-| 1.0.4+5 | 5 | Fixed the app forcing re-login on every restart (a race between GoRouter's first redirect and the async secure-storage token read, not an actual token/persistence bug) |
-| 1.0.5+6 | 6 | Current — adds "Sign in with Google" (see below) |
+| Version | Build | Note                                                                                                                                                                    |
+| ------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0.0+1 | 1     | Original Flutter port                                                                                                                                                   |
+| 1.0.1+2 | 2     | First Play Console upload                                                                                                                                               |
+| 1.0.2+3 | 3     | Rejected by Play Console before use — see 1.0.3                                                                                                                         |
+| 1.0.3+4 | 4     | Fixed release AAB baked with the emulator-only API URL (`10.0.2.2`) instead of `https://dourak.money/api` — real devices couldn't reach the backend at all until this   |
+| 1.0.4+5 | 5     | Fixed the app forcing re-login on every restart (a race between GoRouter's first redirect and the async secure-storage token read, not an actual token/persistence bug) |
+| 1.0.5+6 | 6     | Current — adds "Sign in with Google" (see below)                                                                                                                        |
 
 Current live value: see `mobile/pubspec.yaml`'s `version:` line — keep this table's last row in
 sync with it when bumping.
@@ -96,7 +96,7 @@ sync with it when bumping.
   server client id is configured), `POST /api/auth/google` (accepts the ID token Google's own
   sign-in button returns; Dourak never sees the Google password, and requests no scope beyond
   basic profile/email — no Gmail/Drive/Calendar access). Mobile config note: uses
-  `serverClientId` (the *web* OAuth client, not a separate Android one) so the ID token's
+  `serverClientId` (the _web_ OAuth client, not a separate Android one) so the ID token's
   audience already matches what the backend validates — see `mobile/pubspec.yaml`'s comment
   next to the `google_sign_in` dependency.
 - **MCP clients** (Claude Desktop, ChatGPT, etc.) use a separate OAuth 2.1 flow in front of the
@@ -123,7 +123,7 @@ sync with it when bumping.
   > • Sign in with email or Google
   > • Bilingual: Arabic and English, right-to-left support throughout
   > • Your data stays yours — Dourak never touches or moves real money; all payment happens
-  >   directly between members
+  > directly between members
   >
   > Whether you're running a family جمعية or organizing one with coworkers, Dourak keeps
   > everyone on the same page without spreadsheets or group-chat confusion.
@@ -137,7 +137,7 @@ sync with it when bumping.
   > • تسجيل الدخول بالبريد الإلكتروني أو حساب جوجل
   > • ثنائي اللغة: عربي وإنجليزي، بدعم كامل للكتابة من اليمين لليسار
   > • بياناتك تبقى لك — دورك لا يلمس أو يحرّك أموالًا حقيقية أبدًا؛ كل الدفع يتم مباشرة بين
-  >   الأعضاء
+  > الأعضاء
 - **Category**: Finance, or Productivity/Tools (Finance is more discoverable but invites more
   scrutiny during Play review given the money-adjacent subject matter — Dourak's own terms are
   explicit that it never handles real money, which should be front-and-center if Finance is
@@ -276,7 +276,8 @@ A public contact form (no sign-in required): optional name, required email, requ
 optional image/PDF attachment (5MB limit, reuses the payment-claim-evidence storage). Backend:
 `SupportRequest` entity, `POST /api/support` (public). Submissions land in the admin site's
 "Support" page (`admin/src/pages/SupportRequestsPage.tsx`, via `GET /api/admin/support-requests`
-+ its attachment-download endpoint) for the owner to review — nothing is auto-answered.
+
+- its attachment-download endpoint) for the owner to review — nothing is auto-answered.
 
 نموذج تواصل عام (بدون تسجيل دخول): اسم اختياري، بريد إلكتروني مطلوب، رسالة مطلوبة، مرفق
 اختياري (صورة أو PDF، حتى 5 ميجابايت). تصل الرسائل لصفحة "Support" في موقع الإدارة ليراجعها
@@ -302,7 +303,7 @@ startup.
 Live at **`https://dourak.money/api/mcp`** — see `README.md` § "MCP server" and
 `docs/chatgpt-app-submission.md` for the full submission checklist.
 
-- **What it does**: lets a user's own AI assistant read and act on *their own* Dourak circles
+- **What it does**: lets a user's own AI assistant read and act on _their own_ Dourak circles
   — never another user's data (every tool resolves identity from the authenticated session,
   never a caller-supplied id).
 - **Auth**: full OAuth 2.1 (RFC 7591 dynamic client registration, RFC 8414/9728 discovery,
@@ -311,10 +312,10 @@ Live at **`https://dourak.money/api/mcp`** — see `README.md` § "MCP server" a
   custom-connector form) can instead paste a bearer token from `POST /api/auth/login`. Access
   tokens are the same short-lived JWTs; refresh tokens are opaque, rotated on every use, 90-day
   lifetime.
-- **Tools exposed**: *read* — `get_my_circles`, `get_circle_details`, `get_current_cycle_status`,
+- **Tools exposed**: _read_ — `get_my_circles`, `get_circle_details`, `get_current_cycle_status`,
   `get_circle_members`, `get_circle_history` (returns the same per-month detail as the website's
   "الدورات الشهرية" tab), `get_pending_invitations`, `get_my_payment_claims`,
-  `get_my_payment_reminders`. *Write* — `create_circle`, `add_circle_member`, `activate_circle`,
+  `get_my_payment_reminders`. _Write_ — `create_circle`, `add_circle_member`, `activate_circle`,
   `submit_payment_claim`, `withdraw_payment_claim`, `set_payment_reminder`,
   `remove_payment_reminder`. Each tool carries MCP annotations (`readOnlyHint`/
   `destructiveHint`/`idempotentHint`/`openWorldHint`/a human-readable title).
@@ -342,7 +343,11 @@ Live at **`https://dourak.money/api/mcp`** — see `README.md` § "MCP server" a
   rather than duplicating its full text here, since it changes over time and this file shouldn't
   have to be kept in lockstep with it.
 
----
+## Google analytics
+
+**measurment id:** G-DJ09MDYNHC  
+**URL:** https://analytics.google.com/analytics/web/#/a409049726p555387663/reports/intelligenthome  
+**firebase json file:** docs\materials\google-services.json
 
 ## Tech stack summary (for any "what is this built with" field)
 

@@ -55,6 +55,10 @@ jobs:
           script: |
             set -e
             cd "${{ secrets.ORACLE_DEPLOY_PATH }}"
+            # Back up the DB + evidence volume before touching anything, using
+            # whatever backup-prod.sh already exists on disk (not the incoming
+            # version) in case this pull is the one introducing a bad change.
+            bash scripts/backup-prod.sh
             git pull --ff-only
             docker compose up -d --build
             docker image prune -f

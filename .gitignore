@@ -21,3 +21,4 @@ Thumbs.db
 
 # Local-only secrets (never commit — see docs/credential.md's own warning)
 docs/credential.md
+docs/credentials/

@@ -24,6 +24,8 @@ dependencies:
   # LoginScreen). Configured with `serverClientId` (the web OAuth client, not a separate
   # Android one) so the ID token it returns is already the audience the backend validates.
   google_sign_in: ^6.2.2
+  firebase_core: ^4.15.0
+  firebase_analytics: ^12.6.0
 
 dev_dependencies:
   flutter_test:

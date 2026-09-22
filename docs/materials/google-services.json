@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "978288902177",
+    "project_id": "dourak-be29f",
+    "storage_bucket": "dourak-be29f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:978288902177:android:849284d491db48fa44e360",
+        "android_client_info": {
+          "package_name": "com.dourak.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqenbVsdMvBVslJG1lQfEGNDCHZw9ZM38"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
