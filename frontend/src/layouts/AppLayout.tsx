@@ -86,13 +86,23 @@ export function AppLayout() {
               <Stack direction="row" spacing={1} alignItems="center" sx={{ marginInlineStart: 2 }}>
                 <Button component={RouterLink} to="/">{t("nav.dashboard")}</Button>
                 <Button component={RouterLink} to="/circles">{t("nav.myCircles")}</Button>
-                <Button component="a" href={userGuideUrl} target="_blank" rel="noopener">{t("nav.userGuide")}</Button>
               </Stack>
 
               <Box sx={{ flexGrow: 1 }} />
 
-              {/* Language switcher + account menu: always on the end side. */}
+              {/* Language switcher + account menu: always on the end side. The User Guide link
+                  sits here too (not with Dashboard/My Circles) — styled distinctly (outlined,
+                  with an icon) so it stands out — placed right before the language switcher, so
+                  reading order is: account name (outermost end edge) → language → User Guide. */}
               <Stack direction="row" spacing={1} alignItems="center">
+                <Button
+                  component="a" href={userGuideUrl} target="_blank" rel="noopener"
+                  variant="outlined" size="small" startIcon={<HelpOutlineIcon />}
+                  sx={{ textTransform: "none" }}
+                >
+                  {t("nav.userGuide")}
+                </Button>
+
                 {languageSelect}
 
                 <Button
@@ -154,7 +164,7 @@ export function AppLayout() {
               {t("nav.myProfile")}
             </Button>
             <Button
-              fullWidth startIcon={<HelpOutlineIcon />} sx={{ justifyContent: "flex-start" }}
+              fullWidth variant="outlined" startIcon={<HelpOutlineIcon />} sx={{ justifyContent: "flex-start" }}
               component="a" href={userGuideUrl} target="_blank" rel="noopener"
               onClick={() => setDrawerOpen(false)}
             >
