@@ -66,32 +66,54 @@ class _MonthSection extends ConsumerWidget {
     final underCollection = !isFuture && !month.fullyCollected;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 32),
+      // Widened further so a quick scroll gives each month's block clear breathing room from
+      // the next one, on top of the heading's own solid-color band below.
+      padding: const EdgeInsets.only(bottom: 56),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(monthName, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-              if (isCurrent) SimpleBadge(label: context.t('circle.currentMonthBadge'), color: Theme.of(context).colorScheme.primary),
-              // Badges only make sense once the month has actually started — a future month's
-              // (always-zero) collected amount would otherwise read as "behind on collection".
-              if (!isFuture) ...[
-                SimpleBadge(
-                  label: context.t(month.fullyCollected ? 'circle.collectionDone' : 'circle.collectionUnderway'),
-                  color: month.fullyCollected ? Colors.green : Colors.orange,
+          // A solid-color banner (not a tinted card) so it reads as unmistakably different from
+          // the white member Cards below it — a light tint was too close to those cards' own
+          // background/shadow at a glance and still read as "just another row".
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  monthName,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
                 ),
-                SimpleBadge(
-                  label: context.t(month.payoutStatus == 'Paid' ? 'circle.payoutPaidBadge' : 'circle.payoutPendingBadge'),
-                  color: month.payoutStatus == 'Paid' ? Colors.green : Colors.orange,
-                ),
+                if (isCurrent)
+                  SimpleBadge(label: context.t('circle.currentMonthBadge'), color: Theme.of(context).colorScheme.onPrimary, textColor: Theme.of(context).colorScheme.primary),
+                // Badges only make sense once the month has actually started — a future month's
+                // (always-zero) collected amount would otherwise read as "behind on collection".
+                if (!isFuture) ...[
+                  SimpleBadge(
+                    label: context.t(month.fullyCollected ? 'circle.collectionDone' : 'circle.collectionUnderway'),
+                    color: month.fullyCollected ? Colors.green.shade100 : Colors.orange.shade100,
+                    textColor: month.fullyCollected ? Colors.green.shade900 : Colors.orange.shade900,
+                  ),
+                  SimpleBadge(
+                    label: context.t(month.payoutStatus == 'Paid' ? 'circle.payoutPaidBadge' : 'circle.payoutPendingBadge'),
+                    color: month.payoutStatus == 'Paid' ? Colors.green.shade100 : Colors.orange.shade100,
+                    textColor: month.payoutStatus == 'Paid' ? Colors.green.shade900 : Colors.orange.shade900,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           if (underCollection)
             Text(
               '${context.t('circle.collectedAmountsLabel')} : ${formatAmount(month.collectedAmount)} / ${formatAmount(month.expectedPoolAmount)}',

@@ -22,3 +22,7 @@ Thumbs.db
 # Local-only secrets (never commit — see docs/credential.md's own warning)
 docs/credential.md
 docs/credentials/
+
+# Personal Claude Code permission rules (references the prod server IP — same reasoning
+# as docs/credentials/ above, this is a public repo)
+.claude/settings.local.json

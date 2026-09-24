@@ -1,5 +1,15 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- firebase_analytics's own manifest requests these unconditionally, even though
+         google_analytics_adid_collection_enabled=false (below) stops it from actually
+         being used. Play Console flags the permission's mere presence regardless of that
+         setting, so remove it at merge time to keep the "No" advertising-ID declaration
+         truthful and avoid the Play Console warning. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove" />
 
     <application
         android:label="Dourak"
@@ -47,6 +57,14 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Dourak has no ads/attribution use for the Advertising ID — explicitly opt
+             Firebase Analytics out of collecting it. This keeps the true answer to Play
+             Console's "Does your app use advertising ID?" declaration as No, so the
+             com.google.android.gms.permission.AD_ID permission is never required. -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
     </application>
 
     <!-- url_launcher (WhatsApp share intents, §6.22 / mobile-plan §2) needs these

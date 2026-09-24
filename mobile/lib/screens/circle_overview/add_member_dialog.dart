@@ -13,6 +13,13 @@ import '../../utils/whatsapp.dart';
 /// WhatsApp invite for someone who isn't on Dourak yet — asks for their name, creates a
 /// real Pending member row via `POST /circles/{id}/members/invite-unregistered`, and
 /// sends a WhatsApp message linking to `{app}/invite/{token}`.
+///
+/// A full page (pushed via Navigator), not a dialog — a dialog's search results and Add
+/// button had to compete with the keyboard for a small fixed box, and shrinking that box
+/// to fit still left users unsure anything had appeared below the fold, with no visual cue
+/// to scroll. A full Scaffold resizes around the keyboard the way any normal screen does:
+/// the results list is obviously a big scrollable list (not a maybe-clipped few pixels),
+/// and the Add button sits pinned directly under it, always on-screen.
 class AddMemberDialog extends ConsumerStatefulWidget {
   const AddMemberDialog({super.key, required this.circleId, required this.circleName, required this.organizerName});
 
@@ -112,13 +119,21 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(context.t('circle.addMember')),
-      content: SizedBox(
-        width: 400,
-        child: SingleChildScrollView(
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(context.t('circle.addMember')),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(context.t('common.close'))),
+        ],
+      ),
+      // The default true — the body shrinks as the keyboard rises instead of the keyboard
+      // simply covering the bottom of it, which is what keeps the Add button (last in this
+      // Column, right under the Expanded results list) pinned in view above the keyboard.
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (error != null) ...[
@@ -141,6 +156,7 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
               const SizedBox(height: 8),
               TextField(
                 controller: term,
+                autofocus: true,
                 onChanged: _onChanged,
                 decoration: InputDecoration(
                   labelText: context.t('circle.searchUsers'),
@@ -148,16 +164,26 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
                   suffixIcon: searching ? const Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2)) : null,
                 ),
               ),
-              const SizedBox(height: 8),
-              if (term.text.trim().length >= 2 && options.isEmpty && !searching)
-                Text(context.t('circle.noUsersFound'), style: Theme.of(context).textTheme.bodySmall),
-              ...options.map((o) => ListTile(
-                    dense: true,
-                    selected: selected?.userId == o.userId,
-                    title: Text(o.displayLabel),
-                    subtitle: Text([o.email, o.phone].where((s) => s != null && s.isNotEmpty).join(' · ')),
-                    onTap: () => setState(() => selected = o),
-                  )),
+              const SizedBox(height: 4),
+              // A full-height scrollable list (not a few clipped rows in a dialog) — its own
+              // size and scrollbar make it obvious more content exists, and it's the only
+              // thing that grows/shrinks here as the keyboard opens and closes.
+              Expanded(
+                child: term.text.trim().length >= 2 && options.isEmpty && !searching
+                    ? Center(child: Text(context.t('circle.noUsersFound'), style: Theme.of(context).textTheme.bodySmall))
+                    : ListView.builder(
+                        itemCount: options.length,
+                        itemBuilder: (context, i) {
+                          final o = options[i];
+                          return ListTile(
+                            selected: selected?.userId == o.userId,
+                            title: Text(o.displayLabel),
+                            subtitle: Text([o.email, o.phone].where((s) => s != null && s.isNotEmpty).join(' · ')),
+                            onTap: () => setState(() => selected = o),
+                          );
+                        },
+                      ),
+              ),
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
@@ -170,9 +196,6 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
           ),
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(context.t('common.close'))),
-      ],
     );
   }
 }

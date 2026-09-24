@@ -106,14 +106,15 @@ class ClaimStatusChip extends StatelessWidget {
 /// A plain filled badge — the shared building block behind the month/collection/payout badges
 /// the Monthly Cycles tab, the Current Cycle tab and the home-screen card all show.
 class SimpleBadge extends StatelessWidget {
-  const SimpleBadge({super.key, required this.label, required this.color});
+  const SimpleBadge({super.key, required this.label, required this.color, this.textColor = Colors.white});
   final String label;
   final Color color;
+  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
     return Chip(
-      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
+      label: Text(label, style: TextStyle(color: textColor, fontSize: 11)),
       backgroundColor: color,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,

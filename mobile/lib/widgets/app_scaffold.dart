@@ -26,15 +26,21 @@ class AppScaffold extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leadingWidth: 56,
-        leading: Padding(
-          padding: const EdgeInsets.all(8),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset('assets/images/dourak_logo.png'),
-          ),
+        // No custom `leading` here on purpose — setting one suppresses Flutter's automatic
+        // drawer-toggle (hamburger) button, which made the drawer below (My Circles, User
+        // Guide, Support) unreachable with no visible way to open it. The logo moves into
+        // the title row instead so it's still shown, without hiding the menu button.
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset('assets/images/dourak_logo.png', width: 28, height: 28),
+            ),
+            const SizedBox(width: 10),
+            Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+          ],
         ),
-        title: Text(title),
         actions: [
           ...?actions,
           IconButton(

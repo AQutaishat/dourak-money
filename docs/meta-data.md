@@ -1,18 +1,5 @@
 # Dourak — Project Metadata / بيانات المشروع الوصفية
 
-A single place for every piece of "outward-facing" information about Dourak scattered across
-chat, code, and published pages — app identity, legal text (English **and** Arabic in full),
-store-listing copy, contact info, version history, and third-party integration metadata. Pulled
-together from: `mobile/pubspec.yaml`, `README.md`, `docs/proposal.md`,
-`docs/Dourak_Business_Requirements.md`, `docs/Dourak_Short_Competitor_Study.md`,
-`docs/chatgpt-app-submission.md`, `docs/future-work.md`, and the live pages at
-`dourak.money/{privacy,terms,support}` (both `/en.html` and `/ar.html`), plus everything
-established across this project's chat sessions (MCP/OAuth work, mobile release history, Google
-Sign-In, the disk/build troubleshooting that came up along the way).
-
-**Not included here on purpose**: server credentials, SSH keys, IPs — see the separate,
-gitignored `docs/credential.md` for those. This file is safe to keep in the public repo.
-
 ---
 
 ## App identity / هوية التطبيق
@@ -87,21 +74,7 @@ sync with it when bumping.
 
 ---
 
-## Sign-in methods
-
-- **Email + password** — the original method. `POST /api/auth/register`,
-  `POST /api/auth/login`. Passwords are salted-hashed via ASP.NET Identity, never stored plain.
-- **Google Sign-In** (added since this file was first written) — `GET /api/auth/config`
-  (public: tells the frontend/mobile whether to render the Google button at all — off until a
-  server client id is configured), `POST /api/auth/google` (accepts the ID token Google's own
-  sign-in button returns; Dourak never sees the Google password, and requests no scope beyond
-  basic profile/email — no Gmail/Drive/Calendar access). Mobile config note: uses
-  `serverClientId` (the _web_ OAuth client, not a separate Android one) so the ID token's
-  audience already matches what the backend validates — see `mobile/pubspec.yaml`'s comment
-  next to the `google_sign_in` dependency.
-- **MCP clients** (Claude Desktop, ChatGPT, etc.) use a separate OAuth 2.1 flow in front of the
-  same login — see the MCP section below. Not a sign-in method for the app itself, for an AI
-  assistant acting on a user's own behalf.
+##
 
 ---
 

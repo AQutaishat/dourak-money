@@ -12,7 +12,32 @@
           "package_name": "com.dourak.mobile"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "978288902177-h5q4pp84idltfgknlpp3cv245a1barkd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dourak.mobile",
+            "certificate_hash": "dcc31c29a5f6a5ec8c788c88777275e72477d60a"
+          }
+        },
+        {
+          "client_id": "978288902177-ra26qh104kt2dj0k6ckkiabk6c86d3gv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dourak.mobile",
+            "certificate_hash": "73fb4cccb990f1a29dd9a4c26fd64bdcd1b289d5"
+          }
+        },
+        {
+          "client_id": "978288902177-uu6ftm3206o0d426t2hfbhajepfddqvl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dourak.mobile",
+            "certificate_hash": "1dcecfc94ef570f49dd183acdf1b0ce827eea6fb"
+          }
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCqenbVsdMvBVslJG1lQfEGNDCHZw9ZM38"

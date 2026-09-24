@@ -33,6 +33,9 @@ services:
       # Flutter web dev server (mobile/) — pinned via `flutter run -d chrome --web-port=8090`
       # so this origin stays stable across runs instead of a random port each time.
       Cors__AllowedOrigins__1: "http://localhost:8090"
+      # Fallback when 8090 is already taken by another project's container on this machine
+      # (e.g. another repo's Caddy bound to it) — same idea, just a spare pinned port.
+      Cors__AllowedOrigins__2: "http://localhost:8091"
       # Note: the admin site (admin.dourak.money) does NOT need a CORS entry here — its own
       # Caddy container proxies /api/* to this same api container internally (see
       # admin/Caddyfile), so its browser calls are same-origin, not cross-origin.

@@ -21,7 +21,9 @@ class BasicInfoTab extends ConsumerStatefulWidget {
 
 class _BasicInfoTabState extends ConsumerState<BasicInfoTab> {
   bool editing = false;
-  bool collapsed = false;
+  // Collapsed by default — this box's detail grid was pushing the more actionable tabs
+  // (schedule, members) further down the screen on every visit.
+  bool collapsed = true;
   late TextEditingController name;
   late TextEditingController description;
   late TextEditingController contributionAmount;

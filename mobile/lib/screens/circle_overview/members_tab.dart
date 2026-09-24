@@ -45,10 +45,10 @@ class MembersTab extends ConsumerWidget {
                         label: Text(context.t('circle.addSelfAsMember')),
                       ),
                     FilledButton(
-                      onPressed: () => showDialog(
-                        context: context,
+                      // A full page push, not a dialog — see AddMemberDialog's doc comment.
+                      onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
                         builder: (_) => AddMemberDialog(circleId: circle.id, circleName: circle.name, organizerName: circle.organizerName),
-                      ),
+                      )),
                       child: Text(context.t('circle.addMember')),
                     ),
                   ]),

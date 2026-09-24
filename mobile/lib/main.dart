@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,7 +26,12 @@ import 'utils/invite_token.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  // Only Android has Firebase config registered (google-services.json) — there's no
+  // firebase_options.dart/web config, so calling this unconditionally on web throws before
+  // runApp() ever executes, leaving a blank white page with no error shown anywhere.
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
+  }
   // Needed so DateFormat.yMMMM('ar')/('en') can render month/year labels — mirrors
   // the date formatting used throughout CurrentCycleTab.tsx / HistoryTab.tsx etc.
   await initializeDateFormatting('ar');
