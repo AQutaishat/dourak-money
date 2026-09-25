@@ -1,4 +1,5 @@
 using System.Net;
+using Dourak.Application.Admin;
 using Dourak.Application.Auth;
 using Dourak.Application.Common.Interfaces;
 using Dourak.Domain.Entities;
@@ -64,6 +65,7 @@ public class IdentityService : IIdentityService
         // Fire-and-forget in spirit, but awaited so a mail outage is logged, not silently lost —
         // SendEmailVerificationAsync itself never throws (see its try/catch in SmtpEmailSender).
         await SendEmailVerificationAsync(user.Id);
+        await SendRegistrationNotificationAsync(user.Email!);
 
         var (token, expiresAt) = _tokenGenerator.Generate(user);
         return new AuthResult(true, user.Id, token, expiresAt, Array.Empty<string>());
@@ -265,6 +267,37 @@ public class IdentityService : IIdentityService
             cancellationToken);
     }
 
+    /// <summary>Notifies the addresses configured in the admin Settings page (see
+    /// <see cref="Dourak.Application.Admin.AppSettingKeys.RegistrationNotificationEmails"/>) whenever
+    /// someone registers — only when the accompanying enabled flag is on.</summary>
+    private async Task SendRegistrationNotificationAsync(string registeredEmail, CancellationToken cancellationToken = default)
+    {
+        var settings = await _db.AppSettings
+            .Where(s => s.Key == AppSettingKeys.RegistrationNotificationEnabled
+                     || s.Key == AppSettingKeys.RegistrationNotificationEmails)
+            .ToDictionaryAsync(s => s.Key, s => s.Value, cancellationToken);
+
+        var enabled = settings.TryGetValue(AppSettingKeys.RegistrationNotificationEnabled, out var enabledValue)
+            && enabledValue == "true";
+        if (!enabled) return;
+
+        if (!settings.TryGetValue(AppSettingKeys.RegistrationNotificationEmails, out var recipientsValue)
+            || string.IsNullOrWhiteSpace(recipientsValue)) return;
+
+        var recipients = recipientsValue.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        foreach (var recipient in recipients)
+        {
+            await _emailSender.SendAsync(
+                recipient,
+                "New Dourak registration",
+                $"""
+                <p>A new user just registered on Dourak.</p>
+                <p>Email: {WebUtility.HtmlEncode(registeredEmail)}</p>
+                """,
+                cancellationToken);
+        }
+    }
+
     public async Task<OperationResult> ConfirmEmailAsync(string userId, string token)
     {
         var user = await _userManager.FindByIdAsync(userId);
@@ -326,7 +359,7 @@ public class IdentityService : IIdentityService
 
     public async Task<IReadOnlyList<AdminUserDto>> GetAllUsersForAdminAsync()
     {
-        var users = await _userManager.Users.ToListAsync();
+        var users = await _userManager.Users.OrderByDescending(u => u.CreatedAt).ToListAsync();
 
         // One query each for the organizer and membership side, instead of N+1 per user.
         var organized = await _db.Circles

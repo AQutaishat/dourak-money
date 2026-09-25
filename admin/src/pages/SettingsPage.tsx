@@ -19,6 +19,8 @@ export function SettingsPage() {
   const [announcementMessage, setAnnouncementMessage] = useState("");
   const [minSupportedAppVersion, setMinSupportedAppVersion] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
+  const [registrationNotificationEmails, setRegistrationNotificationEmails] = useState("");
+  const [registrationNotificationEnabled, setRegistrationNotificationEnabled] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -28,6 +30,8 @@ export function SettingsPage() {
     setAnnouncementMessage(get("announcementMessage"));
     setMinSupportedAppVersion(get("minSupportedAppVersion"));
     setSupportEmail(get("supportEmail"));
+    setRegistrationNotificationEmails(get("registrationNotificationEmails"));
+    setRegistrationNotificationEnabled(get("registrationNotificationEnabled") === "true");
   }, [settings]);
 
   const save = useMutation({
@@ -36,6 +40,8 @@ export function SettingsPage() {
       announcementMessage: announcementMessage.trim() || null,
       minSupportedAppVersion: minSupportedAppVersion.trim() || null,
       supportEmail: supportEmail.trim() || null,
+      registrationNotificationEmails: registrationNotificationEmails.trim() || null,
+      registrationNotificationEnabled: String(registrationNotificationEnabled),
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
@@ -95,6 +101,26 @@ export function SettingsPage() {
             type="email"
             helperText="Shown to users as the contact address, in place of a hardcoded one."
           />
+
+          <Box>
+            <TextField
+              label="Registration notification emails"
+              value={registrationNotificationEmails}
+              onChange={(e) => setRegistrationNotificationEmails(e.target.value)}
+              fullWidth
+              placeholder="e.g. admin1@example.com, admin2@example.com"
+              helperText="Comma-separated list of addresses notified whenever a new user registers."
+            />
+            <FormControlLabel
+              control={(
+                <Switch
+                  checked={registrationNotificationEnabled}
+                  onChange={(e) => setRegistrationNotificationEnabled(e.target.checked)}
+                />
+              )}
+              label="Send email on registration"
+            />
+          </Box>
 
           <Button variant="contained" onClick={() => save.mutate()} disabled={save.isPending} sx={{ alignSelf: "flex-start" }}>
             Save
