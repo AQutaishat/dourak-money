@@ -22,7 +22,7 @@
 | Platforms                    | Web (React SPA), Android (Flutter). No iOS build yet.                                                                                                                        |
 | Backend framework            | ASP.NET Core 10 Web API, Clean Architecture                                                                                                                                  |
 | Database                     | PostgreSQL                                                                                                                                                                   |
-| Hosting                      | Self-managed Oracle Cloud VM, Docker Compose, Caddy reverse proxy (auto Let's Encrypt HTTPS)                                                                                 |
+| Hosting                      | Self-managed Oracle Cloud VM, Docker Compose, Caddy reverse proxy (auto Let's Encrypt HTTPS; also fronts the sibling DAQN site daqn.hair)                                                                                 |
 
 ### Longer description / وصف أطول (من `docs/proposal.md` و`docs/Dourak_Business_Requirements.md`)
 

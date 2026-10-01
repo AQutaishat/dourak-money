@@ -140,3 +140,6 @@ the user for credentials each time.
   re-read all of `docs/` first, execute immediately without a plan/approval pause, log progress
   in `progress.md` under a phase heading, mark requirements `[DONE]` inline).
 - `docs/project-docs/` — BRD, competitor studies — source of truth for product scope/decisions.
+
+## Shared server note
+`frontend/Caddyfile` also contains a `daqn.hair` block that proxies to the DAQN project's `daqn-web` container (same server, joined to this compose network). Keep it when editing the Caddyfile; see `docs/working-docs/progress.md`.

@@ -382,3 +382,12 @@ as of this writing — see `docs/future-work.md`).
 **Verified**: `dotnet build`/`dotnet test` (68/68 passing),
 `npm run build` (`frontend/`) and `npm run build` (`admin/`) all succeed;
 `docker compose config -q` validates the updated compose file.
+
+## Shared server: DAQN hosted behind Dourak's Caddy (2026-10-01)
+
+- The Oracle server now also runs **DAQN** (separate project: `/home/ubuntu/daqn`, containers `daqn-postgres`, `daqn-api`, `daqn-web`).
+- `frontend/Caddyfile` has a new site block `daqn.hair, www.daqn.hair` → `reverse_proxy daqn-web:80`. Dourak's Caddy remains the only thing on ports 80/443 and issues the Let's Encrypt cert for that domain.
+- DAQN's `web` container joins the `dourak-money_default` network (declared external in DAQN's compose); Dourak's `docker-compose.yml` is unchanged. Do not rename the Dourak compose project/network without updating DAQN's `PUBLIC_PROXY_NETWORK`.
+- Status: DAQN containers running and reachable on the network; the Caddyfile change is committed/deployed only after DNS for daqn.hair points at the server (check git log / Actions for the deploy).
+- A reference copy of the Caddyfile is kept in `docs/materials/Caddyfile`. Backups: DAQN has its own cron at 03:30 (Dourak's stays at 03:00).
+- The `daqn.hair` block trusts `Cf-Connecting-Ip` (when present) as the client address passed to DAQN, so DAQN can sit behind Cloudflare's proxy (orange cloud, SSL mode Full (strict)). Issue the certificate with the record grey first, then switch to proxied.

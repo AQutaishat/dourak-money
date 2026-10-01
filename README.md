@@ -257,6 +257,10 @@ the same API at **`https://dourak.money/api/mcp`** and already live in productio
 - **Known limitation**: no way yet to revoke a connected client's refresh token from the UI
   (e.g. a "disconnect this app" button on the profile page) — see `docs/future-work.md`.
 
+## Shared hosting: DAQN
+
+The same server also hosts DAQN (`https://daqn.hair`). This project's Caddy terminates TLS for that domain via the `daqn.hair` block in `frontend/Caddyfile` and proxies to the `daqn-web` container on the `dourak-money_default` network. A copy of the Caddyfile is in `docs/materials/Caddyfile`.
+
 ## Deployment (GitHub Actions)
 
 `.github/workflows/deploy.yml` deploys to the production Oracle server automatically
